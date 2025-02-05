@@ -1,0 +1,16 @@
+{
+  "extensions": [
+    "metaphore.kanagawa-vscode-color-theme",
+    "vscodevim.vim",
+    "ms-vscode.powershell",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    "Vue.volar",
+    "ms-python.python",
+    "redhat.vscode-yaml",
+    "redhat.vscode-xml",
+    "ms-vscode-remote.remote-containers",
+    "ms-python.black-formatter",
+    "ms-python.isort"
+  ]
+}

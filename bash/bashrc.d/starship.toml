@@ -1,0 +1,67 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+add_newline = false
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+\n$character\
+"""
+palette = "ayu_dark"
+
+# ayu dark from helix: https://github.com/helix-editor/helix/blob/master/runtime/themes/ayu_dark.toml
+[palettes.ayu_dark]
+background = "#0F1419"
+foreground = "#BFBDB6"
+black = "#131721"
+blue = "#59C2FF"
+dark_gray = "#2D3640"
+cyan = "#95E6CB"
+gray = "#5C6773"
+green = "#AAD94C"
+magenta = "#D2A6FF"
+orange = "#FF8F40"
+red = "#f07178"
+yellow = "#E6B450"
+
+# ayu light from helix: https://github.com/helix-editor/helix/blob/master/runtime/themes/ayu_light.toml
+[palettes.ayu_light]
+background = "#fafafa"
+foreground = "#5c6166"
+black = "#e7eaed"
+white = "#fcfcfc"
+blue = "#399ee6"
+light_blue = "#55b4d4"
+cyan = "#478acc"
+dark_gray = "#d8d8d7"
+gray = "#828c9a"
+green = "#86b300"
+magenta = "#a37acc"
+orange = "#fa8d3e"
+red = "#f07171"
+yellow = "#ffaa33"
+
+[username]
+style_user = 'orange'
+style_root = 'red'
+format = '[$user]($style)'
+show_always = true
+
+[hostname]
+format = ' at [$ssh_symbol](blue)[$hostname](blue)'
+ssh_only = false
+disabled = false
+
+[directory]
+format = ' in [$path](cyan)'
+disabled = false
+
+[git_branch]
+symbol = ''
+format = ' on [$symbol$branch(:$remote_branch)]($style)'
+style = 'magenta'
+disabled = false
+
+[character]
+success_symbol = '[❯](green)'

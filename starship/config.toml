@@ -1,0 +1,77 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+add_newline = false
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+\n$character\
+"""
+palette = "kanagawa_lotus"
+
+[palettes.kanagawa_wave]
+background = "#1F1F28"
+foreground = "#DCD7BA"
+black      = "#090618"
+blue       = "#7E9CD8"
+dark_gray  = "#727169"
+cyan       = "#658594"
+gray       = "#727169"
+green      = "#98BB6C"
+magenta    = "#957FB8"
+orange     = "#FFA066"
+red        = "#E46876"
+yellow     = "#DCA561"
+
+[palettes.kanagawa_lotus]
+foreground = "#C5C9C5"
+background = "#181616"
+black      = "#0D0C0A"
+blue       = "#7FB4CA"
+dark_gray  = "#54546D"
+cyan       = "#6A9589"
+gray       = "#54546D"
+green      = "#76946A"
+magenta    = "#938AA9"
+orange     = "#FFA066"
+red        = "#E82424"
+yellow     = "#E6C384"
+
+[palettes.kanagawa_dragon]
+background = "#181616"
+foreground = "#C5C9C5"
+black      = "#090618"
+blue       = "#223D5E"
+dark_gray  = "#3D4B59"
+cyan       = "#4FA8A8"
+gray       = "#3D4B59"
+green      = "#4FAA72"
+magenta    = "#9A93E1"
+orange     = "#FFA066"
+red        = "#D8616B"
+yellow     = "#F1CF8A"
+
+[username]
+style_user = 'orange'
+style_root = 'red'
+format = '[$user]($style)'
+show_always = true
+
+[hostname]
+format = ' at [$ssh_symbol](blue)[$hostname](blue)'
+ssh_only = false
+disabled = false
+
+[directory]
+format = ' in [$path](cyan)'
+disabled = false
+
+[git_branch]
+symbol = ''
+format = ' on [$symbol$branch(:$remote_branch)]($style)'
+style = 'magenta'
+disabled = false
+
+[character]
+success_symbol = '[❯](green)'

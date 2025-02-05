@@ -1,0 +1,68 @@
+set number
+set relativenumber	" Sets relative line numbers
+set cursorline		" Highlight the current line
+set incsearch
+
+" Sets the map leader
+let mapleader="\<Space>"
+
+" Unbinds the Space key (as it is used as a leader key)
+nnoremap <Space> <NOP>
+
+" Clipboard
+nnoremap <leader>y "+y
+vnoremap <leader>y "+y
+nnoremap <leader>p "+p
+vnoremap <leader>p "+p
+
+" Select
+nnoremap <leader>a ggVG
+
+" Indent while remaining in visual mode
+vnoremap < <gv
+vnoremap > >gv
+
+" Move lines
+vnoremap J :vsc Edit.MoveSelectedLinesDown<CR>
+vnoremap K :vsc Edit.MoveSelectedLinesUp<CR>
+
+" Toggle comments
+nnoremap gcc :vsc Edit.ToggleLineComment<CR>
+vnoremap gc :vsc Edit.ToggleLineComment<CR>
+
+" Built-in navigation to navigated items
+nnoremap <C-o> :vsc View.NavigateBackward<CR>
+nnoremap <C-i> :vsc View.NavigateForward<CR>
+
+" Go to code
+nnoremap gd :vsc Edit.GoToDefinition<CR>
+nnoremap gi :vsc Edit.GoToImplementation<CR>
+nnoremap go :vsc Edit.GoToTypeDefinition<CR>
+nnoremap gr :vsc Edit.FindAllReferences<CR>
+
+" Search code
+nnoremap <leader>ss :vsc Edit.GoToAll<CR>
+nnoremap <leader>sf :vsc Edit.GoToFile<CR>
+nnoremap <leader>sr :vsc Edit.GoToRecentFile<CR>
+nnoremap <leader>sg :vsc Edit.FindInFiles<CR>
+nnoremap <leader>so :vsc Edit.GoToSymbol<CR>
+nnoremap <leader>sd :vsc View.ErrorList<CR>
+
+" Refactoring
+nnoremap <Space>va :vsc View.QuickActions<CR>
+vnoremap <Space>va :vsc View.QuickActions<CR>
+nnoremap <Space>rn :vsc Refactor.Rename<CR>
+nnoremap <Space>rm :vsc Refactor.ExtractMethod<CR>
+vnoremap <Space>rm :vsc Refactor.ExtractMethod<CR>
+
+" Git
+nnoremap <leader>gb :vsc Team.Git.Annotate<CR>
+
+" Show information
+nnoremap K :vsc Edit.QuickInfo<CR>
+nnoremap <leader>vd :vsc View.ErrorDescription<CR>
+
+" Unit tests
+nnoremap <leader>tt :vsc TestExplorer.RunAllTests<CR>
+nnoremap <leader>tr :vsc TestExplorer.RunAllTestsInContext<CR>
+nnoremap <leader>td :vsc TestExplorer.DebugAllTestsInContext<CR>

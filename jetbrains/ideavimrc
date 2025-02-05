@@ -1,0 +1,88 @@
+set relativenumber
+set number
+set incsearch
+set ideajoin
+set hls
+set scrolloff=5
+
+let mapleader = " "
+
+nnoremap · ^
+vnoremap · ^
+
+" Clipboard
+nnoremap <leader>y "+y
+vnoremap <leader>y "+y
+nnoremap <leader>p "+p
+vnoremap <leader>p "+p
+
+" Completion
+imap <C-y> <Action>(EditorChooseLookupItem)
+imap <C-n> <Action>(EditorDown)
+imap <C-p> <Action>(EditorUp)
+
+" Select
+nnoremap <leader>a ggVG
+
+" Indent while remaining in visual mode
+vnoremap < <gv
+vnoremap > >gv
+
+" built-in navigation to navigated items works better
+nmap <C-o> <Action>(Back)
+nmap <C-i> <Action>(Forward)
+
+" Git
+nmap <leader>gb <Action>(Annotate)
+
+" Show information
+nmap <leader>vd <Action>(ShowErrorDescription)
+
+" Move lines
+vmap J <Action>(MoveLineDown)
+vmap K <Action>(MoveLineUp)
+
+" Refactoring
+map <leader>va <Action>(ShowIntentionActions)
+map <leader>rn <Action>(RenameElement)
+map <leader>rm <Action>(ExtractMethod)
+map <leader>rr <Action>(Refactorings.QuickListPopupAction)
+
+" File navigation
+nmap <leader>sw viw<Action>(FindInPath)
+vmap <leader>sw <Action>(FindInPath)
+map <leader>ss <Action>(SearchEverywhere)
+map <leader>sf <Action>(GotoFile)
+map <leader>sr <Action>(RecentFiles)
+nmap <leader>sg <Action>(FindInPath)
+map <leader>so <Action>(GotoSymbol)
+map <leader>sl <Action>(SelectInProjectView)
+
+" Find navigation
+nmap <leader>tj <Action>(NextOccurence)
+nmap <leader>tk <Action>(PreviousOccurence)
+
+" Go to code
+nmap gd <Action>(GotoDeclaration)
+nmap go <Action>(GotoTypeDeclaration)
+nmap gi <Action>(GotoImplementation)
+nmap gr <Action>(ShowUsages)
+
+" Unit tests
+nmap <leader>tt <Action>(RiderUnitTestRunSolutionAction)
+nmap <leader>tr <Action>(RiderUnitTestRunContextAction)
+nmap <leader>td <Action>(RiderUnitTestDebugContextAction)
+
+" Debug
+nmap <leader>dd <Action>(ActivateDebugToolWindow)
+
+" Hide all windows
+nmap <leader><leader> <Action>(HideAllWindows)
+
+" Plugins
+Plug 'tpope/vim-surround'
+Plug 'tpope/vim-commentary'
+Plug 'preservim/nerdtree'
+Plug 'machakann/vim-highlightedyank'
+
+map <leader>e :NERDTreeToggle<cr>
