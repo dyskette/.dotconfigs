@@ -68,6 +68,10 @@ nmap go <Action>(GotoTypeDeclaration)
 nmap gi <Action>(GotoImplementation)
 nmap gr <Action>(ShowUsages)
 
+" Diagnostic navigation
+nmap <leader>dj <Action>(ReSharperGotoNextErrorInSolution)
+nmap <leader>dk <Action>(ReSharperGotoPrevErrorInSolution)
+
 " Unit tests
 nmap <leader>tt <Action>(RiderUnitTestRunSolutionAction)
 nmap <leader>tr <Action>(RiderUnitTestRunContextAction)
