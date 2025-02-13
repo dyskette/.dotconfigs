@@ -461,6 +461,7 @@ local roslyn_config = function()
 	require("roslyn").setup({
 		config = vim.tbl_deep_extend("force", default_config, {}),
 		broad_search = true,
+		lock_target = true,
 	})
 
 	local group = vim.api.nvim_create_augroup("dyskette_lsp_roslyn", { clear = true })
