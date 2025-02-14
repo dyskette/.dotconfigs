@@ -1,7 +1,7 @@
 -- https://github.com/miguelverissimo/dotfiles
 return {
-  foreground = "#C5C9C5",
   background = "#181616",
+  foreground = "#C5C9C5",
 
   cursor_bg = "#C8C093",
   cursor_fg = "#0D0C0C",
@@ -12,7 +12,7 @@ return {
 
   scrollbar_thumb = "#223249",
 
-  split = "#625e5a",
+  split = "#625E5A",
 
   ansi = {
     "#0D0C0C",
