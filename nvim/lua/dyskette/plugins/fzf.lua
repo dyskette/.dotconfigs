@@ -18,13 +18,17 @@ local fzf_config = function()
 
 	fzf_lua.register_ui_select()
 
+	local config = require("fzf-lua.config")
+	local actions = require("trouble.sources.fzf").actions
+	config.defaults.actions.files["ctrl-t"] = actions.open
+
 	require("dyskette.keymaps").fzf()
 end
 
 return {
 	{
 		"ibhagwan/fzf-lua",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
+		dependencies = { "nvim-tree/nvim-web-devicons", "folke/trouble.nvim" },
 		config = fzf_config,
 	},
 }

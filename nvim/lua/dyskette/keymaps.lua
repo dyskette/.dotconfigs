@@ -91,7 +91,7 @@ return {
 			vim.keymap.set("n", "<leader>sd", function()
 				telescope.diagnostics({ bufnr = 0 })
 			end, opts("Search diagnostics"))
-		elseif utils.has_plugin("telescope.nvim") then
+		elseif utils.has_plugin("fzf-lua") then
 			local function fzf_wrap(fn)
 				return function(...)
 					return fn({
