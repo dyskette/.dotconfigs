@@ -96,7 +96,7 @@ return {
 				return function(...)
 					return fn({
 						ignore_current_line = true,
-						jump_to_single_result = true,
+						jump1 = true,
 						includeDeclaration = false,
 					}, ...)
 				end

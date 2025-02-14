@@ -77,14 +77,12 @@ end
 local fidget_config = function()
 	require("fidget").setup({
 		notification = {
+			override_vim_notify = true,
 			window = {
-				-- Transparent background in fidget
-				winblend = 0,
+				max_height = 6
 			},
 		},
 	})
-
-	vim.notify = require("fidget.notification").notify
 end
 
 local zen_mode_config = function()
