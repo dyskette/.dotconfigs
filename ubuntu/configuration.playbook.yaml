@@ -1,0 +1,131 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook
+
+- name: System setup for Ubuntu (system-level tasks)
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Ensure target system is Debian or Ubuntu
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution in ['Debian', 'Ubuntu']
+        fail_msg: "This playbook requires Debian or Ubuntu on the target server"
+
+    - name: Add git-core PPA repository for the latest git
+      ansible.builtin.apt_repository:
+        repo: ppa:git-core/ppa
+        state: present
+
+    - name: Add neovim unstable PPA for the latest neovim
+      ansible.builtin.apt_repository:
+        repo: ppa:neovim-ppa/unstable
+        state: present
+
+    - name: Upgrade the current system
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: true
+
+    - name: Install dependencies for neovim configuration
+      ansible.builtin.apt:
+        state: latest
+        pkg:
+          - git
+          - unzip
+          - make
+          - gcc
+          - python3-venv
+          - fzf
+          - fd-find
+          - ripgrep
+          - bat
+          - dbus-bin
+
+    - name: Install fnm and node LTS
+      block:
+        - name: Install fnm to /opt/fnm
+          ansible.builtin.shell: |
+            curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "/opt/fnm" --skip-shell
+          args:
+            executable: /bin/bash
+
+        - name: Change group ownership of /opt/fnm to 'users'
+          ansible.builtin.file:
+            path: /opt/fnm
+            group: users
+            recurse: yes
+
+        - name: Set group permissions (rwx) for directories under /opt/fnm
+          ansible.builtin.shell: find /opt/fnm/ -type d -exec chmod g+rwx {} +
+          args:
+            executable: /bin/bash
+
+        - name: Create FNM initialization profile
+          ansible.builtin.copy:
+            dest: /etc/profile.d/fnm.sh
+            mode: "0644"
+            content: |
+              # FNM initialization script
+
+              FNM_PATH='/opt/fnm'
+              if [ -d "$FNM_PATH" ]; then
+                  export PATH="$FNM_PATH:$PATH"
+                  if [ ! -t 0 ]; then
+                      # if running noninteractive only register the command
+                      eval "`fnm env --fnm-dir=\"$FNM_PATH\"`"
+                  else
+                      eval "`fnm env --fnm-dir=\"$FNM_PATH\" --use-on-cd --version-file-strategy=recursive --resolve-engines`"
+                      # register completions
+                      eval "`fnm completions`"
+                  fi
+              fi
+
+        - name: Source FNM profile and install Node LTS
+          ansible.builtin.shell: |
+            source /etc/profile.d/fnm.sh
+            fnm install --lts
+            fnm use default
+          args:
+            executable: /bin/bash
+
+    - name: Install Neovim
+      block:
+        - name: Download Neovim tarball
+          ansible.builtin.get_url:
+            url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz
+            dest: /tmp/nvim-linux64.tar.gz
+            mode: "0644"
+          register: download_status
+
+        - name: Remove existing Neovim installation
+          ansible.builtin.file:
+            path: /opt/nvim
+            state: absent
+          when: download_status.changed # Remove only if the tarball was re-downloaded
+
+        - name: Extract Neovim to /opt
+          ansible.builtin.unarchive:
+            src: /tmp/nvim-linux64.tar.gz
+            dest: /opt
+            remote_src: yes
+          when: download_status.changed # Extract only if the tarball was re-downloaded
+
+        - name: Clean up downloaded tarball
+          ansible.builtin.file:
+            path: /tmp/nvim-linux64.tar.gz
+            state: absent
+
+- name: User-specific configuration for fnm and neovim
+  hosts: localhost
+  tasks:
+    - name: Ensure .config directory exists in the user's home
+      file:
+        path: "{{ ansible_env.HOME }}/.config"
+        state: directory
+        mode: "0755"
+
+    - name: Symlink neovim configuration from ~/.dotconfigs/nvim to ~/.config/nvim
+      file:
+        src: "{{ ansible_env.HOME }}/.dotconfigs/nvim"
+        dest: "{{ ansible_env.HOME }}/.config/nvim"
+        state: link
+        force: yes
