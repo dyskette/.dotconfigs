@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local indent_config = function()
 	require("guess-indent").setup({})
 end
@@ -32,43 +34,44 @@ return {
 	-- Detect expandtab, tabstop, softtabstop and shiftwidth automatically
 	{
 		"nmac427/guess-indent.nvim",
+		event = { utils.events.BufReadPre, utils.events.BufNew },
 		config = indent_config,
 	},
 	-- Add parenthesis, tags, quotes with vim motions
 	{
 		"kylechui/nvim-surround",
 		version = "*", -- Use for stability; omit to use `main` branch for the latest features
-		event = "VeryLazy",
+		event = utils.events.VeryLazy,
 		config = surround_config,
 	},
 	-- Close parenthesis, tags, quotes on insert
 	{
 		"windwp/nvim-autopairs",
-		event = "InsertEnter",
+		event = utils.events.InsertEnter,
 		config = autopairs_config,
 	},
 	-- Close tags e.g. <div></div> on insert
 	{
 		"windwp/nvim-ts-autotag",
-		event = "InsertEnter",
+		event = utils.events.InsertEnter,
 		config = autotag_config,
 	},
 	-- Code commenting with vim motions
 	{
 		"numToStr/Comment.nvim",
-		event = "VeryLazy",
+		event = utils.events.BufEnter,
 		config = comment_config,
 	},
 	-- Paste image as a file in cwd/assets/ and get the path
 	{
 		"HakonHarnes/img-clip.nvim",
-		event = "BufEnter",
+		keys = { { "<leader>ii", mode = { "n", "x" } } },
 		config = imgclip_config,
 	},
 	-- Show colors like #eb6f92 with a background of its own color
 	{
 		"brenoprata10/nvim-highlight-colors",
-		event = "VeryLazy",
+		event = utils.events.BufReadPost,
 		config = nvim_highlight_colors_config,
 	},
 }

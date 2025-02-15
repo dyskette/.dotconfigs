@@ -44,4 +44,23 @@ function utils.check_file_minified(bufnr)
 	return filesize / line_count > max_bytes_per_line
 end
 
+utils.events = {
+	-- After doing all the startup stuff, including loading vimrc files
+	VimEnter = "VimEnter",
+	-- When lazy has finished starting up and loaded your config
+	LazyDone = "LazyDone",
+	-- After `LazyDone` and processing `VimEnter` auto commands
+	VeryLazy = "VeryLazy",
+	-- After entering (visiting, switching-to) a new or existing buffer
+	BufEnter = "BufEnter",
+	-- After creating a new buffer (except during startup, see `VimEnter`) or renaming an existing buffer
+	BufNew = "BufNew",
+	-- When starting to edit a new buffer, before reading the file into the buffer
+	BufReadPre = "BufReadPre",
+	-- When starting to edit a new buffer, after reading the file into the buffer, before processing models
+	BufReadPost = "BufReadPost",
+	-- Just before starting Insert mode
+	InsertEnter = "InsertEnter",
+}
+
 return utils
