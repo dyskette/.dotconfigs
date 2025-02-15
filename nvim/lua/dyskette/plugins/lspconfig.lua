@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 -- LSP client capabilities with cmp (snippets, completion) if available
 local make_client_capabilities = function()
 	local has_cmp, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
@@ -485,7 +487,7 @@ end
 return {
 	{
 		"neovim/nvim-lspconfig",
-		event = "VeryLazy",
+		event = utils.events.VeryLazy,
 		config = lspconfig_config,
 		dependencies = {
 			-- Servers
@@ -512,11 +514,18 @@ return {
 	},
 	{
 		"folke/lazydev.nvim",
+		event = utils.events.VeryLazy,
 		ft = "lua",
 		config = lazydev_config,
 	},
-	{ "Bilal2453/luvit-meta" }, -- `vim.uv` typings
-	{ "saecki/live-rename.nvim" },
+	{ 
+		"Bilal2453/luvit-meta",
+		event = utils.events.VeryLazy,
+	}, -- `vim.uv` typings
+	{ 
+		"saecki/live-rename.nvim",
+		event = utils.events.VeryLazy,
+	},
 	{
 		"seblyng/roslyn.nvim",
 		ft = "cs",

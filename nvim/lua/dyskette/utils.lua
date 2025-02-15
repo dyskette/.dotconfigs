@@ -61,6 +61,8 @@ utils.events = {
 	BufReadPost = "BufReadPost",
 	-- Just before starting Insert mode
 	InsertEnter = "InsertEnter",
+	-- After entering the command-line (including non-interactive use of ":" in a mapping)
+	CmdlineEnter = "CmdlineEnter",
 }
 
 return utils

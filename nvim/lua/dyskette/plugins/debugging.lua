@@ -38,21 +38,20 @@ end
 
 return {
 	{
-		"theHamsta/nvim-dap-virtual-text",
-		config = virtual_text_config,
-		dependencies = { "nvim-treesitter/nvim-treesitter" },
-	},
-	{
 		"mfussenegger/nvim-dap",
 		config = dap_config,
-		event = "VeryLazy",
+		keys = { { "<leader>5", mode = { "n" } } },
 		dependencies = {
 			-- Async library
 			{ "nvim-neotest/nvim-nio" },
 			-- UI for debugging
 			{ "rcarriga/nvim-dap-ui" },
 			-- Virtual text with variable values while debugging
-			{ "theHamsta/nvim-dap-virtual-text" },
+			{
+				"theHamsta/nvim-dap-virtual-text",
+				config = virtual_text_config,
+				dependencies = { "nvim-treesitter/nvim-treesitter" },
+			},
 			-- Dependency downloader
 			{ "williamboman/mason.nvim" },
 			-- Adapt mason to dap to download debuggers

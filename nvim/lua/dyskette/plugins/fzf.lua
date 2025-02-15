@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local fzf_config = function()
 	local fzf_lua = require("fzf-lua")
 
@@ -28,6 +30,7 @@ end
 return {
 	{
 		"ibhagwan/fzf-lua",
+		event = { utils.events.VeryLazy },
 		dependencies = { "nvim-tree/nvim-web-devicons", "folke/trouble.nvim" },
 		config = fzf_config,
 	},

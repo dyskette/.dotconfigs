@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local treesitter_build = function()
 	require("nvim-treesitter.install").update({ with_sync = true })()
 end
@@ -86,7 +88,7 @@ end
 return {
 	{
 		"nvim-treesitter/nvim-treesitter",
-		event = "BufEnter",
+		event = utils.events.BufEnter,
 		build = treesitter_build,
 		config = treesitterconfig_config,
 		dependencies = {
@@ -95,6 +97,7 @@ return {
 	},
 	{
 		"lukas-reineke/indent-blankline.nvim",
+		event = utils.events.BufEnter,
 		dependencies = { "nvim-treesitter/nvim-treesitter" },
 		config = indent_blankline_config,
 	},

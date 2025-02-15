@@ -1,3 +1,4 @@
+local utils = require "dyskette.utils"
 local vanilla_config = function()
 	vim.fn.sign_define("DiagnosticSignError", { texthl = "DiagnosticSignError", text = "󰅚" })
 	vim.fn.sign_define("DiagnosticSignWarn", { texthl = "DiagnosticSignWarn", text = "󰀪" })
@@ -92,9 +93,7 @@ end
 return {
 	{
 		"f-person/auto-dark-mode.nvim",
-		lazy = false,
-		priority = 2000,
-		enabled = true,
+		event = utils.events.VeryLazy,
 		config = true,
 	},
 	-- Color scheme
@@ -108,6 +107,7 @@ return {
 	{
 		"alvarosevilla95/luatab.nvim",
 		config = luatab_config,
+		event = utils.events.VeryLazy,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 		},
@@ -123,13 +123,13 @@ return {
 	-- LSP progress/vim.notify
 	{
 		"j-hui/fidget.nvim",
-		event = "VeryLazy",
+		event = utils.events.VeryLazy,
 		config = fidget_config,
 	},
 	-- Zen mode
 	{
 		"folke/zen-mode.nvim",
-		event = "VeryLazy",
+		event = utils.events.VeryLazy,
 		config = zen_mode_config,
 	},
 }

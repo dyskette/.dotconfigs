@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local peek_config = function()
 	require("peek").setup()
 	vim.api.nvim_create_user_command("PeekOpen", require("peek").open, {})
@@ -6,7 +8,7 @@ end
 
 return {
 	"toppair/peek.nvim",
-	event = { "VeryLazy" },
+	event = utils.events.VeryLazy,
 	build = "deno task --quiet build:fast",
 	config = peek_config,
 }

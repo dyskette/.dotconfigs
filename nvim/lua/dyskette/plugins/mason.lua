@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local mason_config = function()
 	require("mason").setup({
 		ui = {
@@ -72,9 +74,14 @@ local mason_tool_installer_config = function()
 end
 
 return {
-	{ "williamboman/mason.nvim", config = mason_config },
+	{
+		"williamboman/mason.nvim",
+		event = utils.events.VeryLazy,
+		config = mason_config
+	},
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
+		event = utils.events.VeryLazy,
 		config = mason_tool_installer_config,
 		dependencies = {
 			{ "williamboman/mason.nvim" },

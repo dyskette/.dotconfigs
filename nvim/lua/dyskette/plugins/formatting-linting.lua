@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local conform_config = function()
 	local conform = require("conform")
 
@@ -18,8 +20,7 @@ local conform_config = function()
 			yaml = { "prettier" },
 			markdown = { "prettier" },
 		},
-		formatters = {
-		},
+		formatters = {},
 	})
 
 	require("dyskette.keymaps").conform()
@@ -50,12 +51,12 @@ end
 return {
 	{
 		"mfussenegger/nvim-lint",
-		event = "BufEnter",
+		event = utils.events.BufEnter,
 		config = nvim_lint_config,
 	},
 	{
 		"stevearc/conform.nvim",
-		event = "BufEnter",
+		event = utils.events.BufEnter,
 		config = conform_config,
 	},
 }

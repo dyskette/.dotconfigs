@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local hide_quickfix_and_show_trouble = function(ev)
 	local trouble = require("trouble")
 
@@ -32,6 +34,7 @@ end
 
 return {
 	"folke/trouble.nvim",
+	event = utils.events.VeryLazy,
 	dependencies = { "nvim-tree/nvim-web-devicons" },
 	config = trouble_config,
 }

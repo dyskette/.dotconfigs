@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local completion_config = function()
 	local keymaps = require("dyskette.keymaps")
 	local cmp = require("cmp")
@@ -112,7 +114,7 @@ return {
 	{
 		"hrsh7th/nvim-cmp",
 		config = completion_config,
-		event = { "InsertEnter", "CmdlineEnter" },
+		event = { utils.events.InsertEnter, utils.events.CmdlineEnter },
 		dependencies = {
 			-- Sources
 			{ "hrsh7th/cmp-nvim-lsp" },
