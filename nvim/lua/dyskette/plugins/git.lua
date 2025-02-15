@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 local gitsigns_config = function()
 	require("gitsigns").setup({})
 	require("dyskette.keymaps").gitsigns()
@@ -27,15 +29,21 @@ local neogit_config = function()
 end
 
 return {
-	{ "lewis6991/gitsigns.nvim", event = "BufEnter", config = gitsigns_config },
-	{ "sindrets/diffview.nvim", event = "BufEnter", config = diffview_config },
+	{
+		"lewis6991/gitsigns.nvim",
+		event = utils.events.VeryLazy,
+		config = gitsigns_config,
+	},
 	{
 		"NeogitOrg/neogit",
-		event = "VeryLazy",
+		event = utils.events.VeryLazy,
 		dependencies = {
-			"nvim-lua/plenary.nvim", -- required
-			"sindrets/diffview.nvim", -- optional - Diff integration
-			"ibhagwan/fzf-lua", -- optional
+			"nvim-lua/plenary.nvim",
+			{
+				"sindrets/diffview.nvim",
+				config = diffview_config,
+			},
+			"ibhagwan/fzf-lua",
 		},
 		config = neogit_config,
 	},
