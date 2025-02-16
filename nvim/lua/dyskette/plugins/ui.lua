@@ -106,8 +106,8 @@ return {
 	-- tab bar
 	{
 		"alvarosevilla95/luatab.nvim",
-		config = luatab_config,
 		event = utils.events.VeryLazy,
+		config = luatab_config,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 		},
@@ -115,6 +115,7 @@ return {
 	-- Status bar
 	{
 		"nvim-lualine/lualine.nvim",
+		event = utils.events.VeryLazy,
 		config = lualine_config,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
