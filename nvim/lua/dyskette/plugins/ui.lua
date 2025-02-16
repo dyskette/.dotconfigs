@@ -93,14 +93,11 @@ end
 return {
 	{
 		"f-person/auto-dark-mode.nvim",
-		event = utils.events.VeryLazy,
 		config = true,
 	},
 	-- Color scheme
 	{
 		"rebelot/kanagawa.nvim",
-		lazy = false,
-		priority = 1000,
 		config = kanagawa_config,
 	},
 	-- tab bar

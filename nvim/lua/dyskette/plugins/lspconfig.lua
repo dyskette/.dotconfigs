@@ -129,38 +129,29 @@ end
 
 --- Default configuration for language servers
 --- @type lspconfig.Config
----@diagnostic disable-next-line: missing-fields
-local default_config = {
-	capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities()),
-	---@diagnostic disable-next-line: missing-fields
-	flags = {
-		debounce_text_changes = 500, -- miliseconds
-	},
-	on_attach = on_lsp_attach,
-	handlers = {
-		-- Appearance of floating window for hover information
-		[vim.lsp.protocol.Methods.textDocument_hover] = lsp_hover,
-		-- Appearance of floating window for signature information
-		[vim.lsp.protocol.Methods.textDocument_signatureHelp] = lsp_signature_help,
-	},
-}
+local default_config = function()
+	return {
+		capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities()),
+		---@diagnostic disable-next-line: missing-fields
+		flags = {
+			debounce_text_changes = 500, -- miliseconds
+		},
+		on_attach = on_lsp_attach,
+		handlers = {
+			-- Appearance of floating window for hover information
+			[vim.lsp.protocol.Methods.textDocument_hover] = lsp_hover,
+			-- Appearance of floating window for signature information
+			[vim.lsp.protocol.Methods.textDocument_signatureHelp] = lsp_signature_help,
+		},
+	}
+end
 
 local ts_ls_config = function()
 	local vue_typescript_plugin = require("mason-registry").get_package("vue-language-server"):get_install_path()
 		.. "/node_modules/@vue/language-server"
 		.. "/node_modules/@vue/typescript-plugin"
-	-- This does not work. Typescript server does not support codelens in neovim.
-	local common_language_settings = {
-		implementationsCodeLens = {
-			enabled = true,
-		},
-		referencesCodeLens = {
-			enabled = true,
-			showOnAllFunctions = true,
-		},
-	}
 	--- @type lspconfig.Config
-	local config = vim.tbl_deep_extend("force", default_config, {
+	local config = vim.tbl_deep_extend("force", default_config(), {
 		init_options = {
 			plugins = {
 				{
@@ -171,13 +162,6 @@ local ts_ls_config = function()
 			},
 		},
 		filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
-		settings = {
-			typescript = common_language_settings,
-			javascript = common_language_settings,
-			javascriptreact = common_language_settings,
-			typescriptreact = common_language_settings,
-			vue = common_language_settings,
-		},
 	})
 
 	return config
@@ -186,7 +170,7 @@ end
 local language_servers_configuration = function()
 	local lspconfig = require("lspconfig")
 
-	lspconfig.util.default_config = vim.tbl_deep_extend("force", lspconfig.util.default_config, default_config)
+	lspconfig.util.default_config = vim.tbl_deep_extend("force", lspconfig.util.default_config, default_config())
 
 	-- scripting
 	lspconfig.lua_ls.setup({})
@@ -251,7 +235,7 @@ end
 
 local roslyn_config = function()
 	require("roslyn").setup({
-		config = vim.tbl_deep_extend("force", default_config, {}),
+		config = vim.tbl_deep_extend("force", default_config(), {}),
 		broad_search = true,
 		lock_target = true,
 	})
