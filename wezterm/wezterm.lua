@@ -22,14 +22,6 @@ local get_appearance = function()
 	return "Light"
 end
 
-local scheme_for_appearance = function(appearance)
-	if appearance:find("Dark") then
-		return "kanagawa_wave"
-	else
-		return "kanagawa_lotus"
-	end
-end
-
 config.color_schemes = {
 	["kanagawa-wave"] = require("kanagawa-wave"),
 	["kanagawa-dragon"] = require("kanagawa-dragon"),
@@ -44,7 +36,6 @@ local colors_for_appearance = function(appearance)
 	end
 end
 
-config.color_scheme = scheme_for_appearance(get_appearance())
 config.colors = colors_for_appearance(get_appearance())
 config.font = wezterm.font("JetBrainsMonoNL Nerd Font")
 config.font_size = 10.5

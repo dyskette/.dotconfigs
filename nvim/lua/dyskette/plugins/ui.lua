@@ -1,4 +1,5 @@
-local utils = require "dyskette.utils"
+local utils = require("dyskette.utils")
+
 local vanilla_config = function()
 	vim.fn.sign_define("DiagnosticSignError", { texthl = "DiagnosticSignError", text = "󰅚" })
 	vim.fn.sign_define("DiagnosticSignWarn", { texthl = "DiagnosticSignWarn", text = "󰀪" })
@@ -80,7 +81,7 @@ local fidget_config = function()
 		notification = {
 			override_vim_notify = true,
 			window = {
-				max_height = 6
+				max_height = 6,
 			},
 		},
 	})
@@ -127,7 +128,7 @@ return {
 	-- Zen mode
 	{
 		"folke/zen-mode.nvim",
-		event = utils.events.VeryLazy,
+		keys = { { "<leader>Z", modes = { "n" } } },
 		config = zen_mode_config,
 	},
 }
