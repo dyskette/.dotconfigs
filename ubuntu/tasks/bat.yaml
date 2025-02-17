@@ -46,10 +46,10 @@
 - name: Install bat files
   copy:
     src: "/tmp/{{ bat_directory }}/bat"
-    dest: "/opt/bat"
-    mode: "0755"
-    owner: "root"
-    group: "root"
+    dest: /opt/bat
+    mode: 0755
+    owner: root
+    group: root
     remote_src: yes
   when: download_status.changed # Create only if the tarball was re-downloaded
 

@@ -58,6 +58,10 @@
       ansible.builtin.import_tasks: tasks/nvim.yaml
       tags: neovim
 
+    - name: Install starship
+      ansible.builtin.import_tasks: tasks/starship.yaml
+      tags: starship
+
     - name: Add binary from /opt to PATH
       ansible.builtin.copy:
         dest: /etc/profile.d/extra-binaries-opt.sh
@@ -66,6 +70,7 @@
           export PATH="/opt/bat:$PATH"
           export PATH="/opt/eza:$PATH"
           export PATH="/opt/nvim-linux-x86_64/bin:$PATH"
+          export PATH="/opt/starship:$PATH"
 
 - name: User-specific configuration for fnm and neovim
   hosts: localhost
