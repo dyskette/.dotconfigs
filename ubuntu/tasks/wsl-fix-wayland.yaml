@@ -1,0 +1,26 @@
+# See https://github.com/microsoft/WSL/issues/11261
+- when: "'WSL2' in ansible_facts['kernel']"
+  block:
+    - name: Create wayland symlink service
+      ansible.builtin.copy:
+        dest: /etc/systemd/user/symlink-wayland-socket.service
+        owner: root
+        group: root
+        content: |
+          [Unit]
+          Description=Symlink Wayland socket to XDG_RUNTIME_DIR
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/ln -s /mnt/wslg/runtime-dir/wayland-0      $XDG_RUNTIME_DIR
+          ExecStart=/usr/bin/ln -s /mnt/wslg/runtime-dir/wayland-0.lock $XDG_RUNTIME_DIR
+
+          [Install]
+          WantedBy=default.target
+      register: wayland_symlink_service
+
+    - name: Enable wayland symlink service
+      become: false
+      when: wayland_symlink_service.changed
+      ansible.builtin.command:
+        cmd: systemctl --user enable symlink-wayland-socket.service

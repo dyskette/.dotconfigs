@@ -15,21 +15,17 @@
   ansible.builtin.file:
     path: /opt/starship
     state: directory
-    mode: '0755'
+    mode: "0755"
   when: starship_download.changed # Create only if the tarball was re-downloaded
 
 - name: Extract starship install files
   ansible.builtin.unarchive:
     src: /tmp/starship-x86_64-unknown-linux-gnu.tar.gz
     dest: /opt/starship
+    owner: root
+    group: root
     remote_src: yes
   when: starship_download.changed # Extract only if the tarball was re-downloaded
-
-- name: Change group ownership of /opt/starship to 'root'
-  ansible.builtin.file:
-    path: /opt/starship
-    group: root
-    recurse: yes
 
 - name: Clean up downloaded tarball
   ansible.builtin.file:

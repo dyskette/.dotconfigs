@@ -26,13 +26,15 @@ config.color_schemes = {
 	["kanagawa-wave"] = require("kanagawa-wave"),
 	["kanagawa-dragon"] = require("kanagawa-dragon"),
 	["kanagawa-lotus"] = require("kanagawa-lotus"),
+	["everforest"] = require("everforest"),
+	["rose-pine-dawn"] = require("rose-pine-dawn"),
 }
 
 local colors_for_appearance = function(appearance)
 	if appearance:find("Dark") then
-		return config.color_schemes["kanagawa-wave"]
+		return config.color_schemes["everforest"]
 	else
-		return config.color_schemes["kanagawa-lotus"]
+		return config.color_schemes["rose-pine-dawn"]
 	end
 end
 

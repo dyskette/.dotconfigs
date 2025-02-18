@@ -5,16 +5,24 @@
   args:
     executable: /bin/bash
 
-- name: Change group ownership of /opt/fnm to 'users'
+- name: Create aliases directory
+  ansible.builtin.file:
+    path: /opt/fnm/aliases
+    state: directory
+    mode: "0775"
+
+- name: Create node-versions directory
+  ansible.builtin.file:
+    path: /opt/fnm/node-versions
+    state: directory
+    mode: "0775"
+
+- name: Change ownership of /opt/fnm to user='root' and group='users'
   ansible.builtin.file:
     path: /opt/fnm
+    owner: root
     group: users
     recurse: yes
-
-- name: Set group permissions (rwx) for directories under /opt/fnm
-  ansible.builtin.shell: find /opt/fnm/ -type d -exec chmod g+rwx {} +
-  args:
-    executable: /bin/bash
 
 - name: Create FNM initialization profile
   ansible.builtin.copy:

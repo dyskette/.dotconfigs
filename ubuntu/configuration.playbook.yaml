@@ -72,18 +72,54 @@
           export PATH="/opt/nvim-linux-x86_64/bin:$PATH"
           export PATH="/opt/starship:$PATH"
 
-- name: User-specific configuration for fnm and neovim
+    - name: Create fix for wayland copy/paste
+      ansible.builtin.import_tasks: tasks/wsl-fix-wayland.yaml
+      tags: fix-wayland
+
+- name: User-specific configuration
   hosts: localhost
   tasks:
+    - name: Set common facts
+      ansible.builtin.set_fact:
+        repository_dir: "{{ playbook_dir | dirname }}"
+        config_dir: "{{ ansible_env.HOME }}/.config"
+
     - name: Ensure .config directory exists in the user's home
-      file:
-        path: "{{ ansible_env.HOME }}/.config"
+      ansible.builtin.file:
+        path: "{{ config_dir }}"
         state: directory
         mode: "0755"
 
-    - name: Symlink neovim configuration from ~/.dotconfigs/nvim to ~/.config/nvim
-      file:
-        src: "{{ ansible_env.HOME }}/.dotconfigs/nvim"
-        dest: "{{ ansible_env.HOME }}/.config/nvim"
+    - name: Symlink neovim configuration to ~/.config/nvim
+      ansible.builtin.file:
+        src: "{{ repository_dir }}/nvim"
+        dest: "{{ config_dir }}/nvim"
         state: link
-        force: yes
+        force: true
+
+    - name: Symlink bash configuration to ~/.config/.bashrc
+      ansible.builtin.file:
+        src: "{{ repository_dir }}/bash/bashrc"
+        dest: "{{ ansible_env.HOME }}/.bashrc"
+        state: link
+        force: true
+
+    - name: Symlink bash configuration to ~/.config/.bashrc.d
+      ansible.builtin.file:
+        src: "{{ repository_dir }}/bash/bashrc.d"
+        dest: "{{ ansible_env.HOME }}/.bashrc.d"
+        state: link
+        force: true
+
+    - name: Symlink bat configuration to ~/.config/bat
+      ansible.builtin.file:
+        src: "{{ repository_dir }}/bat"
+        dest: "{{ config_dir }}/bat"
+        state: link
+        force: true
+
+    - name: Run bat cache
+      ansible.builtin.shell: |
+        bat cache --build
+      args:
+        executable: /bin/bash

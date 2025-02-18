@@ -16,13 +16,16 @@
   ansible.builtin.file:
     path: /opt/eza/
     state: directory
-    mode: '0755'
+    mode: "0755"
   when: download_status.changed # Create only if the tarball was re-downloaded
 
-- name: Extract eza install files
+- name: Extract eza files to /opt
   ansible.builtin.unarchive:
     src: /tmp/eza_x86_64-unknown-linux-gnu.tar.gz
     dest: /opt/eza
+    mode: "0755"
+    owner: root
+    group: root
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 

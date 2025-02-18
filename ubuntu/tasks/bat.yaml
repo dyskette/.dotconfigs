@@ -33,21 +33,21 @@
   ansible.builtin.file:
     path: /opt/bat/
     state: directory
-    mode: '0755'
+    mode: "0755"
   when: download_status.changed # Create only if the tarball was re-downloaded
 
-- name: Extract bat files
+- name: Extract bat files to /tmp
   ansible.builtin.unarchive:
     src: "/tmp/{{ bat_directory }}.tar.gz"
     dest: /tmp
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
-- name: Install bat files
+- name: Install bat files to /opt
   copy:
     src: "/tmp/{{ bat_directory }}/bat"
     dest: /opt/bat
-    mode: 0755
+    mode: "0755"
     owner: root
     group: root
     remote_src: yes

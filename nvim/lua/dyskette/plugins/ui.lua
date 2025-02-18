@@ -33,18 +33,6 @@ end
 
 vanilla_config()
 
-local kanagawa_config = function()
-	require("kanagawa").setup({
-		compile = true,
-		dimInactive = true,
-		background = {
-			dark = "wave",
-			light = "lotus",
-		},
-	})
-	vim.cmd.colorscheme("kanagawa")
-end
-
 local template_onlyname = function(filetype, name)
 	return {
 		filetypes = { filetype },
@@ -92,14 +80,27 @@ local zen_mode_config = function()
 end
 
 return {
-	{
-		"f-person/auto-dark-mode.nvim",
-		config = true,
-	},
 	-- Color scheme
 	{
-		"rebelot/kanagawa.nvim",
-		config = kanagawa_config,
+		"f-person/auto-dark-mode.nvim",
+		opts = {
+			update_interval = 1000,
+			set_dark_mode = function()
+				vim.opt.background = "dark"
+				vim.cmd.colorscheme("everforest")
+			end,
+			set_light_mode = function()
+				vim.opt.background = "light"
+				vim.cmd.colorscheme("rose-pine-dawn")
+			end,
+		},
+	},
+	{
+		"neanias/everforest-nvim",
+	},
+	{
+		"rose-pine/neovim",
+		name = "rose-pine",
 	},
 	-- tab bar
 	{

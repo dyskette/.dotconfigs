@@ -8,7 +8,7 @@ $directory\
 $git_branch\
 \n$character\
 """
-palette = "ayu_dark"
+palette = "ayu_light"
 
 # ayu dark from helix: https://github.com/helix-editor/helix/blob/master/runtime/themes/ayu_dark.toml
 [palettes.ayu_dark]

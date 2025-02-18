@@ -16,6 +16,8 @@
   ansible.builtin.unarchive:
     src: /tmp/nvim-linux-x86_64.tar.gz
     dest: /opt
+    owner: root
+    group: root
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
