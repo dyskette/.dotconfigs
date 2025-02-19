@@ -88,10 +88,12 @@ return {
 			set_dark_mode = function()
 				vim.opt.background = "dark"
 				vim.cmd.colorscheme("everforest")
+				vim.env.BAT_THEME = "everforest"
 			end,
 			set_light_mode = function()
 				vim.opt.background = "light"
 				vim.cmd.colorscheme("rose-pine-dawn")
+				vim.env.BAT_THEME = "rose-pine-dawn"
 			end,
 		},
 	},
