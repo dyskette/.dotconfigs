@@ -1,6 +1,7 @@
 {
   "extensions": [
-    "metaphore.kanagawa-vscode-color-theme",
+    "sainnhe.everforest",
+    "mvllow.rose-pine",
     "vscodevim.vim",
     "ms-vscode.powershell",
     "ms-dotnettools.csharp",
