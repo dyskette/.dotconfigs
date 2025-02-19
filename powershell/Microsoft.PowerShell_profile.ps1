@@ -28,9 +28,9 @@ if (Get-Command nvim -ErrorAction SilentlyContinue) {
 }
 
 if (Get-Command bat -ErrorAction SilentlyContinue) {
-  $env:BAT_THEME="kanagawa-lotus"
-  $env:BAT_THEME_DARK="kanagawa-lotus"
-  $env:BAT_THEME_LIGHT="kanagawa-wave"
+  $env:BAT_THEME="everforest"
+  $env:BAT_THEME_DARK="everforest"
+  $env:BAT_THEME_LIGHT="rose-pine-dawn"
 }
 
 if (Get-Command yazi -ErrorAction SilentlyContinue) {
