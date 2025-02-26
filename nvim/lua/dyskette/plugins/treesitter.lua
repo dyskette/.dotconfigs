@@ -47,34 +47,6 @@ local treesitterconfig_config = function()
 			"vue",
 		},
 	})
-
-	local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-	parser_config.fsharp = {
-		install_info = {
-			url = "https://github.com/ionide/tree-sitter-fsharp",
-			branch = "main",
-			files = { "src/scanner.c", "src/parser.c" },
-		},
-		filetype = "fsharp",
-	}
-
-	--- HACK: Override `vim.lsp.util.stylize_markdown` to use Treesitter.
-	-- <https://github.com/hrsh7th/nvim-cmp/issues/1699#issuecomment-1738132283>
-	---@param bufnr integer
-	---@param contents string[]
-	---@param opts table
-	---@return string[]
-	---@diagnostic disable-next-line: duplicate-set-field
-	vim.lsp.util.stylize_markdown = function(bufnr, contents, opts)
-		contents = vim.lsp.util._normalize_markdown(contents, {
-			width = vim.lsp.util._make_floating_popup_size(contents, opts),
-		})
-		vim.bo[bufnr].filetype = "markdown"
-		vim.treesitter.start(bufnr)
-		vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
-
-		return contents
-	end
 end
 
 local indent_blankline_config = function()

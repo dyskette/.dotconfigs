@@ -62,6 +62,7 @@ return {
 		vim.keymap.set("n", "<leader>sg", fzf.live_grep, { desc = "Search by grep" })
 		vim.keymap.set({ "x", "n" }, "<leader>sw", fzf.grep_cword, { desc = "[S]earch current [W]ord" })
 		vim.keymap.set("n", "<leader>sb", fzf.buffers, { desc = "Search buffers" })
+		vim.keymap.set("n", "<leader>sh", fzf.help_tags, { desc = "Search by grep" })
 	end,
 
 	lsp = function(client, buffer)
@@ -179,71 +180,9 @@ return {
 		end, { desc = "Go to previous trouble window item" })
 	end,
 
-	cmp = function()
-		local luasnip = require("luasnip")
-		local cmp = require("cmp")
-		local types = require("cmp.types")
-
-		local open_or_close = cmp.mapping({
-			i = function()
-				if cmp.visible() then
-					cmp.abort()
-				else
-					cmp.complete()
-				end
-			end,
-			c = function()
-				if cmp.visible() then
-					cmp.close()
-				else
-					cmp.complete()
-				end
-			end,
-		})
-
-		return {
-			-- Scrolling documentation
-			["<C-b>"] = cmp.mapping.scroll_docs(-4),
-			["<C-f>"] = cmp.mapping.scroll_docs(4),
-
-			-- Open/close completion
-			["<C-Space>"] = open_or_close,
-			["<C-e>"] = open_or_close, -- Ctrl + Space does not work on Windows (wezterm or windows terminal) :/
-
-			-- Up/down completion
-			["<C-p>"] = cmp.mapping.select_prev_item({ behavior = types.cmp.SelectBehavior.Select }),
-			["<C-n>"] = cmp.mapping.select_next_item({ behavior = types.cmp.SelectBehavior.Select }),
-
-			-- Accept currently selected item.
-			-- The option `select = true` means the first item will be selected if none are.
-			-- Set `select` to `false` to only confirm explicitly selected items.
-			["<C-y>"] = cmp.mapping.confirm({ select = true }),
-
-			-- Jump forward between snippet regions
-			["<Tab>"] = cmp.mapping(function(fallback)
-				-- You could replace the expand_or_jumpable() calls with expand_or_locally_jumpable()
-				-- they way you will only jump inside the snippet region
-				if luasnip.expand_or_locally_jumpable() then
-					luasnip.expand_or_jump()
-				else
-					fallback()
-				end
-			end, { "i", "s" }),
-
-			-- Jump backwards between snippet regions
-			["<S-Tab>"] = cmp.mapping(function(fallback)
-				if luasnip.jumpable(-1) then
-					luasnip.jump(-1)
-				else
-					fallback()
-				end
-			end, { "i", "s" }),
-		}
-	end,
-
-	oil = function()
-		local oil = require("oil")
-		vim.keymap.set("n", "<leader>e", oil.open, { desc = "Open parent directory" })
+	yazi = function()
+		local yazi = require("yazi")
+		vim.keymap.set({ "n", "v" }, "<leader>e", yazi.yazi, { desc = "Open parent directory" })
 	end,
 
 	neogen = function()

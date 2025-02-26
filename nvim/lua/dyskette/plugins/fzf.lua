@@ -5,6 +5,14 @@ local fzf_config = function()
 
 	fzf_lua.setup({
 		"fzf-native",
+		winopts = {
+			split = "belowright new",
+			border = "none",
+			preview = {
+				border = "single",
+				horizontal = "right:50%",
+			},
+		},
 		oldfiles = {
 			cwd_only = true,
 			include_current_session = true,

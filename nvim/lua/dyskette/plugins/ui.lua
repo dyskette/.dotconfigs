@@ -47,6 +47,22 @@ local template_onlyname = function(filetype, name)
 	}
 end
 
+local auto_dark_config = function()
+	require("auto-dark-mode").setup({
+		update_interval = 1000,
+		set_dark_mode = function()
+			vim.opt.background = "dark"
+			vim.cmd.colorscheme("everforest")
+			vim.env.BAT_THEME = "everforest"
+		end,
+		set_light_mode = function()
+			vim.opt.background = "light"
+			vim.cmd.colorscheme("rose-pine-dawn")
+			vim.env.BAT_THEME = "rose-pine-dawn"
+		end,
+	})
+end
+
 local luatab_config = function()
 	require("luatab").setup({})
 end
@@ -68,9 +84,6 @@ local fidget_config = function()
 	require("fidget").setup({
 		notification = {
 			override_vim_notify = true,
-			window = {
-				max_height = 6,
-			},
 		},
 	})
 end
@@ -83,19 +96,7 @@ return {
 	-- Color scheme
 	{
 		"f-person/auto-dark-mode.nvim",
-		opts = {
-			update_interval = 1000,
-			set_dark_mode = function()
-				vim.opt.background = "dark"
-				vim.cmd.colorscheme("everforest")
-				vim.env.BAT_THEME = "everforest"
-			end,
-			set_light_mode = function()
-				vim.opt.background = "light"
-				vim.cmd.colorscheme("rose-pine-dawn")
-				vim.env.BAT_THEME = "rose-pine-dawn"
-			end,
-		},
+		config = auto_dark_config,
 	},
 	{
 		"neanias/everforest-nvim",
