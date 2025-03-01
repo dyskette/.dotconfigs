@@ -66,7 +66,6 @@ return {
 	end,
 
 	lsp = function(client, buffer)
-		local live_rename = require("live-rename")
 		local utils = require("dyskette.utils")
 		local opts = function(description)
 			return {
@@ -76,23 +75,9 @@ return {
 			}
 		end
 
-		vim.keymap.set("n", "K", function()
-			vim.lsp.buf.hover({ border = "rounded", title = " Information ", silent = true })
-		end, opts("Open symbol information"))
+		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("Open symbol information"))
 
-		if utils.has_plugin("telescope.nvim") then
-			local telescope = require("telescope.builtin")
-
-			vim.keymap.set("n", "gd", telescope.lsp_definitions, opts("Go to definition"))
-			vim.keymap.set("n", "gi", telescope.lsp_implementations, opts("Go to implementation"))
-			vim.keymap.set("n", "go", telescope.lsp_type_definitions, opts("Go to definition of the type"))
-			vim.keymap.set("n", "gr", telescope.lsp_references, opts("Go to references"))
-
-			vim.keymap.set("n", "<leader>so", telescope.treesitter, { desc = "Search symbols" })
-			vim.keymap.set("n", "<leader>sd", function()
-				telescope.diagnostics({ bufnr = 0 })
-			end, opts("Search diagnostics"))
-		elseif utils.has_plugin("fzf-lua") then
+		if utils.has_plugin("fzf-lua") then
 			local function fzf_wrap(fn)
 				return function(...)
 					return fn({
@@ -120,19 +105,14 @@ return {
 		end
 
 		vim.keymap.set({ "n", "x" }, "<leader>va", vim.lsp.buf.code_action, opts("View code action"))
-		-- vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
-		vim.keymap.set("n", "<leader>rn", live_rename.rename, { desc = "Rename symbol" })
+		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
 		vim.keymap.set({ "n", "x" }, "<leader>fl", function()
 			vim.lsp.buf.format({ async = true })
 		end, opts("Format document using LSP"))
 
 		vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, opts("View diagnostic"))
-		vim.keymap.set("n", "<leader>dk", function()
-			vim.diagnostic.jump({ count = -1, float = true })
-		end, opts("Previous diagnostic"))
-		vim.keymap.set("n", "<leader>dj", function()
-			vim.diagnostic.jump({ count = 1, float = true })
-		end, opts("Next diagnostic"))
+		vim.keymap.set("n", "<leader>dk", vim.diagnostic.goto_prev, opts("Previous diagnostic"))
+		vim.keymap.set("n", "<leader>dj", vim.diagnostic.goto_next, opts("Next diagnostic"))
 	end,
 
 	lsp_signature = function(bufnr)

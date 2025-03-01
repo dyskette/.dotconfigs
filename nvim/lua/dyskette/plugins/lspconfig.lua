@@ -152,11 +152,6 @@ return {
 
 			-- JSON and YAML schemas
 			{ "b0o/schemastore.nvim" },
-
-			-- Rename inline
-			{
-				"saecki/live-rename.nvim",
-			},
 		},
 	},
 }
