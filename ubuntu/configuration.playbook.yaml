@@ -30,15 +30,27 @@
           - gcc
           - python3-venv
           - fzf
-          - fd-find
           - ripgrep
           - wl-clipboard
           - dbus-bin
 
-    - name: Install dependencies for neovim configuration
+    - name: Install dependencies for yazi
       ansible.builtin.apt:
         state: latest
         pkg:
+          - ffmpeg
+          - 7zip
+          - jq
+          - fzf
+          - ripgrep
+          - poppler-utils
+          - imagemagick
+
+    - name: Install additional cli tools
+      ansible.builtin.apt:
+        state: latest
+        pkg:
+          - libglib2.0-bin
           - jq
           - yq
 
@@ -49,6 +61,14 @@
     - name: Install eza
       ansible.builtin.import_tasks: tasks/eza.yaml
       tags: eza
+
+    - name: Install fd
+      ansible.builtin.import_tasks: tasks/fd.yaml
+      tags: fd
+
+    - name: Install yazi
+      ansible.builtin.import_tasks: tasks/yazi.yaml
+      tags: yazi
 
     - name: Install fnm and node LTS
       ansible.builtin.import_tasks: tasks/fnm.yaml
@@ -69,6 +89,8 @@
         content: |
           export PATH="/opt/bat:$PATH"
           export PATH="/opt/eza:$PATH"
+          export PATH="/opt/fd:$PATH"
+          export PATH="/opt/yazi:$PATH"
           export PATH="/opt/nvim-linux-x86_64/bin:$PATH"
           export PATH="/opt/starship:$PATH"
 
@@ -119,7 +141,5 @@
         force: true
 
     - name: Run bat cache
-      ansible.builtin.shell: |
-        bat cache --build
-      args:
-        executable: /bin/bash
+      ansible.builtin.command:
+        cmd: bat cache --build

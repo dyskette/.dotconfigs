@@ -8,7 +8,7 @@
 
 - name: Remove existing eza installation
   ansible.builtin.file:
-    path: /opt/nvim
+    path: /opt/eza
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
