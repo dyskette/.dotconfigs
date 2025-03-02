@@ -53,13 +53,14 @@ end
 local auto_dark_config = function()
 	require("auto-dark-mode").setup({
 		update_interval = 1000,
+		fallback = "light",
 		set_dark_mode = function()
-			vim.opt.background = "dark"
+			vim.api.nvim_set_option_value("background", "dark", {})
 			vim.cmd.colorscheme("everforest")
 			vim.env.BAT_THEME = "everforest"
 		end,
 		set_light_mode = function()
-			vim.opt.background = "light"
+			vim.api.nvim_set_option_value("background", "light", {})
 			vim.cmd.colorscheme("rose-pine-dawn")
 			vim.env.BAT_THEME = "rose-pine-dawn"
 		end,

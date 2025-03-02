@@ -140,6 +140,13 @@
         state: link
         force: true
 
+    - name: Symlink bat configuration to ~/.config/ghostty
+      ansible.builtin.file:
+        src: "{{ repository_dir }}/ghostty"
+        dest: "{{ config_dir }}/ghostty"
+        state: link
+        force: true
+
     - name: Run bat cache
       ansible.builtin.command:
         cmd: bat cache --build

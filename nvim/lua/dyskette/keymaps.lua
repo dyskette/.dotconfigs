@@ -33,7 +33,7 @@ return {
 		vim.keymap.set("x", ">", ">gv", { desc = "Indent forward" })
 
 		-- Terminal
-		vim.api.nvim_set_keymap("t", "<C-|><C-n>", "<C-\\><C-n>", { noremap = true })
+		vim.keymap.set("t", "<C-|><C-n>", "<C-\\><C-n>", { desc = "Exit terminal", noremap = true })
 	end,
 
 	telescope = function()
@@ -162,7 +162,7 @@ return {
 
 	yazi = function()
 		local yazi = require("yazi")
-		vim.keymap.set({ "n", "v" }, "<leader>e", yazi.yazi, { desc = "Open parent directory" })
+		vim.keymap.set({ "n", "x" }, "<leader>e", yazi.yazi, { desc = "Open parent directory" })
 	end,
 
 	neogen = function()
