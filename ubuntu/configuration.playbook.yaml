@@ -82,6 +82,10 @@
       ansible.builtin.import_tasks: tasks/starship.yaml
       tags: starship
 
+    - name: Install dotnet
+      ansible.builtin.import_tasks: tasks/dotnet.yaml
+      tags: dotnet
+
     - name: Add binary from /opt to PATH
       ansible.builtin.copy:
         dest: /etc/profile.d/extra-binaries-opt.sh
@@ -93,6 +97,9 @@
           export PATH="/opt/yazi:$PATH"
           export PATH="/opt/nvim-linux-x86_64/bin:$PATH"
           export PATH="/opt/starship:$PATH"
+          export DOTNET_ROOT="/opt/dotnet"
+          export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"
+      tags: environment-variables
 
     - name: Create fix for wayland copy/paste
       ansible.builtin.import_tasks: tasks/wsl-fix-wayland.yaml
