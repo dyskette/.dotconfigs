@@ -83,6 +83,16 @@ config.keys = {
 
 	-- Fullscreen
 	{ key = "F11", action = wezterm.action.ToggleFullScreen },
+
+	-- Fix Ctrl-Space on Windows
+	{
+		key = " ",
+		mods = "CTRL",
+		action = wezterm.action.SendKey({
+			key = " ",
+			mods = "CTRL",
+		}),
+	},
 }
 
 -- Return the configuration to wezterm

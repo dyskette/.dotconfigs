@@ -34,6 +34,22 @@ return {
 
 		-- Terminal
 		vim.keymap.set("t", "<C-|><C-n>", "<C-\\><C-n>", { desc = "Exit terminal", noremap = true })
+
+		-- Quickfix
+		local function toggle_quickfix()
+			local wins = vim.fn.getwininfo()
+			local qf_win = vim.iter(wins)
+				:filter(function(win)
+					return win.quickfix == 1
+				end)
+				:totable()
+			if #qf_win == 0 then
+				vim.cmd.copen()
+			else
+				vim.cmd.cclose()
+			end
+		end
+		vim.keymap.set("n", "<leader>q", toggle_quickfix, { desc = "Toggle quickfix" })
 	end,
 
 	telescope = function()
@@ -53,18 +69,6 @@ return {
 		end, { desc = "Search files with hidden enabled" })
 	end,
 
-	fzf = function()
-		local fzf = require("fzf-lua")
-
-		vim.keymap.set("n", "<leader>sf", fzf.files, { desc = "Search files" })
-		vim.keymap.set("n", "<leader>sr", fzf.oldfiles, { desc = "Search recent files" })
-		vim.keymap.set("n", "<leader>si", fzf.git_files, { desc = "Search git files" })
-		vim.keymap.set("n", "<leader>sg", fzf.live_grep, { desc = "Search by grep" })
-		vim.keymap.set({ "x", "n" }, "<leader>sw", fzf.grep_cword, { desc = "[S]earch current [W]ord" })
-		vim.keymap.set("n", "<leader>sb", fzf.buffers, { desc = "Search buffers" })
-		vim.keymap.set("n", "<leader>sh", fzf.help_tags, { desc = "Search by grep" })
-	end,
-
 	lsp = function(client, buffer)
 		local utils = require("dyskette.utils")
 		local opts = function(description)
@@ -77,32 +81,12 @@ return {
 
 		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("Open symbol information"))
 
-		if utils.has_plugin("fzf-lua") then
-			local function fzf_wrap(fn)
-				return function(...)
-					return fn({
-						ignore_current_line = true,
-						jump1 = true,
-						includeDeclaration = false,
-					}, ...)
-				end
-			end
-			local fzf_lua = require("fzf-lua")
-
-			vim.keymap.set("n", "gd", fzf_wrap(fzf_lua.lsp_definitions), opts("Go to definition"))
-			vim.keymap.set("n", "gD", fzf_wrap(fzf_lua.lsp_declarations), opts("Go to declaration"))
-			vim.keymap.set("n", "gi", fzf_wrap(fzf_lua.lsp_implementations), opts("Go to implementation"))
-			vim.keymap.set("n", "go", fzf_wrap(fzf_lua.lsp_typedefs), opts("Go to definition of the type"))
-			vim.keymap.set("n", "gr", fzf_wrap(fzf_lua.lsp_references), opts("Go to references"))
-			vim.keymap.set("n", "<leader>so", fzf_wrap(fzf_lua.lsp_workspace_symbols), { desc = "Search symbols" })
-		else
-			vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts("Go to definition"))
-			vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts("Go to declaration"))
-			vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts("Go to implementation"))
-			vim.keymap.set("n", "go", vim.lsp.buf.type_definition, opts("Go to definition of the type"))
-			vim.keymap.set("n", "gr", vim.lsp.buf.references, opts("Go to references"))
-			vim.keymap.set("n", "<leader>so", vim.lsp.buf.document_symbol, { desc = "Search symbols" })
-		end
+		vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts("Go to definition"))
+		vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts("Go to declaration"))
+		vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts("Go to implementation"))
+		vim.keymap.set("n", "go", vim.lsp.buf.type_definition, opts("Go to definition of the type"))
+		vim.keymap.set("n", "gr", vim.lsp.buf.references, opts("Go to references"))
+		vim.keymap.set("n", "<leader>so", vim.lsp.buf.document_symbol, { desc = "Search symbols" })
 
 		vim.keymap.set({ "n", "x" }, "<leader>va", vim.lsp.buf.code_action, opts("View code action"))
 		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
@@ -135,29 +119,6 @@ return {
 			local bufnr = vim.api.nvim_get_current_buf()
 			conform.format({ bufnr = bufnr, async = true, lsp_format = "fallback" })
 		end, { desc = "Format buffer using conform" })
-	end,
-
-	trouble = function()
-		local trouble = require("trouble")
-
-		vim.keymap.set("n", "<leader>td", function()
-			trouble.open({ mode = "diagnostics", new = false })
-		end, { desc = "Open trouble diagnostics window" })
-		vim.keymap.set("n", "<leader>tq", function()
-			trouble.close({ new = false })
-		end, { desc = "Close trouble window" })
-		vim.keymap.set("n", "<leader>tj", function()
-			if trouble.is_open() then
-				trouble.next({ new = false })
-				trouble.jump_only({ new = false })
-			end
-		end, { desc = "Go to next trouble window item" })
-		vim.keymap.set("n", "<leader>tk", function()
-			if trouble.is_open() then
-				trouble.prev({ new = false })
-				trouble.jump_only({ new = false })
-			end
-		end, { desc = "Go to previous trouble window item" })
 	end,
 
 	yazi = function()

@@ -13,7 +13,7 @@ local neogit_setup = function()
 	require("neogit").setup({
 		integrations = {
 			diffview = true,
-			fzf = true,
+			telescope = true,
 		},
 		sections = {
 			recent = {
