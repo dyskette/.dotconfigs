@@ -1,0 +1,6 @@
+- name: Configure
+  ansible.builtin.file:
+    src: "{{ role_path }}/bat"
+    dest: "{{ ansible_env.HOME }}/.config/bat"
+    state: link
+    force: true

@@ -1,0 +1,4 @@
+- name: Simple play
+  hosts: home
+  roles:
+    - bash
