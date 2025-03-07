@@ -1,0 +1,46 @@
+- name: Homebrew | Check if brew is installed
+  ansible.builtin.stat:
+    path: "/home/linuxbrew/.linuxbrew/bin/brew"
+  register: brew_installed
+
+- name: Homebrew | Install brew
+  when: not brew_installed.stat.exists
+  block:
+    - name: Homebrew | Install dependecies
+      become: true
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - build-essential
+        - procps
+        - curl
+        - git
+        - gcc
+        - file
+
+    - name: Homebrew | Create temporary directory
+      ansible.builtin.file:
+        path: /tmp/homebrew/
+        state: directory
+        mode: "0755"
+      become: false
+
+    - name: Homebrew | Download install script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+        dest: /tmp/homebrew/install.sh
+        mode: "0755"
+      become: false
+
+    - name: Homebrew | Execute install script
+      ansible.builtin.command: /bin/bash -c /tmp/homebrew/install.sh
+      register: install_result
+      changed_when: "install_result.rc == 0"
+      become: false
+
+    - name: Homebrew | Remove temporary directory
+      ansible.builtin.file:
+        path: /tmp/homebrew/
+        state: absent
+      become: false

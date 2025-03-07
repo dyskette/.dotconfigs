@@ -1,4 +1,11 @@
 - name: Simple play
   hosts: home
+  pre_tasks:
+    - name: Homebrew
+      include_tasks:
+        file: tasks/homebrew.yml
   roles:
     - bash
+    - bat
+    - ghostty
+    - yazi

@@ -22,4 +22,4 @@ fi
 
 # Run Ansible playbook
 cd "$DEST_DIR" || exit 1
-ansible-playbook playbook.yml --ask-become-pass
+ansible-playbook -i inventory.yml playbook.yml --ask-become-pass

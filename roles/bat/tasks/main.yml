@@ -1,6 +1,11 @@
+- name: Install
+  community.general.homebrew:
+    name: bat
+    state: present
+
 - name: Configure
   ansible.builtin.file:
-    src: "{{ role_path }}/bat"
+    src: "{{ role_path }}/files/config"
     dest: "{{ ansible_env.HOME }}/.config/bat"
     state: link
     force: true
