@@ -1,4 +1,0 @@
-- name: Install
-  community.general.homebrew:
-    name: yazi
-    state: present

@@ -1,6 +1,0 @@
-- name: Configure
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/config"
-    dest: "{{ ansible_env.HOME }}/.config/ghostty"
-    state: link
-    force: true

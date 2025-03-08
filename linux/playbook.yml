@@ -1,0 +1,27 @@
+- name: Computer setup
+  hosts: localhost
+  tasks:
+    - name: Packages
+      include_tasks: tasks/packages.yml
+      tags: packages
+
+    - name: Homebrew
+      include_tasks: tasks/homebrew.yml
+      tags: homebrew
+
+    - name: Dotnet
+      include_tasks: tasks/dotnet.yml
+      loop:
+        - { version: "6.0", tag: "dotnet6" }
+        - { version: "7.0", tag: "dotnet7" }
+        - { version: "8.0", tag: "dotnet8" }
+        - { version: "9.0", tag: "dotnet9" }
+      when:
+        - (ansible_run_tags == ['dotnet'] or ansible_skip_tags == []) or (item.tag in ansible_run_tags) or (item.tag not in ansible_skip_tags and (item.tag in ansible_run_tags or ansible_run_tags == ['dotnet']))
+      tags:
+        - always
+
+    - name: Dotfiles
+      include_tasks:
+        file: tasks/dotfiles.yml
+      tags: dotfiles

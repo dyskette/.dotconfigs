@@ -1,0 +1,35 @@
+- name: Ubuntu
+  become: true
+  when: ansible_facts['distribution'] == "Ubuntu"
+  block:
+    - name: Ubuntu | Upgrade the current system
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: true
+
+    - name: Ubuntu | Add git-core PPA repository for the latest git
+      ansible.builtin.apt_repository:
+        repo: ppa:git-core/ppa
+        state: present
+
+    - name: Ubuntu | Update cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Ubuntu | Install packages
+      ansible.builtin.apt:
+        state: present
+        pkg:
+          - git
+          - unzip
+          - make
+          - gcc
+          - python3-venv
+          - wl-clipboard
+          - dbus-bin
+          - libglib2.0-bin
+          - ffmpeg
+          - 7zip
+          - poppler-utils
+          - imagemagick
+  tags: packages

@@ -1,0 +1,55 @@
+- name: Dotnet | Install dependencies
+  when: ansible_facts['distribution'] == "Ubuntu"
+  become: true
+  ansible.builtin.apt:
+    state: latest
+    pkg:
+      - libc6
+      - libgcc1
+      - libgssapi-krb5-2
+      - libicu74
+      - libssl3
+      - libstdc++6
+      - zlib1g
+  tags: always
+
+- name: Dotnet | Set common facts
+  ansible.builtin.set_fact:
+    dotnet_dir: "{{ ansible_env.HOME }}/.dotnet"
+    dotnet_script: "{{ ansible_env.HOME }}/.dotnet/dotnet-install.sh"
+    dotnet_install: "{{ ansible_env.HOME }}/.dotnet/dotnet-install.sh --no-path --install-dir {{ ansible_env.HOME }}/.dotnet --channel"
+  tags: always
+
+- name: Dotnet | Install dotnet-install.sh if necessary
+  block:
+    - name: Dotnet | Check if dotnet-install.sh is already downloaded
+      ansible.builtin.stat:
+        path: "{{ dotnet_script }}"
+      register: dotnet_install_script
+
+    - name: Dotnet | Create directory for dotnet-install.sh
+      ansible.builtin.file:
+        path: "{{ dotnet_dir }}"
+        state: directory
+        mode: "0755"
+      when: not dotnet_install_script.stat.exists
+
+    - name: Dotnet | Download dotnet-install.sh script
+      ansible.builtin.get_url:
+        url: https://dot.net/v1/dotnet-install.sh
+        dest: "{{ dotnet_script }}"
+        mode: "0755"
+      when: not dotnet_install_script.stat.exists
+  tags: always
+
+- name: Dotnet | Check if version {{ item.version }} already installed
+  ansible.builtin.find:
+    path: "{{ ansible_env.HOME }}/.dotnet/sdk/"
+    patterns: "{{ item.version }}.*"
+  register: dotnet_sdk_dir
+  tags: always
+
+- name: Dotnet | Install .NET {{ item.version }}
+  ansible.builtin.shell: "{{ dotnet_install }} {{ item.version }}"
+  when: dotnet_sdk_dir.matched == 0
+  tags: always

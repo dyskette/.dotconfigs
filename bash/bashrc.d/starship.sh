@@ -1,5 +1,5 @@
 if command -v starship &>/dev/null;  then
-    export STARSHIP_CONFIG="$HOME/.dotconfigs/starship/config.toml"
+    export STARSHIP_CONFIG="$HOME/.config/starship/config.toml"
     eval "$(starship init bash)"
 
 	# Before showing the prompt, set starship's palette based on the desktop theme

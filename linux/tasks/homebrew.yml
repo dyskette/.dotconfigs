@@ -8,7 +8,8 @@
   block:
     - name: Homebrew | Install dependecies
       become: true
-      ansible.builtin.package:
+      when: ansible_facts['distribution'] == "Ubuntu"
+      ansible.builtin.apt:
         name: "{{ item }}"
         state: present
       loop:
@@ -44,3 +45,19 @@
         path: /tmp/homebrew/
         state: absent
       become: false
+
+- name: Homebrew | Install packages
+  community.general.homebrew:
+    state: present
+    name:
+      - fd
+      - fnm
+      - fzf
+      - ripgrep
+      - bat
+      - eza
+      - nvim
+      - yazi
+      - jq
+      - yq
+      - starship
