@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 
 # Install ansible
-if ! command -v ansible &>/dev/null; then
-    echo "Ansible not found. Installing..."
-    rpm-ostree install --apply-live --idempotent ansible
-else
-    echo "Ansible is already installed."
+if grep -qi "fedora" /etc/os-release; then
+    if ! command -v ansible &>/dev/null; then
+        echo "Ansible not found. Installing..."
+        rpm-ostree install --apply-live --idempotent ansible
+    else
+        echo "Ansible is already installed."
+    fi
+elif grep -qi "ubuntu" /etc/os-release; then
+    echo "You are using Fedora"
+    if ! command -v ansible &>/dev/null; then
+        echo "Ansible not found. Installing..."
+        apt install --assume-yes ansible
+    else
+        echo "Ansible is already installed."
+    fi
 fi
+
 
 # Clone the repository
 REPO_URL="https://github.com/dyskette/.dotconfigs.git"
