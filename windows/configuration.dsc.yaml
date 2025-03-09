@@ -351,6 +351,30 @@ properties:
         TestScript: return $false
     ### Neovim ###
 
+    ### Windows Terminal ###
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: windowsTerminalPackage
+      directives:
+        description: Install Windows Terminal
+        allowPrerelease: true
+      settings:
+        id: Microsoft.WindowsTerminal
+        source: winget
+    - resource: PSDscResources/Script
+      id: windowsTerminalConfiguration
+      directives:
+        description: Configure WezTerm
+        allowPrerelease: true
+      dependsOn:
+        - windowsTerminalPackage
+        - jetbrainsMonoNLNerdFont
+        - powershellPackage
+      settings:
+        GetScript: return $false
+        SetScript: . "${WinGetConfigRoot}\configuration.ps1"; CreateWindowsTerminalDotfiles
+        TestScript: return $false
+    ### Windows Terminal ###
+
     ### GUI ###
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: brunoPackage

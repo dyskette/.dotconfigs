@@ -83,6 +83,27 @@ function CreateWezTermDotfiles
     Write-Host "Link created from $dotfilesPath to $weztermConfigPath."
 }
 
+function CreateWindowsTerminalDotfiles
+{
+    param (
+        [string]$dotfilesPath = "$(Split-Path -Parent $PSScriptRoot)\windows_terminal",
+        [string]$windowsTerminalConfigPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState"
+    )
+
+    if (-not(Test-Path -Path $windowsTerminalConfigPath))
+    {
+        Write-Host "Created windows terminal configuration directory"
+        New-Item -Path $windowsTerminalConfigPath -ItemType Directory -Force
+    }
+    else {
+        Write-Host "Existing file $windowsTerminalConfigPath\settings.json removed."
+        Remove-Item -Path "$windowsTerminalConfigPath\settings.json" -Force
+    }
+
+    New-Item -Path "$windowsTerminalConfigPath\settings.json" -Target "$dotfilesPath\settings.json" -ItemType SymbolicLink
+    Write-Host "Link created from $dotfilesPath\settings.json to $windowsTerminalConfigPath\settings.json."
+}
+
 function CreateVSDotfiles
 {
     param (

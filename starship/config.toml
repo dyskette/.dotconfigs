@@ -8,7 +8,7 @@ $directory\
 $git_branch\
 \n$character\
 """
-palette = "rose-pine-dawn"
+palette = "everforest"
 
 [palettes.kanagawa_wave]
 background  = "#1F1F28"
