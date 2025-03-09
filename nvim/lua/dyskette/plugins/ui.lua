@@ -36,6 +36,27 @@ end
 
 vanilla_config()
 
+local set_dark_mode = function()
+	vim.api.nvim_set_option_value("background", "dark", {})
+	vim.cmd.colorscheme("everforest")
+	vim.env.BAT_THEME = "everforest"
+end
+
+local set_light_mode = function()
+	vim.api.nvim_set_option_value("background", "light", {})
+	vim.cmd.colorscheme("rose-pine-dawn")
+	vim.env.BAT_THEME = "rose-pine-dawn"
+end
+
+local auto_dark_config = function()
+	require("auto-dark-mode").setup({
+		update_interval = 1000,
+		fallback = "light",
+		set_dark_mode = set_dark_mode,
+		set_light_mode = set_light_mode,
+	})
+end
+
 local template_onlyname = function(filetype, name)
 	return {
 		filetypes = { filetype },
@@ -48,23 +69,6 @@ local template_onlyname = function(filetype, name)
 			} },
 		},
 	}
-end
-
-local auto_dark_config = function()
-	require("auto-dark-mode").setup({
-		update_interval = 1000,
-		fallback = "light",
-		set_dark_mode = function()
-			vim.api.nvim_set_option_value("background", "dark", {})
-			vim.cmd.colorscheme("everforest")
-			vim.env.BAT_THEME = "everforest"
-		end,
-		set_light_mode = function()
-			vim.api.nvim_set_option_value("background", "light", {})
-			vim.cmd.colorscheme("rose-pine-dawn")
-			vim.env.BAT_THEME = "rose-pine-dawn"
-		end,
-	})
 end
 
 local luatab_config = function()
@@ -104,10 +108,20 @@ return {
 	},
 	{
 		"neanias/everforest-nvim",
+		config = function()
+			if vim.env.SYSTEM_COLOR_THEME == "dark" then
+				set_dark_mode()
+			end
+		end,
 	},
 	{
 		"rose-pine/neovim",
 		name = "rose-pine",
+		config = function()
+			if vim.env.SYSTEM_COLOR_THEME == "light" then
+				set_light_mode()
+			end
+		end,
 	},
 	-- tab bar
 	{

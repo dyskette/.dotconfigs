@@ -8,9 +8,13 @@ function Invoke-Starship-PreCommand {
     if ($theme.AppsUseLightTheme)
     {
         starship config palette rose-pine-dawn
+        $env:BAT_THEME = "rose-pine-dawn"
+        $env:SYSTEM_COLOR_THEME = "light"
     } else
     {
         starship config palette everforest
+        $env:BAT_THEME = "everforest"
+        $env:SYSTEM_COLOR_THEME = "dark"
     }
 }
 
@@ -23,23 +27,6 @@ if (Get-Command starship -ErrorAction SilentlyContinue)
 if (Get-Command nvim -ErrorAction SilentlyContinue)
 {
     $env:EDITOR = "nvim"
-}
-
-if (Get-Command bat -ErrorAction SilentlyContinue)
-{
-    $theme = Get-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme
-
-    if ($theme.AppsUseLightTheme)
-    {
-        $env:BAT_THEME = "rose-pine-dawn"
-    } else
-    {
-        $env:BAT_THEME = "everforest"
-    }
-
-    # Not working yet: https://github.com/sharkdp/bat/pull/3168
-    $env:BAT_THEME_DARK = "everforest"
-    $env:BAT_THEME_LIGHT = "rose-pine-dawn"
 }
 
 if (Get-Command yazi -ErrorAction SilentlyContinue)
