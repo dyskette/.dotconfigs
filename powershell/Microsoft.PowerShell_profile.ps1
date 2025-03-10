@@ -122,3 +122,11 @@ function y
     }
     Remove-Item -Path $tmp
 }
+
+function tmux_pwsh {
+    wsl --distribution Ubuntu-24.04 --exec bash --noprofile -c "export TMUX_PWSH=1 && tmux"
+}
+
+function tmux {
+    wsl --distribution Ubuntu-24.04 --exec bash --noprofile -c "cd -- && tmux"
+}
