@@ -212,20 +212,6 @@ properties:
         source: winget
     ### CLI ###
 
-    ### Tmux ###
-    - resource: PSDscResources/Script
-      id: tmuxPackage
-      directives:
-        description: Install tmux via script
-        allowPrerelease: true
-      dependsOn:
-        - gitPackage
-      settings:
-        GetScript: return $false
-        SetScript: . "${WinGetConfigRoot}\configuration.ps1"; InstallTmux
-        TestScript: return $false
-    ### Tmux ###
-
     ### Bat ###
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: batPackage
