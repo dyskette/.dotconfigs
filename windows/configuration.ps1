@@ -274,3 +274,64 @@ function InstallJetBrainsMonoFonts
         Write-Host "Unable to broadcast font change to applications. Restart might be necessary."
     }
 }
+
+function InstallTmux {
+    # Names
+    $zstd = "zstd-v1.5.7-win64"
+    $tmux = "tmux-3.5.a-2-x86_64"
+    $libevent = "libevent-2.1.12-4-x86_64"
+    $gitusrbin = "C:\Program Files\Git\usr\bin\"
+
+    if (Test-Path "$env:TEMP\$zstd.zip") {
+        Remove-Item -Force "$env:TEMP\$zstd.zip"
+    }
+
+    if (Test-Path "$env:TEMP\$tmux.pkg.tar.zst") {
+        Remove-Item -Force "$env:TEMP\$tmux.pkg.tar.zst"
+    }
+
+    if (Test-Path "$env:TEMP\$libevent.pkg.tar.zst") {
+        Remove-Item -Force "$env:TEMP\$libevent.pkg.tar.zst"
+    }
+
+    # Download files
+    & curl -sSL "https://github.com/facebook/zstd/releases/download/v1.5.7/$zstd.zip" -o "$env:TEMP\$zstd.zip"
+    Expand-Archive -Force "$env:TEMP\$zstd.zip" -DestinationPath "$env:TEMP"
+    $zstdExe = "$env:TEMP\$zstd\zstd.exe"
+    & curl -sSL "https://mirror.msys2.org/msys/x86_64/$tmux.pkg.tar.zst" -o "$env:TEMP\$tmux.pkg.tar.zst"
+    & curl -sSL "https://mirror.msys2.org/msys/x86_64/$libevent.pkg.tar.zst" -o "$env:TEMP\$libevent.pkg.tar.zst"
+
+    if (Test-Path "$env:TEMP\$tmux.pkg.tar") {
+        Remove-Item -Force "$env:TEMP\$tmux.pkg.tar"
+    }
+
+    if (Test-Path "$env:TEMP\$libevent.pkg.tar") {
+        Remove-Item -Force "$env:TEMP\$libevent.pkg.tar"
+    }
+
+    # Decompress files
+    & $zstdExe --quiet --decompress "$env:TEMP\$tmux.pkg.tar.zst"
+    & $zstdExe --quiet --decompress "$env:TEMP\$libevent.pkg.tar.zst"
+
+    if (Test-Path "$env:TEMP\$tmux") {
+        Remove-Item -Recurse -Force "$env:TEMP\$tmux"
+    }
+
+    if (Test-Path "$env:TEMP\$libevent") {
+        Remove-Item -Recurse -Force "$env:TEMP\$libevent"
+    }
+
+    New-Item -ItemType Directory "$env:TEMP\$tmux"
+    New-Item -ItemType Directory "$env:TEMP\$libevent"
+
+    # Decompress again
+    & tar -xf "$env:TEMP\$tmux.pkg.tar" --directory "$env:TEMP\$tmux"
+    & tar -xf "$env:TEMP\$libevent.pkg.tar" --directory "$env:TEMP\$libevent"
+
+    Remove-Item -Force -Path "$gitusrbin\tmux.exe"
+    Remove-Item -Force -Path "$gitusrbin\*" -Include "msys-event*.dll", "event_rpcgen.py"
+
+    # Copy binaries into git /usr/bin directory
+    Copy-Item -Path "$env:TEMP\$tmux\usr\bin\tmux.exe" -Destination "$gitusrbin"
+    Copy-Item -Path "$env:TEMP\$libevent\usr\bin\*" -Destination "$gitusrbin" -Include "msys-event*.dll", "event_rpcgen.py"
+}
