@@ -30,9 +30,3 @@ if [ -d ~/.bashrc.d ]; then
 
 	unset rc
 fi
-
-function tmux_pwsh {
-	cd $(pwsh.exe -c 'Write-Host -NoNewline "$env:USERPROFILE"' | xargs -0 wslpath)
-	TMUX_PWSH=1 tmux "$@"
-	cd -
-}

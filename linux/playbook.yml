@@ -25,3 +25,7 @@
       include_tasks:
         file: tasks/dotfiles.yml
       tags: dotfiles
+
+    - name: WSL
+      include_tasks: tasks/wsl.yaml
+      tags: fix-wayland
