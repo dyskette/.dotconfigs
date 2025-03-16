@@ -85,6 +85,22 @@ function sf
     }
 }
 
+function sdf
+{
+    $file_path = fd --type file |
+        fzf `
+            --layout=reverse `
+            --height=50% `
+            --min-height=20 `
+            --preview "bat --color=always --style=plain {}"
+
+    if ($file_path)
+    {
+        $directory_path = Split-Path -Parent $file_path
+        Set-Location $directory_path
+    }
+}
+
 function sg
 {
     param (
@@ -123,10 +139,12 @@ function y
     Remove-Item -Path $tmp
 }
 
-function tmux_pwsh {
-    wsl --distribution Ubuntu-24.04 --exec bash --noprofile -c "export TMUX_PWSH=1 && tmux"
+function tmux {
+    $command = "cd -- && tmux $args"
+    wsl --distribution Ubuntu-24.04 --exec bash --noprofile -c $command
 }
 
-function tmux {
-    wsl --distribution Ubuntu-24.04 --exec bash --noprofile -c "cd -- && tmux"
+function tmux-pwsh {
+    $command = "tmux -L pwsh -f `$HOME/.dotconfigs/tmux/pwsh.conf $args"
+    wsl --distribution Ubuntu-24.04 --exec bash -c $command
 }

@@ -55,7 +55,14 @@ return {
 	telescope = function()
 		local builtin = require("telescope.builtin")
 		local live_grep_args = require("telescope").extensions.live_grep_args.live_grep_args
+		local file_browser = require("telescope").extensions.file_browser.file_browser
 
+		vim.keymap.set("n", "<leader>sd", function()
+			file_browser({
+				files = false,
+				depth = false,
+			})
+		end, { desc = "Search directories" })
 		vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "Search files" })
 		vim.keymap.set("n", "<leader>sr", function()
 			builtin.oldfiles({ only_cwd = true })

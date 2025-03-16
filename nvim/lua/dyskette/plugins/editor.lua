@@ -74,4 +74,9 @@ return {
 		event = utils.events.BufReadPost,
 		config = nvim_highlight_colors_config,
 	},
+	-- Json tools
+	{
+		"VPavliashvili/json-nvim",
+		ft = "json", -- only load for json filetype
+	},
 }
