@@ -76,6 +76,19 @@ return {
 		end, { desc = "Search files with hidden enabled" })
 	end,
 
+	fzf = function()
+		local fzf = require("fzf-lua")
+
+		vim.keymap.set("n", "<leader>sf", fzf.files, { desc = "Search files" })
+		vim.keymap.set("n", "<leader>sr", fzf.oldfiles, { desc = "Search recent files" })
+		vim.keymap.set("n", "<leader>si", fzf.git_files, { desc = "Search git files" })
+		vim.keymap.set("n", "<leader>sg", fzf.live_grep_native, { desc = "Search by grep" })
+		vim.keymap.set("n", "<leader>sw", fzf.grep_cword, { desc = "Search current word" })
+		vim.keymap.set("x", "<leader>sw", fzf.grep_visual, { desc = "Search current selection" })
+		vim.keymap.set("n", "<leader>sb", fzf.buffers, { desc = "Search buffers" })
+		vim.keymap.set("n", "<leacer>so", fzf.lsp_workspace_symbols, { desc = "Search workspace symbols" })
+	end,
+
 	lsp = function(client, buffer)
 		local utils = require("dyskette.utils")
 		local opts = function(description)

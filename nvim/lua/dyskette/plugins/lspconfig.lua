@@ -117,9 +117,40 @@ end
 
 local roslyn_config = function()
 	require("roslyn").setup({
-		config = vim.tbl_deep_extend("force", default_config(), {}),
+		args = {
+			"--stdio",
+			"--logLevel=Information",
+			"--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+			"--razorSourceGenerator=" .. vim.fs.joinpath(
+				vim.fn.stdpath("data") --[[@as string]],
+				"mason",
+				"packages",
+				"roslyn",
+				"libexec",
+				"Microsoft.CodeAnalysis.Razor.Compiler.dll"
+			),
+			"--razorDesignTimePath=" .. vim.fs.joinpath(
+				vim.fn.stdpath("data") --[[@as string]],
+				"mason",
+				"packages",
+				"rzls",
+				"libexec",
+				"Targets",
+				"Microsoft.NET.Sdk.Razor.DesignTime.targets"
+			),
+		},
+		config = vim.tbl_deep_extend("force", default_config(), {
+			handlers = require("rzls.roslyn_handlers"),
+		}),
 		broad_search = true,
 		lock_target = true,
+	})
+
+	vim.filetype.add({
+		extension = {
+			razor = "razor",
+			cshtml = "razor",
+		},
 	})
 end
 
@@ -148,6 +179,9 @@ return {
 			{
 				"seblyng/roslyn.nvim",
 				config = roslyn_config,
+				dependencies = {
+					"tris203/rzls.nvim",
+				},
 			},
 
 			-- JSON and YAML schemas

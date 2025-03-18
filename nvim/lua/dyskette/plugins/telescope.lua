@@ -68,6 +68,7 @@ local telescope_config = function()
 
 	require("dyskette.keymaps").telescope()
 end
+
 return {
 	"nvim-telescope/telescope.nvim",
 	tag = "0.1.8",
@@ -75,6 +76,8 @@ return {
 		"nvim-lua/plenary.nvim",
 		{ "nvim-telescope/telescope-live-grep-args.nvim", version = "^1.0.0" },
 		"nvim-telescope/telescope-file-browser.nvim",
+		{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
 	},
 	config = telescope_config,
+	enabled = false
 }
