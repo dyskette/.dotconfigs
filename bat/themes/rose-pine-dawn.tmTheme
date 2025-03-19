@@ -17,6 +17,14 @@
                     <string>#FAF4ED</string>
                     <key>foreground</key>
                     <string>#464261</string>
+                    <key>caret</key>
+                    <string>#464261</string>
+                    <key>invisibles</key>
+                    <string>#9893A5</string>
+                    <key>lineHighlight</key>
+                    <string>#F2E9E1</string>
+                    <key>selection</key>
+                    <string>#EAE2E3</string>
                     <key>gutter</key>
                     <string>#FAF4ED</string>
                     <key>gutterForeground</key>
