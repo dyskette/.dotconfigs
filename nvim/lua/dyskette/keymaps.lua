@@ -52,30 +52,6 @@ return {
 		vim.keymap.set("n", "<leader>q", toggle_quickfix, { desc = "Toggle quickfix" })
 	end,
 
-	telescope = function()
-		local builtin = require("telescope.builtin")
-		local live_grep_args = require("telescope").extensions.live_grep_args.live_grep_args
-		local file_browser = require("telescope").extensions.file_browser.file_browser
-
-		vim.keymap.set("n", "<leader>sd", function()
-			file_browser({
-				files = false,
-				depth = false,
-			})
-		end, { desc = "Search directories" })
-		vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "Search files" })
-		vim.keymap.set("n", "<leader>sr", function()
-			builtin.oldfiles({ only_cwd = true })
-		end, { desc = "Search recent files" })
-		vim.keymap.set("n", "<leader>si", builtin.git_files, { desc = "Search git files" })
-		vim.keymap.set("n", "<leader>sg", live_grep_args, { desc = "Search by grep" })
-		vim.keymap.set({ "x", "n" }, "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
-		vim.keymap.set("n", "<leader>sb", builtin.buffers, { desc = "Search buffers" })
-		vim.keymap.set("n", "<leader>sh", function()
-			builtin.find_files({ hidden = true })
-		end, { desc = "Search files with hidden enabled" })
-	end,
-
 	fzf = function()
 		local fzf = require("fzf-lua")
 
@@ -87,10 +63,12 @@ return {
 		vim.keymap.set("x", "<leader>sw", fzf.grep_visual, { desc = "Search current selection" })
 		vim.keymap.set("n", "<leader>sb", fzf.buffers, { desc = "Search buffers" })
 		vim.keymap.set("n", "<leacer>so", fzf.lsp_workspace_symbols, { desc = "Search workspace symbols" })
+
+		vim.keymap.set("n", "<leader>sd", fzf.dap_commands, { desc = "Search dap commands" })
 	end,
 
 	lsp = function(client, buffer)
-		local utils = require("dyskette.utils")
+		local fzf = require("fzf-lua")
 		local opts = function(description)
 			return {
 				buffer = buffer,
@@ -100,19 +78,18 @@ return {
 		end
 
 		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("Open symbol information"))
-
-		vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts("Go to definition"))
-		vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts("Go to declaration"))
-		vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts("Go to implementation"))
-		vim.keymap.set("n", "go", vim.lsp.buf.type_definition, opts("Go to definition of the type"))
-		vim.keymap.set("n", "gr", vim.lsp.buf.references, opts("Go to references"))
-		vim.keymap.set("n", "<leader>so", vim.lsp.buf.document_symbol, { desc = "Search symbols" })
-
-		vim.keymap.set({ "n", "x" }, "<leader>va", vim.lsp.buf.code_action, opts("View code action"))
 		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
 		vim.keymap.set({ "n", "x" }, "<leader>fl", function()
 			vim.lsp.buf.format({ async = true })
 		end, opts("Format document using LSP"))
+
+		vim.keymap.set("n", "gd", fzf.lsp_definitions, opts("Go to definition"))
+		vim.keymap.set("n", "gD", fzf.lsp_declarations, opts("Go to declaration"))
+		vim.keymap.set("n", "gi", fzf.lsp_implementations, opts("Go to implementation"))
+		vim.keymap.set("n", "go", fzf.lsp_typedefs, opts("Go to definition of the type"))
+		vim.keymap.set("n", "gr", fzf.lsp_references, opts("Go to references"))
+		vim.keymap.set("n", "<leader>so", fzf.lsp_workspace_symbols, { desc = "Search symbols" })
+		vim.keymap.set({ "n", "x" }, "<leader>va", fzf.lsp_code_actions, opts("View code action"))
 
 		vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, opts("View diagnostic"))
 		vim.keymap.set("n", "<leader>dk", vim.diagnostic.goto_prev, opts("Previous diagnostic"))
@@ -159,16 +136,43 @@ return {
 	dap = function()
 		local dap = require("dap")
 		local dapui = require("dapui")
-		vim.keymap.set("n", "<leader>5", dap.continue, { desc = "Start or resume the debug session" })
-		vim.keymap.set("n", "<leader>%", dap.terminate, { desc = "Terminate the debug session" })
-		vim.keymap.set("n", "<leader>9", dap.toggle_breakpoint, { desc = "Toggle breakpoint" })
-		vim.keymap.set("n", "<leader>0", dap.step_over, { desc = "Step over" })
-		vim.keymap.set("n", "<leader>'", dap.step_into, { desc = "Step into" })
-		vim.keymap.set("n", "<leader>?", dap.step_out, { desc = "Step out" })
-		vim.keymap.set("n", "<leader>dg", dap.goto_, { desc = "Go to line" })
+		local widgets = require("dap.ui.widgets")
+
 		vim.keymap.set("n", "<leader>di", function()
 			dapui.eval(nil, { enter = true })
 		end, { desc = "Debug inspect value" })
+
+		-- TODO: When pressing F5 and if there it is not stopped then offer the option to restart to the user
+		vim.keymap.set("n", "<F5>", dap.continue, { desc = "Debug start or continue" })
+		vim.keymap.set("n", "<S-F5>", dap.terminate, { desc = "Terminate the debug session" })
+		vim.keymap.set("n", "<F9>", dap.toggle_breakpoint, { desc = "Debug toggle breakpoint" })
+		vim.keymap.set("n", "<F10>", dap.step_over, { desc = "Debug step over" })
+		vim.keymap.set("n", "<F11>", dap.step_into, { desc = "Debug step into" })
+		vim.keymap.set("n", "<F12>", dap.step_out, { desc = "Debug step out" })
+
+		vim.keymap.set("n", "<Leader>dw", function()
+			dap.set_breakpoint(nil, nil, vim.fn.input("Log point message: "))
+		end, { desc = "Debug write output message" })
+		vim.keymap.set("n", "<Leader>dr", dap.repl.open, { desc = "Debug, use REPL to evaluate sentences" })
+		vim.keymap.set("n", "<Leader>dl", dap.run_last, { desc = "Debug run the last session again" })
+		vim.keymap.set(
+			{ "n", "v" },
+			"<Leader>dh",
+			widgets.hover,
+			{ desc = "Debug evaluate expression and display in floating window" }
+		)
+		vim.keymap.set(
+			{ "n", "v" },
+			"<Leader>dp",
+			widgets.preview,
+			{ desc = "Debug evaluate expression and display in preview window" }
+		)
+		vim.keymap.set("n", "<Leader>df", function()
+			widgets.centered_float(widgets.frames)
+		end, { desc = "Debug show the stack frames in a floating window" })
+		vim.keymap.set("n", "<Leader>ds", function()
+			widgets.centered_float(widgets.scopes)
+		end, { desc = "Debug show the variables of current scope in a floating window" })
 	end,
 
 	git_diffview = function()

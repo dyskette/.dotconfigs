@@ -17,6 +17,7 @@
   "editor.cursorSmoothCaretAnimation": "on",
   "editor.cursorSurroundingLines": 5,
   "editor.semanticHighlighting.enabled": true,
+  "editor.lineNumbers": "relative",
 
   "javascript.suggest.completeFunctionCalls": true,
   "typescript.suggest.completeFunctionCalls": true,
@@ -113,7 +114,7 @@
     },
     {
       "before": ["<leader>", "s", "r"],
-      "commands": ["workbench.action.openRecent"],
+      "commands": ["workbench.action.quickOpenPreviousEditor"],
       "silent": true
     },
     {
@@ -243,5 +244,6 @@
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "redhat.telemetry.enabled": true,
-  "diffEditor.ignoreTrimWhitespace": false
+  "diffEditor.ignoreTrimWhitespace": false,
+  "chat.commandCenter.enabled": false
 }

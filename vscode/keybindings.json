@@ -1,8 +1,8 @@
 [
     {
-        "key": "tab",
-        "command": "-acceptSelectedSuggestion",
-        "when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible && textInputFocus"
+        "key": "ctrl+y",
+        "command": "acceptSelectedSuggestion",
+        "when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible"
     },
     {
         "key": "Ctrl+n",

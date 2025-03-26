@@ -1,10 +1,15 @@
 local utils = require("dyskette.utils")
 
 local fzf_lua_config = function()
-	require("fzf-lua").setup({
+	local fzf = require("fzf-lua")
+
+	fzf.setup({
 		winopts = { preview = { default = "bat" } },
 		oldfiles = { cwd_only = true },
 	})
+
+	fzf.register_ui_select()
+
 	require("dyskette.keymaps").fzf()
 end
 

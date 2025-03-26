@@ -1,6 +1,14 @@
+local utils = require("dyskette.utils")
+
 local dap_config = function()
 	local dap = require("dap")
 	local dapui = require("dapui")
+
+	vim.fn.sign_define("DapBreakpoint", { text = "󰐱", texthl = "Debug", linehl = "", numhl = "" })
+	vim.fn.sign_define("DapBreakpointCondition", { text = "󱓓", texthl = "Debug", linehl = "", numhl = "" })
+	vim.fn.sign_define("DapLogPoint", { text = "󰩦", texthl = "Debug", linehl = "", numhl = "" })
+	vim.fn.sign_define("DapStopped", { text = "", texthl = "Debug", linehl = "", numhl = "" })
+	vim.fn.sign_define("DapBreakpointRejected", { text = "󱓒", texthl = "Debug", linehl = "", numhl = "" })
 
 	---@diagnostic disable-next-line: missing-fields
 	dapui.setup({
@@ -36,11 +44,15 @@ local virtual_text_config = function()
 	require("nvim-dap-virtual-text").setup({})
 end
 
+local overseer_config = function ()
+	require("overseer").setup()
+end
+
 return {
 	{
 		"mfussenegger/nvim-dap",
 		config = dap_config,
-		keys = { { "<leader>5", mode = { "n" } } },
+		event = utils.events.VeryLazy,
 		dependencies = {
 			-- Async library
 			{ "nvim-neotest/nvim-nio" },
@@ -56,6 +68,11 @@ return {
 			{ "williamboman/mason.nvim" },
 			-- Adapt mason to dap to download debuggers
 			{ "jay-babu/mason-nvim-dap.nvim" },
+			-- Run pre and post tasks (e.g. building, cleaning)
+			{
+				"stevearc/overseer.nvim",
+				config = overseer_config,
+			},
 		},
 	},
 }
