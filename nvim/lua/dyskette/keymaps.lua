@@ -77,7 +77,9 @@ return {
 			}
 		end
 
-		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("Open symbol information"))
+		vim.keymap.set("n", "K", function()
+			vim.lsp.buf.hover({ border = "rounded" })
+		end, opts("Open symbol information"))
 		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
 		vim.keymap.set({ "n", "x" }, "<leader>fl", function()
 			vim.lsp.buf.format({ async = true })

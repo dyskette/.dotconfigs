@@ -6,6 +6,12 @@ local fzf_lua_config = function()
 	fzf.setup({
 		winopts = { preview = { default = "bat" } },
 		oldfiles = { cwd_only = true },
+		files = {
+			actions = { ["ctrl-q"] = { fn = fzf.actions.file_sel_to_qf, prefix = "select-all" } },
+		},
+		grep = {
+			actions = { ["ctrl-q"] = { fn = fzf.actions.file_sel_to_qf, prefix = "select-all" } },
+		},
 	})
 
 	fzf.register_ui_select()

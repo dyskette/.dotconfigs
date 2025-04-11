@@ -28,6 +28,8 @@ local default_config = function()
 	}
 end
 
+--- Configuration for typescript server
+--- @return lspconfig.Config
 local ts_ls_config = function()
 	local vue_typescript_plugin = require("mason-registry").get_package("vue-language-server"):get_install_path()
 		.. "/node_modules/@vue/language-server"

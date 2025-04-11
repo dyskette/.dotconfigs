@@ -46,6 +46,16 @@
   "vim.insertModeKeyBindings": [],
   "vim.normalModeKeyBindingsNonRecursive": [
     {
+      "before": [
+        "<leader>",
+        "<leader>"
+      ],
+      "commands": [
+        "workbench.action.closeSidebar",
+        "workbench.action.closePanel"
+      ]
+    },
+    {
       "before": ["u"],
       "after": [],
       "commands": [
@@ -118,6 +128,14 @@
       "silent": true
     },
     {
+      "before": ["<leader>", "s", "w"],
+      "commands": [
+        "editor.action.addSelectionToNextFindMatch",
+        "workbench.action.findInFiles"
+      ],
+      "silent": true
+    },
+    {
       "before": ["<leader>", "s", "g"],
       "commands": ["workbench.action.findInFiles"],
       "silent": true
@@ -130,6 +148,11 @@
     {
       "before": ["<leader>", "s", "l"],
       "commands": ["workbench.explorer.fileView.focus"],
+      "silent": true
+    },
+    {
+      "before": ["<leader>", "s", "b"],
+      "commands": ["workbench.action.showAllEditorsByMostRecentlyUsed"],
       "silent": true
     },
     {
@@ -161,7 +184,7 @@
     },
     {
       "before": ["K"],
-      "commands": ["editor.action.showDefinitionPreviewHover"],
+      "commands": ["editor.action.showHover"],
       "silent": true
     },
     {
@@ -218,7 +241,15 @@
       "before": ["K"],
       "commands": ["editor.action.moveLinesUpAction"],
       "silent": true
-    }
+    },
+    {
+      "before": ["<leader>", "s", "w"],
+      "commands": [
+        "editor.action.addSelectionToNextFindMatch",
+        "workbench.action.findInFiles"
+      ],
+      "silent": true
+    },
   ],
   "vim.visualModeKeyBindings": [
     {
