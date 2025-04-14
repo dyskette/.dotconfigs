@@ -1,0 +1,23 @@
+---
+- name: Remove existing jq installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/jq/"
+    state: absent
+
+- name: Create jq directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/jq/"
+    state: directory
+
+- name: Download jq tarball
+  ansible.builtin.get_url:
+    url: https://github.com/jqlang/jq/releases/latest/download/jq-linux-amd64
+    dest: "{{ ansible_env.HOME }}/.local/opt/jq/jq"
+    mode: "0755"
+
+- name: Create symlink to binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/jq/jq"
+    dest: "{{ ansible_env.HOME }}/.local/bin/jq"
+    state: link
+    force: yes

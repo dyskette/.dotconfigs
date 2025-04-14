@@ -1,0 +1,23 @@
+---
+- name: Remove existing yq installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/yq/"
+    state: absent
+
+- name: Create yq directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/yq/"
+    state: directory
+
+- name: Download yq tarball
+  ansible.builtin.get_url:
+    url: https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    dest: "{{ ansible_env.HOME }}/.local/opt/yq/yq"
+    mode: "0755"
+
+- name: Create symlink to binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/yq/yq"
+    dest: "{{ ansible_env.HOME }}/.local/bin/yq"
+    state: link
+    force: yes

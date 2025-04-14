@@ -1,0 +1,21 @@
+---
+- name: Install fnm to /opt/fnm
+  ansible.builtin.shell: |
+    curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$HOME/.local/opt/fnm" --skip-shell
+  args:
+    creates: "{{ ansible_env.HOME }}/.local/opt/fnm"
+
+- name: Create symlink to binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/fnm/fnm"
+    dest: "{{ ansible_env.HOME }}/.local/bin/fnm"
+    state: link
+    force: yes
+
+- name: Source FNM profile and install Node LTS
+  ansible.builtin.shell: |
+    eval "$($HOME/.local/opt/fnm/fnm env --use-on-cd --shell bash)"
+    $HOME/.local/opt/fnm/fnm install --lts
+    $HOME/.local/opt/fnm/fnm use default
+  args:
+    executable: /bin/bash

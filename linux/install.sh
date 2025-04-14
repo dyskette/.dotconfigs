@@ -1,15 +1,24 @@
 #!/usr/bin/env bash
 
 # Install ansible
-if grep -qi "fedora" /etc/os-release; then
+if grep -qi "silverblue" /etc/os-release; then
+    echo "You are using Fedora Silverblue"
     if ! command -v ansible &>/dev/null; then
         echo "Ansible not found. Installing..."
         rpm-ostree install --apply-live --idempotent ansible
     else
         echo "Ansible is already installed."
     fi
-elif grep -qi "ubuntu" /etc/os-release; then
+elif grep -qi "fedora" /etc/os-release; then
     echo "You are using Fedora"
+    if ! command -v ansible &>/dev/null; then
+        echo "Ansible not found. Installing..."
+        sudo dnf install ansible
+    else
+        echo "Ansible is already installed."
+    fi
+elif grep -qi "ubuntu" /etc/os-release; then
+    echo "You are using Ubuntu"
     if ! command -v ansible &>/dev/null; then
         echo "Ansible not found. Installing..."
         apt install --assume-yes ansible

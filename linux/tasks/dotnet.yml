@@ -2,7 +2,7 @@
   when: ansible_facts['distribution'] == "Ubuntu"
   become: true
   ansible.builtin.apt:
-    state: latest
+    state: present
     pkg:
       - libc6
       - libgcc1
@@ -12,6 +12,17 @@
       - libstdc++6
       - zlib1g
   tags: always
+
+- name: Dotnet | Install dependencies
+  when: ansible_facts['distribution'] == "Fedora Silverblue"
+  ansible.community.rpm_os_tree:
+    state: present
+    name:
+     - krb5-libs
+     - libicu
+     - openssl-libs
+     - zlib
+     - compat-openssl10
 
 - name: Dotnet | Set common facts
   ansible.builtin.set_fact:

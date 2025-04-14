@@ -10,15 +10,28 @@
       become: true
       when: ansible_facts['distribution'] == "Ubuntu"
       ansible.builtin.apt:
-        name: "{{ item }}"
         state: present
-      loop:
-        - build-essential
-        - procps
-        - curl
-        - git
-        - gcc
-        - file
+        name:
+          - build-essential
+          - procps
+          - curl
+          - git
+          - gcc
+          - file
+
+    - name: Fedora | Install packages
+      when: ansible_facts['distribution'] == "Fedora Silverblue"
+      community.general.rpm_ostree_pkg:
+        apply_live: true
+        state: present
+        name:
+          - "@Development Tools"
+          - procps-ng
+          - curl
+          - git
+          - gcc
+          - file
+          - libxcrypt-compat # needed by Fedora 30 and up
 
     - name: Homebrew | Create temporary directory
       ansible.builtin.file:

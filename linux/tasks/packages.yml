@@ -33,3 +33,37 @@
           - poppler-utils
           - imagemagick
   tags: packages
+
+- name: Fedora Silverblue
+  when: ansible_facts['distribution'] == "Fedora Silverblue"
+  block:
+    - name: Enable pgdev:ghostty copr repository
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/copr:pgdev:ghostty.repo
+        content: |
+          [copr:copr.fedorainfracloud.org:pgdev:ghostty]
+          name=Copr repo for Ghostty owned by pgdev
+          baseurl=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/fedora-$releasever-$basearch/
+          type=rpm-md
+          skip_if_unavailable=True
+          gpgcheck=1
+          gpgkey=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/pubkey.gpg
+          repo_gpgcheck=0
+          enabled=1
+          enabled_metadata=1
+
+    - name: Fedora | Install packages
+      community.general.rpm_ostree_pkg:
+        apply_live: true
+        state: present
+        pkg:
+          - git
+          - gcc
+          - glib2-devel
+          - tmux
+          - wl-clipboard
+          - p7zip
+          - p7zip-plugins
+          - ghostty
+  tags: packages

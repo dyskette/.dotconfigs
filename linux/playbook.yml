@@ -1,31 +1,26 @@
 - name: Computer setup
   hosts: localhost
   tasks:
-    - name: Packages
-      include_tasks: tasks/packages.yml
-      tags: packages
-
-    - name: Homebrew
-      include_tasks: tasks/homebrew.yml
-      tags: homebrew
-
-    - name: Dotnet
-      include_tasks: tasks/dotnet.yml
-      loop:
-        - { version: "6.0", tag: "dotnet6" }
-        - { version: "7.0", tag: "dotnet7" }
-        - { version: "8.0", tag: "dotnet8" }
-        - { version: "9.0", tag: "dotnet9" }
-      when:
-        - (ansible_run_tags == ['dotnet'] or ansible_skip_tags == []) or (item.tag in ansible_run_tags) or (item.tag not in ansible_skip_tags and (item.tag in ansible_run_tags or ansible_run_tags == ['dotnet']))
-      tags:
-        - always
-
-    - name: Dotfiles
-      include_tasks:
-        file: tasks/dotfiles.yml
-      tags: dotfiles
-
-    - name: WSL
-      include_tasks: tasks/wsl.yaml
-      tags: fix-wayland
+    - import_tasks: tasks/packages.yml
+    - import_tasks: tasks/bin/fd.yml
+    - import_tasks: tasks/bin/fnm.yml
+    - import_tasks: tasks/bin/fzf.yml
+    - import_tasks: tasks/bin/ripgrep.yml
+    - import_tasks: tasks/bin/bat.yml
+    - import_tasks: tasks/bin/eza.yml
+    - import_tasks: tasks/bin/nvim.yml
+    - import_tasks: tasks/bin/yazi.yml
+    - import_tasks: tasks/bin/jq.yml
+    - import_tasks: tasks/bin/yq.yml
+    - import_tasks: tasks/bin/starship.yml
+    # - import_tasks: tasks/dotnet.yml
+    #   loop:
+    #     - { version: "6.0", tag: "dotnet6" }
+    #     - { version: "7.0", tag: "dotnet7" }
+    #     - { version: "8.0", tag: "dotnet8" }
+    #     - { version: "9.0", tag: "dotnet9" }
+    #   when:
+    #     - (ansible_run_tags == ['dotnet'] or ansible_skip_tags == []) or (item.tag in ansible_run_tags) or (item.tag not in ansible_skip_tags and (item.tag in ansible_run_tags or ansible_run_tags == ['dotnet']))
+    - import_tasks: tasks/dotfiles.yml
+    - import_tasks: tasks/wsl.yaml
+  tags: always
