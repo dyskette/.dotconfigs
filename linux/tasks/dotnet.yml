@@ -1,66 +1,63 @@
-- name: Dotnet | Install dependencies
-  when: ansible_facts['distribution'] == "Ubuntu"
-  become: true
-  ansible.builtin.apt:
-    state: present
-    pkg:
-      - libc6
-      - libgcc1
-      - libgssapi-krb5-2
-      - libicu74
-      - libssl3
-      - libstdc++6
-      - zlib1g
-  tags: always
-
-- name: Dotnet | Install dependencies
-  when: ansible_facts['distribution'] == "Fedora Silverblue"
-  ansible.community.rpm_os_tree:
-    state: present
-    name:
-     - krb5-libs
-     - libicu
-     - openssl-libs
-     - zlib
-     - compat-openssl10
-
-- name: Dotnet | Set common facts
-  ansible.builtin.set_fact:
-    dotnet_dir: "{{ ansible_env.HOME }}/.dotnet"
-    dotnet_script: "{{ ansible_env.HOME }}/.dotnet/dotnet-install.sh"
-    dotnet_install: "{{ ansible_env.HOME }}/.dotnet/dotnet-install.sh --no-path --install-dir {{ ansible_env.HOME }}/.dotnet --channel"
-  tags: always
-
-- name: Dotnet | Install dotnet-install.sh if necessary
+---
+- name: Dotnet
+  vars:
+    dotnet_script: "{{ ansible_env.HOME }}/.local/opt/dotnet/dotnet-install.sh"
   block:
-    - name: Dotnet | Check if dotnet-install.sh is already downloaded
-      ansible.builtin.stat:
-        path: "{{ dotnet_script }}"
-      register: dotnet_install_script
+    - name: Dotnet | Dependencies
+      tags: dependencies
+      block:
+        - name: Dotnet | Ubuntu | Install dependencies
+          when: is_ubuntu
+          become: true
+          ansible.builtin.apt:
+            state: present
+            pkg:
+              - libc6
+              - libgcc1
+              - libgssapi-krb5-2
+              - libicu74
+              - libssl3
+              - libstdc++6
+              - zlib1g
 
-    - name: Dotnet | Create directory for dotnet-install.sh
-      ansible.builtin.file:
-        path: "{{ dotnet_dir }}"
-        state: directory
-        mode: "0755"
-      when: not dotnet_install_script.stat.exists
+        - name: Dotnet | Fedora Silverblue | Install dependencies
+          when: is_fedora and has_rpm_ostree
+          community.general.rpm_ostree_pkg:
+            state: present
+            name:
+              - krb5-libs
+              - libicu
+              - openssl-libs
+              - zlib
 
-    - name: Dotnet | Download dotnet-install.sh script
-      ansible.builtin.get_url:
-        url: https://dot.net/v1/dotnet-install.sh
-        dest: "{{ dotnet_script }}"
-        mode: "0755"
-      when: not dotnet_install_script.stat.exists
-  tags: always
+    - name: Dotnet | Install dotnet-install.sh if necessary
+      block:
+        - name: Dotnet | Check if dotnet-install.sh is already downloaded
+          ansible.builtin.stat:
+            path: "{{ dotnet_script }}"
+          register: dotnet_install_script
 
-- name: Dotnet | Check if version {{ item.version }} already installed
-  ansible.builtin.find:
-    path: "{{ ansible_env.HOME }}/.dotnet/sdk/"
-    patterns: "{{ item.version }}.*"
-  register: dotnet_sdk_dir
-  tags: always
+        - name: Dotnet | Create directory for dotnet-install.sh
+          ansible.builtin.file:
+            path: "{{ ansible_env.HOME }}/.local/opt/dotnet"
+            state: directory
+            mode: "0755"
+          when: not dotnet_install_script.stat.exists
 
-- name: Dotnet | Install .NET {{ item.version }}
-  ansible.builtin.shell: "{{ dotnet_install }} {{ item.version }}"
-  when: dotnet_sdk_dir.matched == 0
-  tags: always
+        - name: Dotnet | Download dotnet-install.sh script
+          ansible.builtin.get_url:
+            url: https://dot.net/v1/dotnet-install.sh
+            dest: "{{ dotnet_script }}"
+            mode: "0755"
+          when: not dotnet_install_script.stat.exists
+
+    - name: Dotnet | Check if version {{ item.version }} already installed
+      ansible.builtin.find:
+        path: "{{ ansible_env.HOME }}/.local/opt/dotnet/sdk/"
+        patterns: "{{ item.version }}.*"
+      register: dotnet_sdk_dir
+
+    - name: Dotnet | Install .NET {{ item.version }}
+      ansible.builtin.shell: |
+        {{ dotnet_script }} --no-path --install-dir {{ ansible_env.HOME }}/.local/opt/dotnet --channel {{ item.version }}
+      when: dotnet_sdk_dir.matched == 0

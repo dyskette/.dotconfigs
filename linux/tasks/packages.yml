@@ -1,69 +1,70 @@
-- name: Ubuntu
-  become: true
-  when: ansible_facts['distribution'] == "Ubuntu"
+---
+- name: CLI packages
+  tags: cli,dependencies
   block:
-    - name: Ubuntu | Upgrade the current system
-      ansible.builtin.apt:
-        update_cache: true
-        upgrade: true
+  - name: Ubuntu
+    become: true
+    when: is_ubuntu
+    block:
+      - name: Ubuntu | Upgrade the current system
+        ansible.builtin.apt:
+          update_cache: true
+          upgrade: true
 
-    - name: Ubuntu | Add git-core PPA repository for the latest git
-      ansible.builtin.apt_repository:
-        repo: ppa:git-core/ppa
-        state: present
+      - name: Ubuntu | Add git-core PPA repository for the latest git
+        ansible.builtin.apt_repository:
+          repo: ppa:git-core/ppa
+          state: present
 
-    - name: Ubuntu | Update cache
-      ansible.builtin.apt:
-        update_cache: true
+      - name: Ubuntu | Update cache
+        ansible.builtin.apt:
+          update_cache: true
 
-    - name: Ubuntu | Install packages
-      ansible.builtin.apt:
-        state: present
-        pkg:
-          - git
-          - unzip
-          - make
-          - gcc
-          - python3-venv
-          - wl-clipboard
-          - dbus-bin
-          - libglib2.0-bin
-          - ffmpeg
-          - 7zip
-          - poppler-utils
-          - imagemagick
-  tags: packages
+      - name: Ubuntu | Install packages
+        ansible.builtin.apt:
+          state: present
+          pkg:
+            - git
+            - unzip
+            - make
+            - gcc
+            - python3-venv
+            - wl-clipboard
+            - dbus-bin
+            - libglib2.0-bin
+            - ffmpeg
+            - 7zip
+            - poppler-utils
+            - imagemagick
 
-- name: Fedora Silverblue
-  when: ansible_facts['distribution'] == "Fedora Silverblue"
-  block:
-    - name: Enable pgdev:ghostty copr repository
-      become: true
-      ansible.builtin.copy:
-        dest: /etc/yum.repos.d/copr:pgdev:ghostty.repo
-        content: |
-          [copr:copr.fedorainfracloud.org:pgdev:ghostty]
-          name=Copr repo for Ghostty owned by pgdev
-          baseurl=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/fedora-$releasever-$basearch/
-          type=rpm-md
-          skip_if_unavailable=True
-          gpgcheck=1
-          gpgkey=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/pubkey.gpg
-          repo_gpgcheck=0
-          enabled=1
-          enabled_metadata=1
+  - name: Fedora Silverblue
+    when: is_fedora and has_rpm_ostree
+    block:
+      - name: Fedora Silverblue | Enable pgdev:ghostty copr repository
+        become: true
+        ansible.builtin.copy:
+          dest: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:pgdev:ghostty.repo
+          content: |
+            [copr:copr.fedorainfracloud.org:pgdev:ghostty]
+            name=Copr repo for Ghostty owned by pgdev
+            baseurl=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/fedora-$releasever-$basearch/
+            type=rpm-md
+            skip_if_unavailable=True
+            gpgcheck=1
+            gpgkey=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/pubkey.gpg
+            repo_gpgcheck=0
+            enabled=1
+            enabled_metadata=1
 
-    - name: Fedora | Install packages
-      community.general.rpm_ostree_pkg:
-        apply_live: true
-        state: present
-        pkg:
-          - git
-          - gcc
-          - glib2-devel
-          - tmux
-          - wl-clipboard
-          - p7zip
-          - p7zip-plugins
-          - ghostty
-  tags: packages
+      - name: Fedora Silverblue | Install packages
+        community.general.rpm_ostree_pkg:
+          state: present
+          name:
+            - git
+            - gcc
+            - glib2-devel
+            - tmux
+            - wl-clipboard
+            - p7zip
+            - p7zip-plugins
+            - ghostty
