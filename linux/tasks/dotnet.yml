@@ -21,8 +21,19 @@
               - zlib1g
 
         - name: Dotnet | Fedora Silverblue | Install dependencies
-          when: is_fedora and has_rpm_ostree
+          when: is_fedora_silverblue
           community.general.rpm_ostree_pkg:
+            state: present
+            name:
+              - krb5-libs
+              - libicu
+              - openssl-libs
+              - zlib
+
+        - name: Dotnet | Fedora | Install dependencies
+          when: is_fedora
+          become: true
+          ansible.builtin.dnf:
             state: present
             name:
               - krb5-libs
@@ -51,13 +62,13 @@
             mode: "0755"
           when: not dotnet_install_script.stat.exists
 
-    - name: Dotnet | Check if version {{ item.version }} already installed
+    - name: Dotnet | Check if version {{ dotnet_version }} already installed
       ansible.builtin.find:
         path: "{{ ansible_env.HOME }}/.local/opt/dotnet/sdk/"
-        patterns: "{{ item.version }}.*"
+        patterns: "{{ dotnet_version }}.*"
       register: dotnet_sdk_dir
 
-    - name: Dotnet | Install .NET {{ item.version }}
+    - name: Dotnet | Install .NET {{ dotnet_version }}
       ansible.builtin.shell: |
-        {{ dotnet_script }} --no-path --install-dir {{ ansible_env.HOME }}/.local/opt/dotnet --channel {{ item.version }}
+        {{ dotnet_script }} --no-path --install-dir {{ ansible_env.HOME }}/.local/opt/dotnet --channel {{ dotnet_version }}
       when: dotnet_sdk_dir.matched == 0

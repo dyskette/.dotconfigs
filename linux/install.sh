@@ -13,7 +13,7 @@ elif grep -qi "fedora" /etc/os-release; then
     echo "You are using Fedora"
     if ! command -v ansible &>/dev/null; then
         echo "Ansible not found. Installing..."
-        sudo dnf install ansible
+        sudo dnf install --assumeyes ansible python3-jmespath
     else
         echo "Ansible is already installed."
     fi
@@ -26,7 +26,6 @@ elif grep -qi "ubuntu" /etc/os-release; then
         echo "Ansible is already installed."
     fi
 fi
-
 
 # Clone the repository
 REPO_URL="https://github.com/dyskette/.dotconfigs.git"

@@ -5,39 +5,55 @@
       ansible.builtin.stat:
         path: /usr/bin/rpm-ostree
       register: rpm_ostree_stat
+      tags: always
 
     - name: Set rpm-ostree fact
       ansible.builtin.set_fact:
-        is_fedora: "{{ ansible_facts['distribution'] == 'Fedora' }}"
+        is_fedora: "{{ ansible_facts['distribution'] == 'Fedora' and not rpm_ostree_stat.stat.exists }}"
+        is_fedora_silverblue: "{{ ansible_facts['distribution'] == 'Fedora' and rpm_ostree_stat.stat.exists }}"
         is_ubuntu: "{{ ansible_facts['distribution'] == 'Ubuntu' }}"
-        has_rpm_ostree: "{{ rpm_ostree_stat.stat.exists }}"
-
-    - name: Debug
-      ansible.builtin.debug:
-        msg: "ansible_run_tags: {{ ansible_run_tags }}; ansible_skip_tags: {{ ansible_skip_tags }}"
+      tags: always
 
     - import_tasks: tasks/packages.yml
-    - import_tasks: tasks/bin/fd.yml
-    - import_tasks: tasks/bin/fnm.yml
-    - import_tasks: tasks/bin/fzf.yml
-    - import_tasks: tasks/bin/ripgrep.yml
-    - import_tasks: tasks/bin/bat.yml
-    - import_tasks: tasks/bin/eza.yml
-    - import_tasks: tasks/bin/nvim.yml
-    - import_tasks: tasks/bin/yazi.yml
-    - import_tasks: tasks/bin/jq.yml
-    - import_tasks: tasks/bin/yq.yml
-    - import_tasks: tasks/bin/starship.yml
-    - include_tasks: tasks/dotnet.yml
-      loop:
-        - { version: "6.0", tag: "dotnet6" }
-        - { version: "7.0", tag: "dotnet7" }
-        - { version: "8.0", tag: "dotnet8" }
-        - { version: "9.0", tag: "dotnet9" }
-      when: |
-        (item.tag in ansible_run_tags and (item.tag not in ansible_skip_tags and 'dotnet' not in ansible_skip_tags))
-        or ('dotnet' in ansible_run_tags and (item.tag not in ansible_skip_tags and 'dotnet' not in ansible_skip_tags))
-        or ('all' in ansible_run_tags and (item.tag not in ansible_skip_tags and 'dotnet' not in ansible_skip_tags))
+      tags: packages
+
+    - name: Bin
+      tags: bin
+      block:
+      - import_tasks: tasks/bin/fd.yml
+      - import_tasks: tasks/bin/fnm.yml
+      - import_tasks: tasks/bin/fzf.yml
+      - import_tasks: tasks/bin/ripgrep.yml
+      - import_tasks: tasks/bin/bat.yml
+      - import_tasks: tasks/bin/eza.yml
+      - import_tasks: tasks/bin/nvim.yml
+      - import_tasks: tasks/bin/yazi.yml
+      - import_tasks: tasks/bin/jq.yml
+      - import_tasks: tasks/bin/yq.yml
+      - import_tasks: tasks/bin/starship.yml
+
+    - name: Dotnet
+      tags: dotnet
+      block:
+        - import_tasks: tasks/dotnet.yml
+          vars:
+            dotnet_version: 6.0
+          tags: dotnet6
+        - import_tasks: tasks/dotnet.yml
+          vars:
+            dotnet_version: 7.0
+          tags: dotnet7
+        - import_tasks: tasks/dotnet.yml
+          vars:
+            dotnet_version: 8.0
+          tags: dotnet8
+        - import_tasks: tasks/dotnet.yml
+          vars:
+            dotnet_version: 9.0
+          tags: dotnet9
+
     - import_tasks: tasks/dotfiles.yml
-    - import_tasks: tasks/wsl.yaml
-  tags: always
+      tags: dotfiles
+
+    - import_tasks: tasks/wsl.yml
+      tags: wsl
