@@ -20,17 +20,25 @@
     - name: Bin
       tags: bin
       block:
-      - import_tasks: tasks/bin/fd.yml
-      - import_tasks: tasks/bin/fnm.yml
-      - import_tasks: tasks/bin/fzf.yml
-      - import_tasks: tasks/bin/ripgrep.yml
-      - import_tasks: tasks/bin/bat.yml
-      - import_tasks: tasks/bin/eza.yml
-      - import_tasks: tasks/bin/nvim.yml
-      - import_tasks: tasks/bin/yazi.yml
-      - import_tasks: tasks/bin/jq.yml
-      - import_tasks: tasks/bin/yq.yml
-      - import_tasks: tasks/bin/starship.yml
+        - name: Create local bin
+          ansible.builtin.file:
+            path: "{{ ansible_env.HOME }}/.local/bin"
+            state: directory
+        - name: Create local opt
+          ansible.builtin.file:
+            path: "{{ ansible_env.HOME }}/.local/opt"
+            state: directory
+        - import_tasks: tasks/bin/fd.yml
+        - import_tasks: tasks/bin/fnm.yml
+        - import_tasks: tasks/bin/fzf.yml
+        - import_tasks: tasks/bin/ripgrep.yml
+        - import_tasks: tasks/bin/bat.yml
+        - import_tasks: tasks/bin/eza.yml
+        - import_tasks: tasks/bin/nvim.yml
+        - import_tasks: tasks/bin/yazi.yml
+        - import_tasks: tasks/bin/jq.yml
+        - import_tasks: tasks/bin/yq.yml
+        - import_tasks: tasks/bin/starship.yml
 
     - name: Dotnet
       tags: dotnet
