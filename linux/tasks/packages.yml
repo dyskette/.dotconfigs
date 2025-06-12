@@ -56,7 +56,7 @@
             enabled=1
             enabled_metadata=1
 
-      - name: Fedora Silverblue | Install packages
+      - name: Fedora Silverblue | Install rpm-ostree packages
         community.general.rpm_ostree_pkg:
           state: present
           name:
@@ -68,6 +68,37 @@
             - p7zip
             - p7zip-plugins
             - ghostty
+
+      - name: Fedora Silverblue | Add flathub repository
+        community.general.flatpak_remote:
+          name: flathub
+          state: present
+          flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+          method: system
+
+      - name: Fedora Silverblue | Install flatpak packages
+        community.general.flatpak:
+          method: system
+          state: present
+          name:
+            - com.visualstudio.code
+
+      - name: VS Code extensions
+        block:
+          - name: VS Code extensions | Set common facts
+            ansible.builtin.set_fact:
+              extensions_file: "{{ playbook_dir | dirname }}/vscode/extensions.json"
+
+          - name: VS Code extensions | Load extensions.json
+            ansible.builtin.set_fact:
+              extensions: "{{ lookup('file', extensions_file) | from_json }}"
+
+          - name: VS Code extensions | Install
+            command: "flatpak run com.visualstudio.code --install-extension {{ item }}"
+            loop: "{{ extensions.extensions }}"
+            register: extension_install_results
+            ignore_errors: true  # Continue if one extension fails
+            changed_when: "'already installed' not in extension_install_results.stderr"
 
   - name: Fedora
     become: true

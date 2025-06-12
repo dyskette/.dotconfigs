@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-dotnetdir="$HOME/.dotnet"
+dotnetdir="$HOME/.local/opt/dotnet"
 if [ -d "$dotnetdir" ]; then
 	export DOTNET_ROOT="$dotnetdir"
 	export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools

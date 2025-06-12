@@ -1,0 +1,104 @@
+- name: Bootstrap development environment
+  hosts: localhost
+
+  tasks:
+    - name: Install RPM Fusion free repository
+      become: yes
+      ansible.builtin.dnf:
+        name: https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm
+        state: present
+
+    - name: Install RPM Fusion non-free repository
+      become: yes
+      ansible.builtin.dnf:
+        name: https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm
+        state: present
+
+    - name: Add Microsoft GPG key
+      become: yes
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://packages.microsoft.com/keys/microsoft.asc
+
+    - name: Add Microsoft repository
+      become: yes
+      ansible.builtin.dnf_repository:
+        name: packages-microsoft-com
+        description: Microsoft repository
+        baseurl: https://packages.microsoft.com/rhel/{{ ansible_distribution_major_version }}/prod/
+        gpgcheck: yes
+        gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+
+    - name: Enable COPR repository for difftastic
+      become: yes
+      ansible.builtin.command:
+        cmd: dnf -y copr enable varlad/difftastic
+      args:
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:varlad:difftastic.repo
+
+    - name: Enable COPR repository for yazi
+      become: yes
+      ansible.builtin.command:
+        cmd: dnf -y copr enable atim/yazi
+      args:
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:atim:yazi.repo
+
+    - name: Enable COPR repository for eza
+      become: yes
+      ansible.builtin.command:
+        cmd: dnf -y copr enable eza-community/eza
+      args:
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:eza-community:eza.repo
+
+    - name: Enable COPR repository for starship
+      become: yes
+      ansible.builtin.command:
+        cmd: dnf -y copr enable starship/starship
+      args:
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:starship:starship.repo
+
+    - name: Enable COPR repository for fnm
+      become: yes
+      ansible.builtin.command:
+        cmd: dnf -y copr enable atim/fnm
+      args:
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:atim:fnm.repo
+
+    - name: Add Deno repository
+      become: yes
+      ansible.builtin.dnf_repository:
+        name: deno_land
+        description: Deno Land
+        baseurl: https://dl.deno.land/rpm/
+        gpgcheck: yes
+        gpgkey: https://dl.deno.land/rpm/deno.gpg
+        state: present
+
+    - name: Install packages with dnf
+      become: yes
+      ansible.builtin.dnf:
+        name:
+          - git
+          - make
+          - wget
+          - difftastic
+          - less
+          - jq
+          - yq
+          - fzf
+          - fd
+          - eza
+          - ripgrep
+          - ffmpeg
+          - yazi
+          - starship
+          - bat
+          - azure-cli
+          - azure-functions-core-tools
+          - powershell
+          - deno
+          - fnm
+          - python
+          - neovim
+        state: present
