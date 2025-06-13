@@ -94,7 +94,7 @@
               extensions: "{{ lookup('file', extensions_file) | from_json }}"
 
           - name: VS Code extensions | Install
-            command: "flatpak run com.visualstudio.code --install-extension {{ item }}"
+            ansible.builtin.command: "flatpak run com.visualstudio.code --install-extension {{ item }}"
             loop: "{{ extensions.extensions }}"
             register: extension_install_results
             ignore_errors: true  # Continue if one extension fails

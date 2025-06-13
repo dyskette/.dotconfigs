@@ -23,16 +23,14 @@
   "typescript.suggest.completeFunctionCalls": true,
 
   "terminal.integrated.minimumContrastRatio": 1,
-  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.linux": "bash (host)",
   "terminal.integrated.profiles.linux": {
-    "sh-flatpak": {
-      "icon": "terminal-bash",
+    "sh (flatpak)": {
       "path": "/usr/bin/sh"
     },
-    "bash": {
-      "path": "/usr/bin/flatpak-spawn",
-      "icon": "terminal-bash",
-      "args": ["--host", "--env=TERM=xterm-256color", "bash"]
+    "bash (host)": {
+      "path": "host-spawn",
+      "args": ["bash"],
     }
   },
 
