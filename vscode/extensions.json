@@ -12,6 +12,7 @@
     "redhat.vscode-xml",
     "ms-vscode-remote.remote-containers",
     "ms-python.black-formatter",
-    "ms-python.isort"
+    "ms-python.isort",
+    "rust-lang.rust-analyzer"
   ]
 }

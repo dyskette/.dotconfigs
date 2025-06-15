@@ -30,7 +30,7 @@
     },
     "bash (host)": {
       "path": "host-spawn",
-      "args": ["bash"],
+      "args": ["bash"]
     }
   },
 
@@ -192,7 +192,16 @@
     },
     {
       "before": ["<leader>", "e"],
-      "commands": ["workbench.action.toggleSidebarVisibility"],
+      "commands": ["workbench.view.explorer"],
+      "silent": true
+    },
+    {
+      "before": ["<leader>", "<leader>"],
+      "commands": [
+        "workbench.action.closeSidebar",
+        "workbench.action.closePanel",
+        "workbench.action.closeAuxiliaryBar"
+      ],
       "silent": true
     }
   ],
