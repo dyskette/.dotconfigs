@@ -19,6 +19,10 @@
   "editor.semanticHighlighting.enabled": true,
   "editor.lineNumbers": "relative",
 
+  "explorer.confirmDelete": false,
+
+  "chat.commandCenter.enabled": false,
+
   "javascript.suggest.completeFunctionCalls": true,
   "typescript.suggest.completeFunctionCalls": true,
 
@@ -282,6 +286,5 @@
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "redhat.telemetry.enabled": true,
-  "diffEditor.ignoreTrimWhitespace": false,
-  "chat.commandCenter.enabled": false
+  "diffEditor.ignoreTrimWhitespace": false
 }
