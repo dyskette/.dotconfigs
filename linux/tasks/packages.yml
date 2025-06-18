@@ -36,6 +36,7 @@
             - 7zip
             - poppler-utils
             - imagemagick
+            - libgtk-4-1
 
   - name: Fedora Silverblue
     when: is_fedora_silverblue
