@@ -81,6 +81,9 @@ function CreateWezTermDotfiles
 
     New-Item -Path $weztermConfigPath -Target $dotfilesPath -ItemType Junction
     Write-Host "Link created from $dotfilesPath to $weztermConfigPath."
+
+    New-Item -Path "$env:USERPROFILE\.wezterm.lua" -Target "$dotfilesPath\wezterm.lua" -ItemType SymbolicLink
+    Write-Host "Link created from $dotfilesPath\wezterm.lua to $env:USERPROFILE\.wezterm.lua."
 }
 
 function CreateWindowsTerminalDotfiles
