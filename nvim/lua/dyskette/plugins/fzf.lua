@@ -5,7 +5,7 @@ local fzf_lua_config = function()
 
 	fzf.setup({
 		winopts = { preview = { default = "bat" } },
-		oldfiles = { cwd_only = true },
+		oldfiles = { cwd_only = true, include_current_session = true },
 		files = {
 			actions = { ["ctrl-q"] = { fn = fzf.actions.file_sel_to_qf, prefix = "select-all" } },
 		},
