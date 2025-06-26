@@ -1,0 +1,13 @@
+---
+- name: Install Deno to ~/.local/opt/deno
+  ansible.builtin.shell: |
+    curl -fsSL https://deno.land/install.sh | DENO_INSTALL="$HOME/.local/opt/deno" sh
+  args:
+    creates: "{{ ansible_env.HOME }}/.local/opt/deno/bin/deno"
+
+- name: Create symlink to Deno binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/deno/bin/deno"
+    dest: "{{ ansible_env.HOME }}/.local/bin/deno"
+    state: link
+    force: yes
