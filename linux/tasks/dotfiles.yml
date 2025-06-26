@@ -42,5 +42,5 @@
 
 - name: Dotfiles | Run bat cache
   ansible.builtin.command:
-    cmd: bat cache --build
+    cmd: $HOME/.local/opt/bat/bat cache --build
   tags: dotfiles
