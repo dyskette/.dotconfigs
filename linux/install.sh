@@ -21,7 +21,7 @@ elif grep -qi "ubuntu" /etc/os-release; then
     echo "You are using Ubuntu"
     if ! command -v ansible &>/dev/null; then
         echo "Ansible not found. Installing..."
-        apt install --assume-yes ansible
+        sudo apt install --assume-yes ansible
     else
         echo "Ansible is already installed."
     fi
