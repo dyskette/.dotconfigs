@@ -2,6 +2,7 @@
 - when: "'WSL2' in ansible_facts['kernel']"
   block:
     - name: Create wayland symlink service
+      become: true
       ansible.builtin.copy:
         dest: /etc/systemd/user/symlink-wayland-socket.service
         owner: root
