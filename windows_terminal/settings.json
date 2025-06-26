@@ -7,10 +7,30 @@
     "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
     "keybindings": 
     [
-        { "id": null, "keys": "ctrl+c" },
-        { "id": null, "keys": "ctrl+v" },
-        { "id": null, "keys": "f11" },
-        { "id": null, "keys": "shift+f11" }
+        {
+            "id": null,
+            "keys": "ctrl+c"
+        },
+        {
+            "id": null,
+            "keys": "win+ctrl+alt+}"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+v"
+        },
+        {
+            "id": null,
+            "keys": "f11"
+        },
+        {
+            "id": null,
+            "keys": "shift+f11"
+        },
+        {
+            "id": null,
+            "keys": "win+sc(41)"
+        }
     ],
     "newTabMenu": 
     [
@@ -60,34 +80,16 @@
                 "source": "Windows.Terminal.Azure"
             },
             {
-                "guid": "{0abfb5a9-0018-5f75-9e59-42eab94cf611}",
-                "hidden": false,
-                "name": "podman-machine-default",
-                "source": "Microsoft.WSL"
-            },
-            {
-                "guid": "{5be8f031-0115-5836-b3c5-0bea919f17ba}",
-                "hidden": false,
-                "name": "Ubuntu-24.04",
-                "source": "Microsoft.WSL"
-            },
-            {
-                "guid": "{c93f6dc0-bfb9-5aa2-8716-9709f0eb572b}",
+                "guid": "{d7f60296-c942-5d32-abc0-26915f30af5d}",
                 "hidden": false,
                 "name": "Developer Command Prompt for VS 2022",
                 "source": "Windows.Terminal.VisualStudio"
             },
             {
-                "guid": "{8459cd07-0e17-5c61-bcb5-d6b1b80e6371}",
+                "guid": "{36662f9f-b12e-5dea-a97d-33c7adf368be}",
                 "hidden": false,
                 "name": "Developer PowerShell for VS 2022",
                 "source": "Windows.Terminal.VisualStudio"
-            },
-            {
-                "guid": "{16208362-94fc-5b1f-a491-5b2624d5ab56}",
-                "hidden": true,
-                "name": "Visual Studio Debug Console",
-                "source": "VSDebugConsole"
             }
         ]
     },
