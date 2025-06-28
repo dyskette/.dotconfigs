@@ -13,6 +13,8 @@ local vanilla_config = function()
 		float = { border = "rounded", title = " Diagnostic " },
 	})
 
+	vim.o.winborder = "rounded";
+
 	local get_hl_name = function()
 		if vim.fn.hlexists("HighlightedyankRegion") == 1 then
 			return "HighlightedyankRegion"
