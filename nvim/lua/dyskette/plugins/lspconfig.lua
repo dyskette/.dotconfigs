@@ -31,7 +31,7 @@ end
 --- Configuration for typescript server
 --- @return lspconfig.Config
 local ts_ls_config = function()
-	local vue_typescript_plugin = require("mason-registry").get_package("vue-language-server"):get_install_path()
+	local vue_typescript_plugin = vim.fn.expand("$MASON/packages/" .. "vue-language-server")
 		.. "/node_modules/@vue/language-server"
 		.. "/node_modules/@vue/typescript-plugin"
 	--- @type lspconfig.Config
@@ -60,7 +60,7 @@ local language_servers_configuration = function()
 	lspconfig.lua_ls.setup({})
 	lspconfig.bashls.setup({})
 	lspconfig.powershell_es.setup({
-		bundle_path = require("mason-registry").get_package("powershell-editor-services"):get_install_path(),
+		bundle_path = vim.fn.expand("$MASON/packages/" .. "powershell-editor-services"),
 	})
 	lspconfig.pyright.setup({})
 
@@ -141,12 +141,13 @@ local roslyn_config = function()
 				"Microsoft.NET.Sdk.Razor.DesignTime.targets"
 			),
 		},
-		config = vim.tbl_deep_extend("force", default_config(), {
-			handlers = require("rzls.roslyn_handlers"),
-		}),
 		broad_search = true,
 		lock_target = true,
 	})
+
+	vim.lsp.config("roslyn", vim.tbl_deep_extend("force", default_config(), {
+		handlers = require("rzls.roslyn_handlers"),
+	}))
 
 	vim.filetype.add({
 		extension = {
