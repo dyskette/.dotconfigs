@@ -78,7 +78,7 @@ return {
 		end
 
 		vim.keymap.set("n", "K", function()
-			vim.lsp.buf.hover({ border = "rounded" })
+			vim.lsp.buf.hover({ border = "rounded", title = " Information " })
 		end, opts("Open symbol information"))
 		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
 		vim.keymap.set({ "n", "x" }, "<leader>fl", function()
@@ -94,8 +94,8 @@ return {
 		vim.keymap.set({ "n", "x" }, "<leader>va", fzf.lsp_code_actions, opts("View code action"))
 
 		vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, opts("View diagnostic"))
-		vim.keymap.set("n", "<leader>dk", vim.diagnostic.goto_prev, opts("Previous diagnostic"))
-		vim.keymap.set("n", "<leader>dj", vim.diagnostic.goto_next, opts("Next diagnostic"))
+		vim.keymap.set("n", "<leader>dk", function() vim.diagnostic.jump { count = -1, float = true } end, opts("Previous diagnostic"))
+		vim.keymap.set("n", "<leader>dj", function() vim.diagnostic.jump { count = 1, float = true } end, opts("Next diagnostic"))
 	end,
 
 	lsp_signature = function(bufnr)

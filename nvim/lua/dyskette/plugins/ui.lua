@@ -6,9 +6,6 @@ local vanilla_config = function()
 	vim.fn.sign_define("DiagnosticSignInfo", { texthl = "DiagnosticSignInfo", text = "" })
 	vim.fn.sign_define("DiagnosticSignHint", { texthl = "DiagnosticSignHint", text = "" })
 
-	vim.lsp.handlers["textDocument/hover"] =
-		vim.lsp.with(vim.lsp.handlers.hover, { border = "rounded", title = " Information " })
-
 	vim.diagnostic.config({
 		virtual_text = {
 			prefix = "",
