@@ -16,6 +16,50 @@ properties:
         allowPrerelease: true
       settings:
         Ensure: Present
+    - resource: Microsoft.Windows.Developer/WindowsExplorer
+      id: WindowsExplorerSettings
+      directives:
+        description: Enable file extensions and hidden files on Windows Explorer
+        allowPrerelease: true
+      settings:
+        FileExtensions: Show
+        HiddenFiles: Show
+    - resource: PSDscResources/Registry
+      id: ShowAllOpenWindowsFromAllDesktopsTaskbar
+      directives:
+        description: Multitasking - Desktops - Show all open windows on the taskbar - On all desktops
+        allowPrerelease: true
+      settings:
+        Key: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+        ValueName: VirtualDesktopTaskbarFilter
+        ValueType: DWord
+        ValueData: 0
+        Force: true
+        Ensure: Present
+    - resource: PSDscResources/Registry
+      id: ShowAllOpenWindowsFromAllDesktopsSwitcher
+      directives:
+        description: Multitasking - Desktops - Show all open windows when I press Alt+Tab - On all desktops
+        allowPrerelease: true
+      settings:
+        Key: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+        ValueName: VirtualDesktopAltTabFilter
+        ValueType: DWord
+        ValueData: 0
+        Force: true
+        Ensure: Present
+    - resource: PSDscResources/Registry
+      id: ShowOpenWindowsOnlySwitcher
+      directives:
+        description: Multitasking - Show tabs from apps when snapping or pressing Alt+Tab - Open windows only [FIXME - Does not work because Microsoft doesn't implement this correctly!]
+        allowPrerelease: true
+      settings:
+        Key: HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer
+        ValueName: BrowserAltTabBlowout
+        ValueType: DWord
+        ValueData: 4
+        Force: true
+        Ensure: Present
     - resource: ComputerManagementDsc/PowerShellExecutionPolicy
       id: PowerShellExecutionPolicy
       directives:
