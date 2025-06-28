@@ -27,22 +27,22 @@
     {
         "key": "ctrl+w k",
         "command": "workbench.action.navigateUp",
-        "when": "!editorTextFocus && !terminalFocus"
+        "when": "!editorTextFocus"
     },
     {
         "key": "ctrl+w j",
         "command": "workbench.action.navigateDown",
-        "when": "!editorTextFocus && !terminalFocus"
+        "when": "!editorTextFocus"
     },
     {
         "key": "ctrl+w h",
         "command": "workbench.action.navigateLeft",
-        "when": "!editorTextFocus && !terminalFocus"
+        "when": "!editorTextFocus"
     },
     {
         "key": "ctrl+w l",
         "command": "workbench.action.navigateRight",
-        "when": "!editorTextFocus && !terminalFocus"
+        "when": "!editorTextFocus"
     },
     {
         "key": "q",

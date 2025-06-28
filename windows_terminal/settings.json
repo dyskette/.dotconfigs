@@ -9,11 +9,11 @@
     [
         {
             "id": null,
-            "keys": "ctrl+c"
+            "keys": "win+ctrl+alt+}"
         },
         {
             "id": null,
-            "keys": "win+ctrl+alt+}"
+            "keys": "ctrl+c"
         },
         {
             "id": null,
@@ -90,6 +90,12 @@
                 "hidden": false,
                 "name": "Developer PowerShell for VS 2022",
                 "source": "Windows.Terminal.VisualStudio"
+            },
+            {
+                "guid": "{505f431e-7f8d-547a-941a-7b3b1b1b2784}",
+                "hidden": false,
+                "name": "Ubuntu-24.04",
+                "source": "Microsoft.WSL"
             }
         ]
     },
