@@ -2,6 +2,9 @@ local utils = require("dyskette.utils")
 
 local blink_config = function()
 	require("blink.cmp").setup({
+		completion = {
+			list = { selection = { preselect = false, auto_insert = false } },
+		},
 		keymap = {
 			preset = "default",
 
