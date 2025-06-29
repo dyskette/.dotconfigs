@@ -46,11 +46,18 @@ If (-Not (Test-Path $ahkExe)) {
 
 Write-Host "Registering scheduled tasks for window-switcher and app-switcher..."
 
+# Get the Security Identifier (SID) for the built-in Administrators group
+$administratorsSid = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
+
+# Translate the SID to the correct, localized name for the Administrators group on the current system.
+# The resulting variable, $administratorsGroup, will hold a value like "BUILTIN\Administrators" or "BUILTIN\Administratoren".
+$administratorsGroup = $administratorsSid.Translate([System.Security.Principal.NTAccount]).Value
+
 # Define common trigger at logon
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 
 # Define principal to run as Administrators group with highest privileges:contentReference[oaicite:9]{index=9}
-$principal = New-ScheduledTaskPrincipal -GroupId "BUILTIN\Administrators" -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -GroupId $administratorsGroup -RunLevel Highest
 
 # Window Switcher task
 $winSwitcherAction = New-ScheduledTaskAction -Execute $ahkExe -Argument (Join-Path $wsDir "window-switcher.ahk")
@@ -62,4 +69,26 @@ $appSwitcherAction = New-ScheduledTaskAction -Execute $ahkExe -Argument (Join-Pa
 Register-ScheduledTask -TaskName "App Switcher (AHK)" `
     -Action $appSwitcherAction -Trigger $trigger -Principal $principal -Force
 
-Write-Host "Setup complete. Both Window Switcher and App Switcher will run at startup."
+$taskNames = @(
+    "Window Switcher (AHK)",
+    "App Switcher (AHK)"
+)
+
+Write-Host "Checking status of registered tasks..."
+
+foreach ($taskName in $taskNames) {
+    $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+
+    if ($task) {
+        if ($task.State -ne 'Running') {
+            Write-Host "Task '$taskName' is not running. Starting it now..."
+            Start-ScheduledTask -TaskName $taskName
+        } else {
+            Write-Host "Task '$taskName' is already running."
+        }
+    } else {
+        Write-Host "Could not find task '$taskName'. It may not have registered correctly." -ForegroundColor Yellow
+    }
+}
+
+Write-Host "Setup complete. Tasks are configured to run at startup and have been started for the current session."
