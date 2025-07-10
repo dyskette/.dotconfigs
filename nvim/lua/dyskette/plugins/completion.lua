@@ -30,9 +30,6 @@ local blink_config = function()
 			use_nvim_cmp_as_default = true,
 			nerd_font_variant = "mono",
 		},
-		completion = {
-			list = { selection = { preselect = true, auto_insert = false } },
-		},
 		sources = {
 			default = { "lsp", "path", "snippets", "buffer" },
 		},
