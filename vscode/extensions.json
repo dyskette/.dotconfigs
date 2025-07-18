@@ -1,5 +1,6 @@
 {
   "extensions": [
+    "eamodio.gitlens",
     "sainnhe.everforest",
     "mvllow.rose-pine",
     "vscodevim.vim",

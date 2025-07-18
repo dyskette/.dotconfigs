@@ -46,7 +46,7 @@
   "vim.leader": "<space>",
   "vim.surround": true,
   "vim.insertModeKeyBindings": [],
-  "vim.normalModeKeyBindingsNonRecursive": [
+  "vim.normalModeKeyBindings": [
     {
       "before": [
         "<leader>",
@@ -88,9 +88,7 @@
     {
       "before": ["<leader>", "a"],
       "after": ["g", "g", "V", "G"]
-    }
-  ],
-  "vim.normalModeKeyBindings": [
+    },
     {
       "before": ["<C-o>"],
       "commands": ["workbench.action.navigateBack"]
@@ -260,7 +258,7 @@
         "workbench.action.findInFiles"
       ],
       "silent": true
-    },
+    }
   ],
   "vim.visualModeKeyBindings": [
     {
