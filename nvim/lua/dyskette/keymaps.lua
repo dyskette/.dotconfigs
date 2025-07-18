@@ -69,6 +69,8 @@ return {
 
 	lsp = function(client, buffer)
 		local fzf = require("fzf-lua")
+		local live_rename = require("live-rename")
+
 		local opts = function(description)
 			return {
 				buffer = buffer,
@@ -80,7 +82,7 @@ return {
 		vim.keymap.set("n", "K", function()
 			vim.lsp.buf.hover({ border = "rounded", title = " Information " })
 		end, opts("Open symbol information"))
-		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("Rename symbol"))
+		vim.keymap.set("n", "<leader>rn", live_rename.rename, opts("Rename symbol"))
 		vim.keymap.set({ "n", "x" }, "<leader>fl", function()
 			vim.lsp.buf.format({ async = true })
 		end, opts("Format document using LSP"))
