@@ -1,5 +1,9 @@
 -- https://github.com/miguelverissimo/dotfiles
-return {
+local wezterm = require("wezterm")
+
+local M = {}
+
+M.color_scheme = {
   background = "#181616",
   foreground = "#C5C9C5",
 
@@ -83,3 +87,30 @@ return {
     },
   },
 }
+
+function M.format_tab_title(tab)
+  local program = tab.active_pane.title
+  local title = string.format(" %s | %s ", tab.tab_index + 1, program)
+
+  if tab.is_active then
+    return wezterm.format({
+      { Background = { Color = "#8992A7" } },
+      { Foreground = { Color = "#0D0C0C" } },
+      { Text = title },
+      { Background = { Color = "#0D0C0C" } },
+      { Foreground = { Color = "#0D0C0C" } },
+      { Text = " " }
+    })
+  else
+    return wezterm.format({
+      { Background = { Color = "#737C73" } },
+      { Foreground = { Color = "#0D0C0C" } },
+      { Text = title },
+      { Background = { Color = "#0D0C0C" } },
+      { Foreground = { Color = "#0D0C0C" } },
+      { Text = " " }
+    })
+  end
+end
+
+return M

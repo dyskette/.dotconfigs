@@ -61,7 +61,7 @@ local set_dark_mode = function()
 	})
 	vim.api.nvim_set_option_value("background", "dark", {})
 	vim.cmd.colorscheme("gruvbox")
-	vim.env.BAT_THEME = "kanagawa-wave"
+	vim.env.BAT_THEME = "gruvbox"
 end
 
 local set_light_mode = function()

@@ -13,7 +13,7 @@ function Invoke-Starship-PreCommand {
     } else
     {
         starship config palette everforest
-        $env:BAT_THEME = "everforest"
+        $env:BAT_THEME = "gruvbox"
         $env:SYSTEM_COLOR_THEME = "dark"
     }
 }

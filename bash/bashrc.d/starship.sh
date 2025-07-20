@@ -25,21 +25,54 @@ function set_system_color_theme() {
 	unset color_theme
 }
 
+function set_custom_theme {
+	if [ $SYSTEM_COLOR_THEME == 'dark' ]; then
+		starship config palette gruvbox
+		export BAT_THEME='gruvbox'
+	else
+		starship config palette rose-pine-dawn
+		export BAT_THEME='rose-pine-dawn'
+	fi
+}
+
+# Function to set the pane title to the command being run
+function set_command_title() {
+  # Ignore commands from starship, bash-preexec, and the PROMPT_COMMAND itself.
+  # We use a case statement to match against the command string.
+  case "$BASH_COMMAND" in
+    *"starship_precmd"*)   return ;;
+    *"__bp_trap_string"*)  return ;;
+    "$PROMPT_COMMAND")     return ;;
+    "trap - DEBUG")        return ;;
+  esac
+
+  # Extract the first word of the command.
+  local first_word=${BASH_COMMAND%% *}
+
+  # If the command wasn't ignored, set the first word as the pane title.
+  printf "\033]2;%s\007" "$first_word"
+}
+
+# Function to reset the pane title to a default value ("bash")
+function reset_title() {
+  printf "\033]2;bash\007"
+}
+
+# Before running a command, set the title to that command.
+trap 'set_command_title' DEBUG
+
+# Before displaying the prompt, reset the title to "bash".
+PROMPT_COMMAND="reset_title"
+
 if command -v starship &>/dev/null;  then
 	export STARSHIP_CONFIG="$HOME/.config/starship/config.toml"
 	eval "$(starship init bash)"
 
-	# Before showing the prompt, set starship's palette based on the desktop theme
-	function set_starship_palette() {
+	# Before showing the prompt, set themes and reset title
+	function precmd_user_func() {
 		set_system_color_theme
-
-		if [ $SYSTEM_COLOR_THEME == 'dark' ]; then
-			starship config palette kanagawa-wave
-			export BAT_THEME='kanagawa-wave'
-		else
-			starship config palette rose-pine-dawn
-			export BAT_THEME='rose-pine-dawn'
-		fi
+		set_custom_theme
 	}
-	starship_precmd_user_func="set_starship_palette"
+
+	starship_precmd_user_func="precmd_user_func"
 fi
