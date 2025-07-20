@@ -8,9 +8,9 @@ $directory\
 $git_branch\
 \n$character\
 """
-palette = "rose-pine-dawn"
+palette = "kanagawa-wave"
 
-[palettes.kanagawa_wave]
+[palettes.kanagawa-wave]
 background  = "#1F1F28"
 foreground  = "#DCD7BA"
 black       = "#090618"
@@ -23,7 +23,7 @@ cyan        = "#6A9589"
 white       = "#C8C093"
 orange      = "#FFA066"
 
-[palettes.kanagawa_lotus]
+[palettes.kanagawa-lotus]
 background  = "#F2ECBC"
 foreground  = "#545464"
 black       = "#1F1F28"
@@ -36,7 +36,7 @@ cyan        = "#597B75"
 white       = "#545464"
 orange      = "#FFA066"
 
-[palettes.kanagawa_dragon]
+[palettes.kanagawa-dragon]
 background  = "#181616"
 foreground  = "#C5C9C5"
 black       = "#0D0C0C"

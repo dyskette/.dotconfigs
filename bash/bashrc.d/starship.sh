@@ -34,8 +34,8 @@ if command -v starship &>/dev/null;  then
 		set_system_color_theme
 
 		if [ $SYSTEM_COLOR_THEME == 'dark' ]; then
-			starship config palette everforest
-			export BAT_THEME='everforest'
+			starship config palette kanagawa-wave
+			export BAT_THEME='kanagawa-wave'
 		else
 			starship config palette rose-pine-dawn
 			export BAT_THEME='rose-pine-dawn'

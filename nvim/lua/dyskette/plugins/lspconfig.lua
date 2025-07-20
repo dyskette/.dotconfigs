@@ -109,6 +109,7 @@ local lspconfig_config = function()
 end
 
 local lazydev_config = function()
+	---@diagnostic disable-next-line: missing-fields
 	require("lazydev").setup({
 		library = {
 			-- Load luvit types when the `vim.uv` word is found
@@ -145,9 +146,12 @@ local roslyn_config = function()
 		lock_target = true,
 	})
 
-	vim.lsp.config("roslyn", vim.tbl_deep_extend("force", default_config(), {
-		handlers = require("rzls.roslyn_handlers"),
-	}))
+	vim.lsp.config(
+		"roslyn",
+		vim.tbl_deep_extend("force", default_config(), {
+			handlers = require("rzls.roslyn_handlers"),
+		})
+	)
 
 	vim.filetype.add({
 		extension = {
