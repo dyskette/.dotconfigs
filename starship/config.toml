@@ -8,7 +8,20 @@ $directory\
 $git_branch\
 \n$character\
 """
-palette = "kanagawa-wave"
+palette = "gruvbox"
+
+[palettes.gruvbox]
+background  = "#282828"
+foreground  = "#EBDBB2"
+black       = "#282828"
+red         = "#CC241D"
+green       = "#98971A"
+yellow      = "#D79921"
+blue        = "#458588"
+magenta     = "#B16286"
+cyan        = "#689D6A"
+white       = "#A89984"
+orange      = "#D65D0E"
 
 [palettes.kanagawa-wave]
 background  = "#1F1F28"

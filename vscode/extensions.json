@@ -1,6 +1,7 @@
 {
   "extensions": [
     "eamodio.gitlens",
+    "jdinhlife.gruvbox",
     "metaphore.kanagawa-vscode-color-theme",
     "sainnhe.everforest",
     "mvllow.rose-pine",
