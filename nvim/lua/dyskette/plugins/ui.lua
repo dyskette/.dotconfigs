@@ -13,7 +13,7 @@ local vanilla_config = function()
 		float = { border = "rounded", title = " Diagnostic " },
 	})
 
-	vim.o.winborder = "rounded";
+	vim.o.winborder = "rounded"
 
 	local get_hl_name = function()
 		if vim.fn.hlexists("HighlightedyankRegion") == 1 then
@@ -36,9 +36,26 @@ end
 vanilla_config()
 
 local set_dark_mode = function()
+	---@diagnostic disable-next-line: missing-fields
+	require("kanagawa").setup({
+		overrides = function(colors)
+			local theme = colors.theme
+			return {
+				Pmenu = { fg = theme.ui.shade0, bg = theme.ui.bg_m3 }, -- add `blend = vim.o.pumblend` to enable transparency,,
+				PmenuSel = { fg = "NONE", bg = theme.ui.bg_p2 },
+				PmenuSbar = { bg = theme.ui.bg_m1 },
+				PmenuThumb = { bg = "#C0A36E" },
+				BlinkCmpMenuBorder = { fg = "", bg = "" },
+
+				NormalFloat = { bg = "none" },
+				FloatBorder = { bg = "none" },
+				FloatTitle = { bg = "none" },
+			}
+		end,
+	})
 	vim.api.nvim_set_option_value("background", "dark", {})
-	vim.cmd.colorscheme("everforest")
-	vim.env.BAT_THEME = "everforest"
+	vim.cmd.colorscheme("kanagawa-wave")
+	vim.env.BAT_THEME = "kanagawa-wave"
 end
 
 local set_light_mode = function()
@@ -106,7 +123,7 @@ return {
 		config = auto_dark_config,
 	},
 	{
-		"neanias/everforest-nvim",
+		"rebelot/kanagawa.nvim",
 		config = function()
 			if vim.env.SYSTEM_COLOR_THEME == "dark" then
 				set_dark_mode()

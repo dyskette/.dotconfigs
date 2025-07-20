@@ -1,6 +1,7 @@
 {
   "extensions": [
     "eamodio.gitlens",
+    "metaphore.kanagawa-vscode-color-theme",
     "sainnhe.everforest",
     "mvllow.rose-pine",
     "vscodevim.vim",
