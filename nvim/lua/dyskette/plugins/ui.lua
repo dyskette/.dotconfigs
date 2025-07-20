@@ -36,25 +36,31 @@ end
 vanilla_config()
 
 local set_dark_mode = function()
-	---@diagnostic disable-next-line: missing-fields
-	require("kanagawa").setup({
-		overrides = function(colors)
-			local theme = colors.theme
-			return {
-				Pmenu = { fg = theme.ui.shade0, bg = theme.ui.bg_m3 }, -- add `blend = vim.o.pumblend` to enable transparency,,
-				PmenuSel = { fg = "NONE", bg = theme.ui.bg_p2 },
-				PmenuSbar = { bg = theme.ui.bg_m1 },
-				PmenuThumb = { bg = "#C0A36E" },
-				BlinkCmpMenuBorder = { fg = "", bg = "" },
-
-				NormalFloat = { bg = "none" },
-				FloatBorder = { bg = "none" },
-				FloatTitle = { bg = "none" },
-			}
-		end,
+	require("gruvbox").setup({
+		terminal_colors = true, -- add neovim terminal colors
+		undercurl = true,
+		underline = true,
+		bold = true,
+		italic = {
+			strings = true,
+			emphasis = true,
+			comments = true,
+			operators = false,
+			folds = true,
+		},
+		strikethrough = true,
+		invert_selection = false,
+		invert_signs = false,
+		invert_tabline = false,
+		inverse = true, -- invert background for search, diffs, statuslines and errors
+		contrast = "", -- can be "hard", "soft" or empty string
+		palette_overrides = {},
+		overrides = {},
+		dim_inactive = false,
+		transparent_mode = false,
 	})
 	vim.api.nvim_set_option_value("background", "dark", {})
-	vim.cmd.colorscheme("kanagawa-wave")
+	vim.cmd.colorscheme("gruvbox")
 	vim.env.BAT_THEME = "kanagawa-wave"
 end
 
@@ -123,7 +129,7 @@ return {
 		config = auto_dark_config,
 	},
 	{
-		"rebelot/kanagawa.nvim",
+		"ellisonleao/gruvbox.nvim",
 		config = function()
 			if vim.env.SYSTEM_COLOR_THEME == "dark" then
 				set_dark_mode()

@@ -32,7 +32,7 @@ config.color_schemes = {
 
 local colors_for_appearance = function(appearance)
 	if appearance:find("Dark") then
-		return config.color_schemes["everforest"]
+		return config.color_schemes["kanagawa-wave"]
 	else
 		return config.color_schemes["rose-pine-dawn"]
 	end
