@@ -14,6 +14,7 @@
     "redhat.vscode-yaml",
     "redhat.vscode-xml",
     "ms-vscode-remote.remote-containers",
+    "ms-vscode-remote.remote-wsl",
     "ms-python.black-formatter",
     "ms-python.isort",
     "rust-lang.rust-analyzer"

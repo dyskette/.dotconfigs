@@ -9,7 +9,7 @@
     [
         {
             "id": null,
-            "keys": "win+ctrl+alt+}"
+            "keys": "win+ctrl+alt+shift+]"
         },
         {
             "id": null,
@@ -21,15 +21,15 @@
         },
         {
             "id": null,
+            "keys": "win+sc(41)"
+        },
+        {
+            "id": null,
             "keys": "f11"
         },
         {
             "id": null,
             "keys": "shift+f11"
-        },
-        {
-            "id": null,
-            "keys": "win+sc(41)"
         }
     ],
     "newTabMenu": 
@@ -95,6 +95,12 @@
                 "guid": "{505f431e-7f8d-547a-941a-7b3b1b1b2784}",
                 "hidden": false,
                 "name": "Ubuntu-24.04",
+                "source": "Microsoft.WSL"
+            },
+            {
+                "guid": "{d0a05793-34d7-508b-b93c-63ba2be45c5b}",
+                "hidden": false,
+                "name": "podman-machine-default",
                 "source": "Microsoft.WSL"
             }
         ]
