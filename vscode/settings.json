@@ -40,6 +40,8 @@
 
   "dev.containers.dockerPath": "podman",
 
+  "gitlens.currentLine.enabled": false,
+
   "vim.hlsearch": true,
   "vim.highlightedyank.enable": true,
   "vim.smartRelativeLine": true,

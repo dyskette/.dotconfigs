@@ -159,6 +159,35 @@ function CreateVSCodeDotfiles
     Write-Host "Symbolic links created from $dotfilesPath to $codeUser."
 }
 
+function CreateCursorDotfiles
+{
+    param (
+        [string]$dotfilesPath = "$(Split-Path -Parent $PSScriptRoot)\vscode",
+        [string]$cursorUser = "$env:APPDATA\Cursor\User"
+    )
+
+    # Update PATH environment variable
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+    $settingsSource = Join-Path $dotfilesPath "settings.json" -Resolve
+    $settingsTarget = "$cursorUser\settings.json"
+
+    $keybindingsSource = Join-Path $dotfilesPath "keybindings.json" -Resolve
+    $keybindingsTarget = "$cursorUser\keybindings.json"
+
+    if (Test-Path -Path $cursorUser)
+    {
+        Remove-Item -Path $cursorUser -Force -Recurse
+        Write-Host "Existing directory $cursorUser removed."
+    }
+
+    New-Item -Path $cursorUser -ItemType Directory -Force
+    New-Item -Path $settingsTarget -Target $settingsSource -ItemType SymbolicLink
+    New-Item -Path $keybindingsTarget -Target $keybindingsSource -ItemType SymbolicLink
+
+    Write-Host "Symbolic links created from $dotfilesPath to $cursorUser."
+}
+
 function InstallVSCodeExtensions
 {
     param (
@@ -180,6 +209,32 @@ function InstallVSCodeExtensions
     foreach ($name in $config.extensions)
     {
         code --install-extension $name
+    }
+
+    Write-Host "Extensions installed from $extensionsPath."
+}
+
+function InstallCursorExtensions
+{
+    param (
+        [string]$extensionsPath = "$(Split-Path -Parent $PSScriptRoot)\vscode\extensions.json",
+        [string]$extensionsTarget = "$env:USERPROFILE\.cursor\extensions"
+    )
+
+    # Update PATH environment variable
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+    if (Test-Path -Path $extensionsTarget)
+    {
+        Remove-Item -Path $extensionsTarget -Force -Recurse
+        Write-Host "Existing directory $extensionsTarget removed."
+    }
+
+    $config = Get-Content -Path $extensionsPath | ConvertFrom-Json
+
+    foreach ($name in $config.extensions)
+    {
+        cursor --install-extension $name
     }
 
     Write-Host "Extensions installed from $extensionsPath."
