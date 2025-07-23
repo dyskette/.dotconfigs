@@ -1,12 +1,23 @@
 # Windows Ansible Bootstrap
 
-This directory contains scripts and playbooks to bootstrap Ansible on Windows and run configuration tasks.
+This directory contains scripts and playbooks to bootstrap Ansible on Windows using WSL (Windows Subsystem for Linux) and run configuration tasks.
 
 ## Prerequisites
 
-- Windows 10/11 with PowerShell 5.1 or PowerShell Core 7+
+- Windows 10 version 2004+ (Build 19041+) or Windows 11
 - Administrator privileges
 - Internet connection
+
+## Architecture
+
+The setup uses a modern approach:
+1. **WSL (Windows Subsystem for Linux)** with Ubuntu 24.04 LTS
+2. **Ansible** installed via official Ubuntu PPA for system integration
+3. **WinRM/PSRP connectivity** from WSL to Windows host for remote management
+4. **Playbooks** executed from WSL targeting Windows applications via WinRM
+5. **PowerShell scripts** for Windows-specific configurations
+
+This provides better compatibility with Ansible's Linux-native tooling while maintaining full Windows integration. The setup uses PowerShell Remoting (PSRP) over WinRM for reliable communication between WSL and Windows, which is the recommended approach for Windows automation.
 
 ## Quick Start
 
@@ -23,12 +34,87 @@ This directory contains scripts and playbooks to bootstrap Ansible on Windows an
 
 ## What the script does
 
-1. **Checks for Administrator privileges** - Required for installing software
-2. **Installs Python** (if not present) - Using winget package manager
-3. **Installs Ansible** - Via Python pip
-4. **Clones/Updates repository** - Gets the latest dotconfigs
-5. **Runs the Ansible playbook** - Executes the configuration tasks
-6. **Configures applications** - Sets up dotfiles and configurations for installed applications
+1. **Checks for Administrator privileges** - Required for installing software and enabling WSL
+2. **Verifies Windows version** - Ensures compatibility with modern WSL (Build 19041+)
+3. **Installs winget** (if needed) - Windows package manager for subsequent installations
+4. **Installs Git** (if not present) - Required for repository operations
+5. **Installs WSL with Ubuntu 24.04** - Uses `wsl --install -d Ubuntu-24.04` for modern setup
+6. **Configures WinRM** - Enables PowerShell Remoting and configures Windows for Ansible connectivity
+7. **Sets up Ubuntu environment** - Installs Python 3, pywinrm, and required packages within WSL
+8. **Installs Ansible** - Uses official Ubuntu PPA for system-integrated installation
+9. **Creates dynamic inventory** - Configures Ansible to connect to Windows via PSRP/WinRM
+10. **Clones/Updates repository** - Gets the latest dotconfigs within the WSL environment
+11. **Runs the Ansible playbook** - Executes from WSL targeting Windows applications via WinRM
+12. **Configures applications** - Sets up dotfiles and configurations for installed applications
+
+### First Run vs. Subsequent Runs
+
+**First Run** (WSL not installed):
+- Installs WSL and Ubuntu 24.04
+- Requires restart
+- Ubuntu setup (username/password) after restart
+- Re-run script to continue with Ansible setup
+
+**Setup Run** (WSL installed, first Ansible setup):
+- Configures WinRM on Windows
+- Prompts for Windows user password (for Ansible connectivity)
+- Sets up Ansible environment in WSL
+- Creates dynamic inventory with connection details
+
+**Subsequent Runs** (WSL already set up):
+- Direct execution of selected tasks
+- No restart required
+
+## Ansible Environment
+
+After installation, you'll have Ansible ready to use in WSL:
+
+### Installed Tools
+- **Python 3** - Latest version from Ubuntu 24.04 repositories
+- **Ansible** - Automation and configuration management (via official PPA)
+- **pywinrm** - Python library for Windows Remote Management connectivity
+- **Git** - Version control and repository management
+
+### Connection Details
+- **Protocol**: PowerShell Remoting (PSRP) over WinRM
+- **Authentication**: Basic authentication over HTTP (local network)
+- **Target**: Windows host from WSL environment
+- **Inventory**: Dynamically generated with Windows IP and credentials
+
+### Using Ansible
+
+```bash
+# Access WSL Ubuntu environment
+wsl
+
+# Check Ansible installation
+ansible --version
+ansible-playbook --version
+
+# Run playbooks (from repository directory)
+cd ~/.dotconfigs
+ansible-playbook -i windows-ansible/inventory.yml windows-ansible/playbook.yml
+
+# Run with specific tags
+ansible-playbook -i windows-ansible/inventory.yml windows-ansible/playbook.yml --tags "vscode,configuration"
+
+# Update Ansible
+sudo apt update
+sudo apt upgrade ansible
+```
+
+### Managing the Installation
+
+```bash
+# Update Ansible through system package manager
+sudo apt update && sudo apt upgrade
+
+# Check available Ansible versions
+apt list --upgradable | grep ansible
+
+# Remove Ansible if needed
+sudo apt remove ansible
+```
 
 ## Files
 
@@ -240,7 +326,65 @@ For complex PowerShell logic, create separate `.ps1` files in the `windows-ansib
 
 ## Troubleshooting
 
-- **Python installation fails**: Install Python manually from [python.org](https://python.org)
-- **Ansible not found**: Restart PowerShell after installation to refresh PATH
-- **Permission errors**: Ensure you're running as Administrator
-- **Git not found**: Install Git from [git-scm.com](https://git-scm.com) 
+### WSL Related Issues
+
+- **WSL installation fails**: 
+  - Ensure Windows version is 2004+ (Build 19041+)
+  - Check if virtualization is enabled in BIOS
+  - Run Windows Update to get latest features
+  
+- **Ubuntu setup required**: 
+  - Open Ubuntu 24.04 from Start menu
+  - Complete username/password setup
+  - Re-run the install script
+
+- **WSL command not found**: 
+  - Restart after WSL installation
+  - Check Windows features: `wsl --status`
+
+### General Issues
+
+- **Permission errors**: Ensure you're running PowerShell as Administrator
+- **Git not found**: Install Git from [git-scm.com](https://git-scm.com) or use winget
+- **Ansible not found in WSL**: The script installs Ansible via apt, check installation: `ansible --version`
+- **Ansible PPA issues**: Verify PPA was added correctly: `sudo apt-cache policy ansible`
+- **WinRM connection issues**: 
+  - Verify WinRM is running: `winrm quickconfig` in Windows PowerShell
+  - Check Windows IP is reachable from WSL: `wsl -e ping <windows_ip>`
+  - Test WinRM connectivity: `wsl -e ansible windows_target -m win_ping`
+- **Authentication failures**: 
+  - Ensure Windows password is correct
+  - Check if user account has necessary permissions
+  - Verify basic authentication is enabled: `winrm get winrm/config`
+- **Network issues**: Check firewall settings and proxy configuration
+
+### WSL Specific Commands
+
+```powershell
+# Check WSL status
+wsl --status
+
+# List installed distributions
+wsl --list --verbose
+
+# Set Ubuntu as default
+wsl --set-default Ubuntu-24.04
+
+# Access Ubuntu environment
+wsl --distribution Ubuntu-24.04
+
+# Reset Ubuntu installation (if needed)
+wsl --unregister Ubuntu-24.04
+
+# Check Ansible installation within WSL
+wsl -e ansible --version
+
+# Test Windows connectivity from WSL
+wsl -e ansible windows_target -m win_ping
+
+# Check inventory configuration
+wsl -e cat ~/.dotconfigs/windows-ansible/inventory.yml
+
+# Access WSL to troubleshoot Ansible
+wsl
+``` 

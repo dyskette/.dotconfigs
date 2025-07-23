@@ -1,5 +1,26 @@
 #!/usr/bin/env pwsh
 
+<#
+.SYNOPSIS
+    Automated Windows development environment setup using WSL and Ansible
+
+.DESCRIPTION
+    This script installs WSL with Ubuntu 24.04, sets up Ansible within the Linux environment,
+    and executes the ansible-playbook to install and configure Windows applications.
+    
+    Uses the modern WSL installation approach (wsl --install) which automatically:
+    - Enables WSL and Virtual Machine Platform features
+    - Downloads and installs the latest Linux kernel
+    - Sets WSL 2 as the default
+    - Downloads and installs Ubuntu 24.04 LTS
+
+.NOTES
+    Requirements:
+    - Windows 10 version 2004+ (Build 19041+) or Windows 11
+    - Administrator privileges
+    - Internet connection
+#>
+
 param(
     [Parameter(HelpMessage="Install only VS Code application")]
     [switch]$VSCode,
@@ -87,11 +108,36 @@ function Get-MajorMinorVersion {
     return @([int]$parts[0], [int]$parts[1])
 }
 
+function Install-WSLAndUbuntu {
+    Write-Host "Installing WSL with Ubuntu 24.04 LTS..." -ForegroundColor Yellow
+    
+    # Use the modern WSL install command to install Ubuntu 24.04
+    # This automatically enables WSL features, installs the kernel, sets WSL 2 as default, and installs Ubuntu 24.04
+    wsl --install -d Ubuntu-24.04
+    
+    Write-Host "WSL and Ubuntu 24.04 LTS installation initiated." -ForegroundColor Green
+    Write-Host "A restart will be required to complete the installation." -ForegroundColor Yellow
+    Write-Host "After restart, Ubuntu will launch automatically for initial user setup." -ForegroundColor Yellow
+}
+
 # Check if running as Administrator
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Warning "This script requires Administrator privileges. Please run as Administrator."
     exit 1
 }
+
+# Check Windows version compatibility
+$windowsVersion = [System.Environment]::OSVersion.Version
+$requiredBuild = 19041
+
+if ($windowsVersion.Build -lt $requiredBuild) {
+    Write-Error "This script requires Windows 10 version 2004 (Build 19041) or higher, or Windows 11."
+    Write-Host "Current Windows version: $($windowsVersion.Major).$($windowsVersion.Minor) (Build $($windowsVersion.Build))" -ForegroundColor Yellow
+    Write-Host "Please update Windows before running this script." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "Windows version check passed: Build $($windowsVersion.Build)" -ForegroundColor Green
 
 # Install winget
 $shouldInstallWinget = $false
@@ -172,62 +218,198 @@ if (-not(Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git is already installed." -ForegroundColor Green
 }
 
-# Check if Python is installed
-if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-    Write-Host "Python not found. Installing Python..." -ForegroundColor Yellow
-    
-    # Install Python using winget
-    winget install Python.Python.3.12 --accept-source-agreements --accept-package-agreements
-    
-    # Refresh PATH
-    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-} else {
-    Write-Host "Python is already installed." -ForegroundColor Green
+# Check if WSL and Ubuntu 24.04 are available
+$wslInstalled = $false
+$ubuntuInstalled = $false
+
+# Check if WSL is installed and working
+try {
+    $wslStatus = wsl --list --verbose 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $wslInstalled = $true
+        Write-Host "WSL is available." -ForegroundColor Green
+        
+        # Check if Ubuntu 24.04 is installed
+        $distributions = wsl --list --quiet
+        if ($distributions -contains "Ubuntu-24.04") {
+            $ubuntuInstalled = $true
+            Write-Host "Ubuntu 24.04 is already installed." -ForegroundColor Green
+        }
+    }
+} catch {
+    Write-Host "WSL is not available or not working properly." -ForegroundColor Yellow
 }
 
-# Check if pip is available
-if (-not (Get-Command pip -ErrorAction SilentlyContinue)) {
-    Write-Error "pip not found. Please ensure Python is properly installed."
+# Install WSL and Ubuntu 24.04 if needed
+if (-not $wslInstalled -or -not $ubuntuInstalled) {
+    if (-not $ubuntuInstalled) {
+        Write-Host "Ubuntu 24.04 not found. Installing WSL with Ubuntu 24.04..." -ForegroundColor Yellow
+        Install-WSLAndUbuntu
+        
+        Write-Host ""
+        Write-Host "=== INSTALLATION INITIATED ===" -ForegroundColor Cyan
+        Write-Host "WSL and Ubuntu 24.04 installation has been started." -ForegroundColor White
+        Write-Host ""
+        Write-Host "NEXT STEPS:" -ForegroundColor Yellow
+        Write-Host "1. Your computer will restart automatically" -ForegroundColor White
+        Write-Host "2. After restart, Ubuntu will launch for initial setup" -ForegroundColor White
+        Write-Host "3. Create your Linux username and password when prompted" -ForegroundColor White
+        Write-Host "4. Run this script again: .\install.ps1" -ForegroundColor White
+        Write-Host ""
+        Write-Host "Press any key to restart now, or Ctrl+C to restart manually later..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        
+        # Restart the computer
+        # Restart-Computer -Force
+        exit 0
+    }
+}
+
+# Set Ubuntu 24.04 as default WSL distribution if it's installed
+if ($ubuntuInstalled) {
+    Write-Host "Setting Ubuntu 24.04 as default WSL distribution..." -ForegroundColor Yellow
+    wsl --set-default Ubuntu-24.04
+}
+
+# Ensure Ubuntu is properly set up before proceeding
+Write-Host "Checking Ubuntu 24.04 setup..." -ForegroundColor Blue
+
+# Test if Ubuntu is properly initialized
+try {
+    $testResult = wsl --distribution Ubuntu-24.04 --exec echo "test" 2>$null
+    if ($LASTEXITCODE -ne 0 -or $testResult -ne "test") {
+        Write-Host ""
+        Write-Host "=== UBUNTU SETUP REQUIRED ===" -ForegroundColor Yellow
+        Write-Host "Ubuntu 24.04 is installed but needs initial setup." -ForegroundColor White
+        Write-Host ""
+        Write-Host "Please:" -ForegroundColor Yellow
+        Write-Host "1. Open Ubuntu 24.04 from the Start menu" -ForegroundColor White
+        Write-Host "2. Complete the initial user setup (username and password)" -ForegroundColor White
+        Write-Host "3. Run this script again: .\install.ps1" -ForegroundColor White
+        Write-Host ""
+        Write-Host "Opening Ubuntu 24.04 now..." -ForegroundColor Green
+        
+        # Try to launch Ubuntu for setup
+        Start-Process -FilePath "ubuntu2404.exe"
+        exit 0
+    }
+} catch {
+    Write-Error "Failed to test Ubuntu setup. Please ensure Ubuntu 24.04 is properly installed."
     exit 1
 }
 
-# Check if Ansible is installed
-if (-not (Get-Command ansible-playbook -ErrorAction SilentlyContinue)) {
-    Write-Host "Ansible not found. Installing..." -ForegroundColor Yellow
-    
-    # Upgrade pip first
-    python -m pip install --upgrade pip
-    
-    # Install Ansible
-    pip install ansible
-    
-    # Refresh PATH
-    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-} else {
-    Write-Host "Ansible is already installed." -ForegroundColor Green
-}
+Write-Host "Ubuntu 24.04 is properly set up." -ForegroundColor Green
 
-# Clone the repository
+# Configure WinRM for Ansible connectivity
+Write-Host "Configuring WinRM for Ansible connectivity..." -ForegroundColor Blue
+
+# Enable WinRM and configure for local network access
+Write-Host "Enabling WinRM service..." -ForegroundColor Yellow
+Enable-PSRemoting -Force -SkipNetworkProfileCheck
+
+# Allow WinRM through Windows Firewall
+Write-Host "Configuring Windows Firewall for WinRM..." -ForegroundColor Yellow
+Set-NetFirewallRule -DisplayName "Windows Remote Management (HTTP-In)" -Enabled True
+
+# Configure WinRM for basic authentication (local development)
+Write-Host "Configuring WinRM authentication..." -ForegroundColor Yellow
+winrm set winrm/config/service/auth '@{Basic="true"}'
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
+
+# Get the current user for WinRM access
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+Write-Host "Current user for WinRM: $currentUser" -ForegroundColor Green
+
+# Get Windows IP address that WSL can reach
+$windowsIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -like "172.16.*" -or $_.IPAddress -like "192.168.*" -or $_.IPAddress -like "10.*" }).IPAddress | Select-Object -First 1
+if (-not $windowsIP) {
+    $windowsIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" }).IPAddress | Select-Object -First 1
+}
+Write-Host "Windows IP for WSL connection: $windowsIP" -ForegroundColor Green
+
+# Clone the repository in WSL
 $REPO_URL = "https://github.com/dyskette/.dotconfigs.git"
-$DEST_DIR = "$env:USERPROFILE\.dotconfigs"
+$DEST_DIR = "/home/\$USER/.dotconfigs"
 
-if (Test-Path $DEST_DIR) {
-    Write-Host "Repository already exists. Pulling latest changes..." -ForegroundColor Blue
-    Set-Location $DEST_DIR
-    git pull
-} else {
-    Write-Host "Cloning repository..." -ForegroundColor Blue
+Write-Host "Setting up repository and Ansible in WSL..." -ForegroundColor Blue
+
+# Create setup script for WSL
+$wslSetupScript = @"
+#!/bin/bash
+set -e
+
+echo "Updating package lists..."
+sudo apt update
+
+echo "Installing required packages..."
+sudo apt install -y git python3 software-properties-common
+
+echo "Adding Ansible PPA..."
+sudo add-apt-repository --yes --update ppa:ansible/ansible
+
+echo "Installing Ansible via apt..."
+sudo apt install -y ansible
+
+# Install required Python packages for Windows management
+echo "Installing Python packages for Windows connectivity..."
+sudo apt install -y python3-pip
+pip3 install --user pywinrm requests-ntlm
+
+# Clone repository if it doesn't exist
+if [ ! -d "$DEST_DIR" ]; then
+    echo "Cloning repository..."
     git clone $REPO_URL $DEST_DIR
-    Set-Location $DEST_DIR
-}
+else
+    echo "Repository already exists. Pulling latest changes..."
+    cd $DEST_DIR
+    git pull
+fi
 
-# Run Ansible playbook
-if (-not (Test-Path "windows-ansible/playbook.yml")) {
-    Write-Error "Playbook not found at windows-ansible/playbook.yml"
-    exit 1
-}
+cd $DEST_DIR
 
-Write-Host "Running Ansible playbook..." -ForegroundColor Cyan
+# Create Windows inventory file
+echo "Creating Windows inventory configuration..."
+cat > windows-ansible/inventory.yml << 'INVENTORY_EOF'
+windows_hosts:
+  hosts:
+    windows_target:
+      ansible_host: $WINDOWS_IP
+      ansible_user: $WINDOWS_USER
+      ansible_password: $WINDOWS_PASSWORD
+      ansible_connection: psrp
+      ansible_psrp_protocol: http
+      ansible_psrp_auth: basic
+      ansible_psrp_cert_validation: ignore
+INVENTORY_EOF
+
+echo "WSL setup completed successfully!"
+echo "Ansible version: \$(ansible --version | head -n1)"
+echo "Windows target configured: $WINDOWS_IP"
+"@
+
+# Get current user credentials for Windows access
+Write-Host "Configuring credentials for Windows access..." -ForegroundColor Yellow
+$windowsUser = $env:USERNAME
+Write-Host "You'll need to provide your Windows password for Ansible connectivity." -ForegroundColor Yellow
+Write-Host "This will be stored temporarily for the setup process." -ForegroundColor Yellow
+$securePassword = Read-Host "Enter your Windows password" -AsSecureString
+$windowsPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+
+# Replace variables in the setup script
+$finalWslSetupScript = $wslSetupScript -replace '\$WINDOWS_IP', $windowsIP -replace '\$WINDOWS_USER', $windowsUser -replace '\$WINDOWS_PASSWORD', $windowsPassword
+
+# Write setup script to temporary file
+$tempSetupScript = "$env:TEMP\wsl-setup.sh"
+$finalWslSetupScript | Out-File -FilePath $tempSetupScript -Encoding UTF8
+
+# Copy setup script to WSL and execute it
+Get-Content $tempSetupScript | wsl --distribution Ubuntu-24.04 --exec bash -c "cat > /tmp/wsl-setup.sh"
+wsl --distribution Ubuntu-24.04 --exec chmod +x /tmp/wsl-setup.sh
+wsl --distribution Ubuntu-24.04 --exec /tmp/wsl-setup.sh
+
+# Clean up temporary file
+Remove-Item -Force $tempSetupScript
 
 # Determine which tags to run
 $tagsToRun = @()
@@ -320,14 +502,13 @@ if ($WindowsTerminalConfig) {
     Write-Host "Running Windows Terminal configuration only..." -ForegroundColor Yellow
 }
 
-# Build ansible-playbook command
-$ansibleArgs = @("-i", "windows-ansible/inventory.yml", "windows-ansible/playbook.yml")
+# Build ansible-playbook command for WSL
+$ansibleCmd = "cd $DEST_DIR && ansible-playbook -i windows-ansible/inventory.yml windows-ansible/playbook.yml"
 
 # Add tags if specified
 if ($tagsToRun.Count -gt 0) {
     $tagsString = $tagsToRun -join ","
-    $ansibleArgs += "--tags"
-    $ansibleArgs += $tagsString
+    $ansibleCmd += " --tags $tagsString"
 } elseif (-not $All) {
     # If no specific tags and not explicitly running all, show available options
     Write-Host ""
@@ -379,8 +560,25 @@ if ($tagsToRun.Count -gt 0) {
 
 # Add any additional arguments
 if ($AdditionalArgs) {
-    $ansibleArgs += $AdditionalArgs
+    $ansibleCmd += " " + ($AdditionalArgs -join " ")
 }
 
-# Execute ansible-playbook
-& ansible-playbook @ansibleArgs 
+Write-Host "Running Ansible playbook in WSL..." -ForegroundColor Cyan
+Write-Host "Command: $ansibleCmd" -ForegroundColor Gray
+
+# Execute ansible-playbook in WSL
+wsl --distribution Ubuntu-24.04 --exec bash -c $ansibleCmd
+
+# Clear sensitive variables
+$windowsPassword = $null
+$securePassword = $null
+
+Write-Host ""
+Write-Host "=== SETUP COMPLETE ===" -ForegroundColor Green
+Write-Host "Your Windows development environment has been configured!" -ForegroundColor White
+Write-Host "WSL Ubuntu 24.04 with Ansible is ready for future use." -ForegroundColor White
+Write-Host ""
+Write-Host "Connection Details:" -ForegroundColor Yellow
+Write-Host "  Windows IP: $windowsIP" -ForegroundColor White
+Write-Host "  Connection: PSRP over WinRM" -ForegroundColor White
+Write-Host "  Inventory: windows-ansible/inventory.yml" -ForegroundColor White 
