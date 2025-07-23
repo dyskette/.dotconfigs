@@ -1,8 +1,7 @@
 ---
 - name: Windows Configuration Playbook
-  hosts: localhost
+  hosts: windows_target
   gather_facts: true
-  connection: local
 
   tasks:
     - name: Install JetBrains Mono NL Nerd Font
