@@ -139,6 +139,21 @@ if ($windowsVersion.Build -lt $requiredBuild) {
 
 Write-Host "Windows version check passed: Build $($windowsVersion.Build)" -ForegroundColor Green
 
+# Enable WSL feature if not already enabled
+Write-Host "Ensuring WSL feature is enabled..." -ForegroundColor Yellow
+try {
+    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+    if ($wslFeature.State -ne "Enabled") {
+        Write-Host "Enabling WSL feature..." -ForegroundColor Yellow
+        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+        Write-Host "WSL feature enabled." -ForegroundColor Green
+    } else {
+        Write-Host "WSL feature is already enabled." -ForegroundColor Green
+    }
+} catch {
+    Write-Warning "Could not check or enable WSL feature: $_"
+}
+
 # Install winget
 $shouldInstallWinget = $false
 $wingetUrl = ""
@@ -303,6 +318,19 @@ Write-Host "Ubuntu 24.04 is properly set up." -ForegroundColor Green
 # Configure WinRM for Ansible connectivity
 Write-Host "Configuring WinRM for Ansible connectivity..." -ForegroundColor Blue
 
+# Set network connection to Private if it's Public (required for WinRM)
+Write-Host "Checking network connection type..." -ForegroundColor Yellow
+$networkProfiles = Get-NetConnectionProfile
+foreach ($profile in $networkProfiles) {
+    if ($profile.NetworkCategory -eq "Public") {
+        Write-Host "Changing network '$($profile.Name)' from Public to Private..." -ForegroundColor Yellow
+        Set-NetConnectionProfile -InterfaceIndex $profile.InterfaceIndex -NetworkCategory Private
+        Write-Host "Network connection type changed to Private." -ForegroundColor Green
+    } else {
+        Write-Host "Network '$($profile.Name)' is already set to $($profile.NetworkCategory)." -ForegroundColor Green
+    }
+}
+
 # Enable WinRM and configure for local network access
 Write-Host "Enabling WinRM service..." -ForegroundColor Yellow
 Enable-PSRemoting -Force -SkipNetworkProfileCheck
@@ -316,10 +344,53 @@ Write-Host "Configuring WinRM authentication..." -ForegroundColor Yellow
 winrm set winrm/config/service/auth '@{Basic="true"}'
 winrm set winrm/config/service '@{AllowUnencrypted="true"}'
 winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
+winrm set winrm/config/client '@{AllowUnencrypted="true"}'
+winrm set winrm/config/client/auth '@{Basic="true"}'
+
+# Configure TrustedHosts to allow local connections
+Write-Host "Configuring TrustedHosts for local WinRM connections..." -ForegroundColor Yellow
+winrm set winrm/config/client '@{TrustedHosts="localhost,127.0.0.1,192.168.*,10.*,172.16.*"}'
+
+# Fix UAC elevation issues for Ansible/Packer over WinRM
+Write-Host "Configuring LocalAccountTokenFilterPolicy for UAC elevation..." -ForegroundColor Yellow
+$token_path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+$token_prop_name = "LocalAccountTokenFilterPolicy"
+$token_key = Get-Item -Path $token_path
+$token_value = $token_key.GetValue($token_prop_name, $null)
+if ($token_value -ne 1) {
+    Write-Host "Setting LocalAccountTokenFilterPolicy to 1" -ForegroundColor Yellow
+    if ($null -ne $token_value) {
+        Remove-ItemProperty -Path $token_path -Name $token_prop_name
+    }
+    New-ItemProperty -Path $token_path -Name $token_prop_name -Value 1 -PropertyType DWORD > $null
+    Write-Host "LocalAccountTokenFilterPolicy configured successfully." -ForegroundColor Green
+} else {
+    Write-Host "LocalAccountTokenFilterPolicy is already set to 1." -ForegroundColor Green
+}
 
 # Get the current user for WinRM access
 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 Write-Host "Current user for WinRM: $currentUser" -ForegroundColor Green
+
+# Add current user to Remote Management Users group (required for domain users)
+Write-Host "Adding current user to Remote Management Users group..." -ForegroundColor Yellow
+try {
+    $localUser = $env:USERNAME
+    net localgroup "Remote Management Users" $currentUser /add 2>$null
+    if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq 2) {
+        Write-Host "User added to Remote Management Users group successfully." -ForegroundColor Green
+        
+        # Restart WinRM service to apply group changes
+        Write-Host "Restarting WinRM service to apply group membership changes..." -ForegroundColor Yellow
+        Restart-Service WinRM -Force
+        Start-Sleep -Seconds 3
+        Write-Host "WinRM service restarted." -ForegroundColor Green
+    } else {
+        Write-Host "User may already be in the Remote Management Users group." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "Note: Could not add user to Remote Management Users group: $_" -ForegroundColor Yellow
+}
 
 # Get Windows IP address that WSL can reach
 $windowsIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -like "172.16.*" -or $_.IPAddress -like "192.168.*" -or $_.IPAddress -like "10.*" }).IPAddress | Select-Object -First 1
@@ -330,7 +401,6 @@ Write-Host "Windows IP for WSL connection: $windowsIP" -ForegroundColor Green
 
 # Clone the repository in WSL
 $REPO_URL = "https://github.com/dyskette/.dotconfigs.git"
-$DEST_DIR = "/home/\$USER/.dotconfigs"
 
 Write-Host "Setting up repository and Ansible in WSL..." -ForegroundColor Blue
 
@@ -348,65 +418,102 @@ sudo apt install -y git python3 software-properties-common
 echo "Adding Ansible PPA..."
 sudo add-apt-repository --yes --update ppa:ansible/ansible
 
-echo "Installing Ansible via apt..."
-sudo apt install -y ansible
+echo "Installing Ansible and Python WinRM support..."
+sudo apt install -y ansible python3-winrm
 
-# Install required Python packages for Windows management
-echo "Installing Python packages for Windows connectivity..."
-sudo apt install -y python3-pip
-pip3 install --user pywinrm requests-ntlm
+echo "Configuring OpenSSL to support legacy algorithms (required for NTLM)..."
+# Create OpenSSL configuration to enable MD4
+sudo tee /etc/ssl/openssl_legacy.cnf > /dev/null << 'OPENSSL_CONF'
+openssl_conf = openssl_init
 
-# Clone repository if it doesn't exist
-if [ ! -d "$DEST_DIR" ]; then
-    echo "Cloning repository..."
-    git clone $REPO_URL $DEST_DIR
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+OPENSSL_CONF
+
+# Set environment variable for OpenSSL configuration
+echo 'export OPENSSL_CONF=/etc/ssl/openssl_legacy.cnf' | sudo tee -a /etc/environment
+export OPENSSL_CONF=/etc/ssl/openssl_legacy.cnf
+
+echo "Verifying installations..."
+ansible --version
+python3 -c "import winrm; print('python3-winrm installed successfully')"
+
+# Handle repository setup
+if [ ! -d "`$HOME/.dotconfigs" ]; then
+    echo "Cloning repository from feature/windows-ansible branch..."
+    git clone -b feature/windows-ansible $REPO_URL "`$HOME/.dotconfigs"
+elif [ -d "`$HOME/.dotconfigs/.git" ]; then
+    echo "Git repository already exists. Pulling latest changes..."
+    cd "`$HOME/.dotconfigs"
+    git checkout feature/windows-ansible 2>/dev/null || git checkout -b feature/windows-ansible origin/feature/windows-ansible
+    git pull origin feature/windows-ansible
 else
-    echo "Repository already exists. Pulling latest changes..."
-    cd $DEST_DIR
-    git pull
+    echo "Directory exists but is not a git repository. Removing and cloning..."
+    rm -rf "`$HOME/.dotconfigs"
+    git clone -b feature/windows-ansible $REPO_URL "`$HOME/.dotconfigs"
 fi
 
-cd $DEST_DIR
+cd "`$HOME/.dotconfigs"
 
 # Create Windows inventory file
 echo "Creating Windows inventory configuration..."
-cat > windows-ansible/inventory.yml << 'INVENTORY_EOF'
+cat > windows-ansible/inventory.yml << INVENTORY_EOF
 windows_hosts:
   hosts:
     windows_target:
-      ansible_host: $WINDOWS_IP
-      ansible_user: $WINDOWS_USER
-      ansible_password: $WINDOWS_PASSWORD
-      ansible_connection: psrp
-      ansible_psrp_protocol: http
-      ansible_psrp_auth: basic
-      ansible_psrp_cert_validation: ignore
+      ansible_host: WINDOWS_IP_PLACEHOLDER
+      ansible_user: WINDOWS_USER_PLACEHOLDER
+      ansible_password: WINDOWS_PASSWORD_PLACEHOLDER
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_port: 5985
 INVENTORY_EOF
 
 echo "WSL setup completed successfully!"
-echo "Ansible version: \$(ansible --version | head -n1)"
-echo "Windows target configured: $WINDOWS_IP"
+echo "Ansible version: `$`(ansible --version | head -n1)"
+echo "Windows target configured: WINDOWS_IP_PLACEHOLDER"
 "@
 
 # Get current user credentials for Windows access
 Write-Host "Configuring credentials for Windows access..." -ForegroundColor Yellow
-$windowsUser = $env:USERNAME
+$windowsUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 Write-Host "You'll need to provide your Windows password for Ansible connectivity." -ForegroundColor Yellow
 Write-Host "This will be stored temporarily for the setup process." -ForegroundColor Yellow
 $securePassword = Read-Host "Enter your Windows password" -AsSecureString
 $windowsPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
 
 # Replace variables in the setup script
-$finalWslSetupScript = $wslSetupScript -replace '\$WINDOWS_IP', $windowsIP -replace '\$WINDOWS_USER', $windowsUser -replace '\$WINDOWS_PASSWORD', $windowsPassword
+$finalWslSetupScript = $wslSetupScript -replace 'WINDOWS_IP_PLACEHOLDER', $windowsIP -replace 'WINDOWS_USER_PLACEHOLDER', $windowsUser -replace 'WINDOWS_PASSWORD_PLACEHOLDER', $windowsPassword
 
-# Write setup script to temporary file
+# Write setup script to temporary file in a location accessible from WSL
 $tempSetupScript = "$env:TEMP\wsl-setup.sh"
-$finalWslSetupScript | Out-File -FilePath $tempSetupScript -Encoding UTF8
+# Use Unix line endings (LF) and UTF8 without BOM for bash compatibility
+$scriptLines = $finalWslSetupScript -split "`r?`n"
+$unixScript = $scriptLines -join "`n"
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($tempSetupScript, $unixScript, $utf8NoBom)
 
-# Copy setup script to WSL and execute it
-Get-Content $tempSetupScript | wsl --distribution Ubuntu-24.04 --exec bash -c "cat > /tmp/wsl-setup.sh"
-wsl --distribution Ubuntu-24.04 --exec chmod +x /tmp/wsl-setup.sh
-wsl --distribution Ubuntu-24.04 --exec /tmp/wsl-setup.sh
+# Convert Windows path to WSL path
+$wslTempPath = $tempSetupScript -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/' 
+$wslTempPath = $wslTempPath.ToLower()
+
+Write-Host "Copying setup script to WSL..." -ForegroundColor Yellow
+Write-Host "Windows path: $tempSetupScript" -ForegroundColor Gray
+Write-Host "WSL path: $wslTempPath" -ForegroundColor Gray
+
+# Copy the script to WSL temp directory and execute it
+wsl --distribution Ubuntu-24.04 --exec bash -c "cp '$wslTempPath' /tmp/wsl-setup.sh && chmod +x /tmp/wsl-setup.sh && /tmp/wsl-setup.sh"
 
 # Clean up temporary file
 Remove-Item -Force $tempSetupScript
@@ -503,7 +610,7 @@ if ($WindowsTerminalConfig) {
 }
 
 # Build ansible-playbook command for WSL
-$ansibleCmd = "cd $DEST_DIR && ansible-playbook -i windows-ansible/inventory.yml windows-ansible/playbook.yml"
+$ansibleCmd = "cd ~/.dotconfigs && export OPENSSL_CONF=/etc/ssl/openssl_legacy.cnf && ansible-playbook -i windows-ansible/inventory.yml windows-ansible/playbook.yml"
 
 # Add tags if specified
 if ($tagsToRun.Count -gt 0) {
@@ -563,6 +670,141 @@ if ($AdditionalArgs) {
     $ansibleCmd += " " + ($AdditionalArgs -join " ")
 }
 
+Write-Host "Testing WinRM connectivity from PowerShell first..." -ForegroundColor Blue
+
+# Test WinRM connectivity using PowerShell first
+Write-Host "Testing local WinRM connectivity..." -ForegroundColor Yellow
+try {
+    $testResult = Test-WSMan -ComputerName localhost -ErrorAction Stop
+    Write-Host "PowerShell WinRM test to localhost: SUCCESS" -ForegroundColor Green
+} catch {
+    Write-Host "PowerShell WinRM test to localhost: FAILED - $_" -ForegroundColor Red
+}
+
+try {
+    $testResult = Test-WSMan -ComputerName $windowsIP -ErrorAction Stop
+    Write-Host "PowerShell WinRM test to $windowsIP`: SUCCESS" -ForegroundColor Green
+} catch {
+    Write-Host "PowerShell WinRM test to $windowsIP`: FAILED - $_" -ForegroundColor Red
+}
+
+Write-Host "Testing WinRM connectivity from WSL..." -ForegroundColor Blue
+
+# Create Python test script with proper variable substitution
+$escapedUser = $windowsUser -replace '\\', '\\\\'
+$escapedPassword = $windowsPassword -replace "'", "\\'"
+$localUsername = $env:USERNAME
+$pythonTestScript = "import winrm`n"
+$pythonTestScript += "import sys`n`n"
+$pythonTestScript += "try:`n"
+$pythonTestScript += "    print('Attempting WinRM connection...')`n"
+$pythonTestScript += "    print('Target IP: $windowsIP`:5985')`n"
+$pythonTestScript += "    print('Domain User: $escapedUser')`n"
+$pythonTestScript += "    print('Local User: $localUsername')`n"
+$pythonTestScript += "    `n"
+$pythonTestScript += "    # Try different targets and authentication methods`n"
+$pythonTestScript += "    session = None`n"
+$pythonTestScript += "    auth_method = None`n"
+$pythonTestScript += "    credentials_used = None`n"
+$pythonTestScript += "    target_used = None`n"
+$pythonTestScript += "    `n"
+$pythonTestScript += "    # Try different target addresses: localhost, 127.0.0.1, actual IP`n"
+$pythonTestScript += "    targets = ['127.0.0.1', 'localhost', '$windowsIP']`n"
+$pythonTestScript += "    `n"
+$pythonTestScript += "    for target in targets:`n"
+$pythonTestScript += "        print(f'\\nTrying target: {target}:5985')`n"
+$pythonTestScript += "        `n"
+$pythonTestScript += "        # Method 1: Basic auth with local username (no domain)`n"
+$pythonTestScript += "        try:`n"
+$pythonTestScript += "            print(f'  Trying Basic auth with local username on {target}...')`n"
+$pythonTestScript += "            session = winrm.Session(f'{target}:5985', auth=('$localUsername', '$escapedPassword'), transport='basic')`n"
+$pythonTestScript += "            test_result = session.run_cmd('echo WinRM Basic local auth successful')`n"
+$pythonTestScript += "            print(f'  SUCCESS: Basic authentication with local username on {target}!')`n"
+$pythonTestScript += "            auth_method = 'basic'`n"
+$pythonTestScript += "            credentials_used = 'local_username'`n"
+$pythonTestScript += "            target_used = target`n"
+$pythonTestScript += "            break`n"
+$pythonTestScript += "        except Exception as basic_local_error:`n"
+$pythonTestScript += "            print(f'  Basic auth with local username failed on {target}: {basic_local_error}')`n"
+$pythonTestScript += "        `n"
+$pythonTestScript += "        # Method 2: Basic auth with domain\\username`n"
+$pythonTestScript += "        try:`n"
+$pythonTestScript += "            print(f'  Trying Basic auth with domain\\\\username on {target}...')`n"
+$pythonTestScript += "            session = winrm.Session(f'{target}:5985', auth=('$escapedUser', '$escapedPassword'), transport='basic')`n"
+$pythonTestScript += "            test_result = session.run_cmd('echo WinRM Basic domain auth successful')`n"
+$pythonTestScript += "            print(f'  SUCCESS: Basic authentication with domain\\\\username on {target}!')`n"
+$pythonTestScript += "            auth_method = 'basic'`n"
+$pythonTestScript += "            credentials_used = 'domain_username'`n"
+$pythonTestScript += "            target_used = target`n"
+$pythonTestScript += "            break`n"
+$pythonTestScript += "        except Exception as basic_domain_error:`n"
+$pythonTestScript += "            print(f'  Basic auth with domain\\\\username failed on {target}: {basic_domain_error}')`n"
+$pythonTestScript += "        `n"
+$pythonTestScript += "        # Method 3: NTLM with domain\\username`n"
+$pythonTestScript += "        try:`n"
+$pythonTestScript += "            print(f'  Trying NTLM auth with domain\\\\username on {target}...')`n"
+$pythonTestScript += "            session = winrm.Session(f'{target}:5985', auth=('$escapedUser', '$escapedPassword'), transport='ntlm')`n"
+$pythonTestScript += "            test_result = session.run_cmd('echo WinRM NTLM auth successful')`n"
+$pythonTestScript += "            print(f'  SUCCESS: NTLM authentication with domain\\\\username on {target}!')`n"
+$pythonTestScript += "            auth_method = 'ntlm'`n"
+$pythonTestScript += "            credentials_used = 'domain_username'`n"
+$pythonTestScript += "            target_used = target`n"
+$pythonTestScript += "            break`n"
+$pythonTestScript += "        except Exception as ntlm_error:`n"
+$pythonTestScript += "            print(f'  NTLM auth failed on {target}: {ntlm_error}')`n"
+$pythonTestScript += "    `n"
+$pythonTestScript += "    # Check if any method succeeded`n"
+$pythonTestScript += "    if session is None:`n"
+$pythonTestScript += "        raise Exception('All authentication methods failed on all targets (127.0.0.1, localhost, $windowsIP)')`n"
+$pythonTestScript += "    `n"
+$pythonTestScript += "    # Run final test command`n"
+$pythonTestScript += "    r = session.run_cmd('echo WinRM connection test successful')`n"
+$pythonTestScript += "    print(f'Exit code: {r.status_code}')`n"
+$pythonTestScript += "    print(f'Output: {r.std_out.decode().strip()}')`n"
+$pythonTestScript += "    if r.std_err:`n"
+$pythonTestScript += "        print(f'Error: {r.std_err.decode().strip()}')`n"
+$pythonTestScript += "    if r.status_code == 0:`n"
+$pythonTestScript += "        print(f'WinRM connection test passed using {auth_method} authentication with {credentials_used} on {target_used}!')`n"
+$pythonTestScript += "        sys.exit(0)`n"
+$pythonTestScript += "    else:`n"
+$pythonTestScript += "        print('WinRM connection failed with non-zero exit code')`n"
+$pythonTestScript += "        sys.exit(1)`n"
+$pythonTestScript += "except Exception as e:`n"
+$pythonTestScript += "    print(f'Connection failed: {e}')`n"
+$pythonTestScript += "    import traceback`n"
+$pythonTestScript += "    traceback.print_exc()`n"
+$pythonTestScript += "    sys.exit(1)`n"
+
+# Write test script to WSL accessible location
+$tempTestScript = "$env:TEMP\winrm-test.py"
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($tempTestScript, $pythonTestScript, $utf8NoBom)
+
+# Convert to WSL path and run the test
+$wslTestPath = $tempTestScript -replace '^([A-Z]):', '/mnt/$1' -replace '\\', '/'
+$wslTestPath = $wslTestPath.ToLower()
+
+Write-Host "Testing connection with credentials: $windowsUser@$windowsIP" -ForegroundColor Gray
+wsl --distribution Ubuntu-24.04 --exec bash -c "cd ~/.dotconfigs && export OPENSSL_CONF=/etc/ssl/openssl_legacy.cnf && python3 '$wslTestPath'"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "WinRM connection test failed. Please check credentials and WinRM configuration."
+    Write-Host "Debug information:" -ForegroundColor Yellow
+    Write-Host "  Windows IP: $windowsIP" -ForegroundColor White
+    Write-Host "  Username: $windowsUser" -ForegroundColor White
+    Write-Host "  Port: 5985" -ForegroundColor White
+    Write-Host "  Transport: NTLM" -ForegroundColor White
+    
+    # Clean up test script and exit
+    Remove-Item -Force $tempTestScript -ErrorAction SilentlyContinue
+    exit 1
+}
+
+Write-Host "WinRM connection test passed!" -ForegroundColor Green
+
+# Clean up test script
+Remove-Item -Force $tempTestScript -ErrorAction SilentlyContinue
+
 Write-Host "Running Ansible playbook in WSL..." -ForegroundColor Cyan
 Write-Host "Command: $ansibleCmd" -ForegroundColor Gray
 
@@ -580,5 +822,6 @@ Write-Host "WSL Ubuntu 24.04 with Ansible is ready for future use." -ForegroundC
 Write-Host ""
 Write-Host "Connection Details:" -ForegroundColor Yellow
 Write-Host "  Windows IP: $windowsIP" -ForegroundColor White
-Write-Host "  Connection: PSRP over WinRM" -ForegroundColor White
+Write-Host "  Connection: WinRM (HTTP NTLM Auth)" -ForegroundColor White
+Write-Host "  Port: 5985" -ForegroundColor White
 Write-Host "  Inventory: windows-ansible/inventory.yml" -ForegroundColor White 

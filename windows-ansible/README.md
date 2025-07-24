@@ -22,7 +22,11 @@ This provides better compatibility with Ansible's Linux-native tooling while mai
 ## Quick Start
 
 1. **Run as Administrator**: Open PowerShell as Administrator
-2. **Execute the install script**:
+2. **Set execution policy** (if needed):
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process
+   ```
+3. **Execute the install script**:
    ```powershell
    # Download and run directly
    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dyskette/.dotconfigs/master/windows-ansible/install.ps1" -OutFile "install.ps1"
