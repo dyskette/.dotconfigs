@@ -9,7 +9,11 @@
     [
         {
             "id": null,
-            "keys": "win+ctrl+alt+shift+]"
+            "keys": "win+ctrl+alt+shift+}"
+        },
+        {
+            "id": null,
+            "keys": "shift+f11"
         },
         {
             "id": null,
@@ -26,10 +30,6 @@
         {
             "id": null,
             "keys": "f11"
-        },
-        {
-            "id": null,
-            "keys": "shift+f11"
         }
     ],
     "newTabMenu": 
@@ -45,7 +45,7 @@
             "colorScheme": 
             {
                 "dark": "Gruvbox",
-                "light": "Rosé Pine Dawn"
+                "light": "Ros\u00e9 Pine Dawn"
             },
             "font": 
             {
@@ -56,57 +56,86 @@
         "list": 
         [
             {
-                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
-                "hidden": false,
-                "name": "Windows PowerShell"
-            },
-            {
-                "commandline": "%SystemRoot%\\System32\\cmd.exe",
-                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
-                "hidden": false,
-                "name": "Command Prompt"
-            },
-            {
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
                 "hidden": false,
-                "name": "PowerShell Core",
-                "source": "Windows.Terminal.PowershellCore"
-            },
-            {
-                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
-                "hidden": false,
-                "name": "Azure Cloud Shell",
-                "source": "Windows.Terminal.Azure"
-            },
-            {
-                "guid": "{d7f60296-c942-5d32-abc0-26915f30af5d}",
-                "hidden": false,
-                "name": "Developer Command Prompt for VS 2022",
-                "source": "Windows.Terminal.VisualStudio"
-            },
-            {
-                "guid": "{36662f9f-b12e-5dea-a97d-33c7adf368be}",
-                "hidden": false,
-                "name": "Developer PowerShell for VS 2022",
-                "source": "Windows.Terminal.VisualStudio"
+                "commandline": "pwsh.exe",
+                "name": "PowerShell Core"
             },
             {
                 "guid": "{505f431e-7f8d-547a-941a-7b3b1b1b2784}",
                 "hidden": false,
-                "name": "Ubuntu-24.04",
-                "source": "Microsoft.WSL"
+                "commandline": "wsl.exe --distribution Ubuntu-24.04",
+                "startingDirectory": "~",
+                "icon": "%USERPROFILE%\\.dotconfigs\\windows_terminal\\ubuntu-icon.png",
+                "name": "Ubuntu-24.04"
             },
             {
-                "guid": "{d0a05793-34d7-508b-b93c-63ba2be45c5b}",
+                "guid": "{8f96631d-8fe0-45e1-a1e4-69ebee35f5c5}",
                 "hidden": false,
-                "name": "podman-machine-default",
-                "source": "Microsoft.WSL"
+                "commandline": "%PROGRAMFILES%\\git\\usr\\bin\\bash.exe --login -i",
+                "startingDirectory": "%USERPROFILE%",
+                "icon": "%PROGRAMFILES%\\git\\mingw64\\share\\git\\git-for-windows.ico",
+                "name": "Git Bash"
+            },
+            {
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "hidden": false,
+                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "name": "Windows PowerShell"
+            },
+            {
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "hidden": false,
+                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "name": "Command Prompt"
+            },
+            {
+                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
+                "hidden": false,
+                "name": "Azure Cloud Shell"
+            },
+            {
+                "guid": "{d7f60296-c942-5d32-abc0-26915f30af5d}",
+                "hidden": false,
+                "name": "Developer Command Prompt for VS 2022"
+            },
+            {
+                "guid": "{36662f9f-b12e-5dea-a97d-33c7adf368be}",
+                "hidden": false,
+                "name": "Developer PowerShell for VS 2022"
+            },
+            {
+                "guid": "{0ba42ec1-85f7-5f17-a35d-048575499e66}",
+                "hidden": false,
+                "name": "podman-machine-default"
             }
         ]
     },
-    "schemes":
+    "schemes": 
     [
+        {
+            "background": "#2D353B",
+            "black": "#4B565C",
+            "blue": "#7FBBB3",
+            "brightBlack": "#5C6A72",
+            "brightBlue": "#3A94C5",
+            "brightCyan": "#35A77C",
+            "brightGreen": "#8DA101",
+            "brightPurple": "#DF69BA",
+            "brightRed": "#F85552",
+            "brightWhite": "#DFDDC8",
+            "brightYellow": "#DFA000",
+            "cursorColor": "#D3C6AA",
+            "cyan": "#83C092",
+            "foreground": "#D3C6AA",
+            "green": "#A7C080",
+            "name": "Everforest Dark",
+            "purple": "#D699B6",
+            "red": "#E67E80",
+            "selectionBackground": "#FFFFFF",
+            "white": "#D3C6AA",
+            "yellow": "#DBBC7F"
+        },
         {
             "background": "#282828",
             "black": "#282828",
@@ -154,29 +183,6 @@
             "yellow": "#C0A36E"
         },
         {
-            "background": "#2D353B",
-            "black": "#4B565C",
-            "blue": "#7FBBB3",
-            "brightBlack": "#5C6A72",
-            "brightBlue": "#3A94C5",
-            "brightCyan": "#35A77C",
-            "brightGreen": "#8DA101",
-            "brightPurple": "#DF69BA",
-            "brightRed": "#F85552",
-            "brightWhite": "#DFDDC8",
-            "brightYellow": "#DFA000",
-            "cursorColor": "#D3C6AA",
-            "cyan": "#83C092",
-            "foreground": "#D3C6AA",
-            "green": "#A7C080",
-            "name": "Everforest Dark",
-            "purple": "#D699B6",
-            "red": "#E67E80",
-            "selectionBackground": "#FFFFFF",
-            "white": "#D3C6AA",
-            "yellow": "#DBBC7F"
-        },
-        {
             "background": "#FAF4ED",
             "black": "#F2E9E1",
             "blue": "#286983",
@@ -192,7 +198,7 @@
             "cyan": "#D7827E",
             "foreground": "#575279",
             "green": "#56949F",
-            "name": "Rosé Pine Dawn",
+            "name": "Ros\u00e9 Pine Dawn",
             "purple": "#907AA9",
             "red": "#B4637A",
             "selectionBackground": "#FFFFFF",
