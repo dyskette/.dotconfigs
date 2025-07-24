@@ -6,7 +6,7 @@ local blink_config = function()
 			ghost_text = {
 				enabled = true,
 			},
-			list = { selection = { preselect = false, auto_insert = false } },
+			list = { selection = { preselect = true, auto_insert = false } },
 		},
 		keymap = {
 			preset = "default",
