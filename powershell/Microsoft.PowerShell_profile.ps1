@@ -1,5 +1,6 @@
 Set-PSReadLineKeyHandler -Key 'Ctrl+p' -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key 'Ctrl+n' -Function HistorySearchForward
+Set-PSReadLineKeyHandler -Key "Ctrl+y" -Function AcceptSuggestion
 Set-PSReadLineKeyHandler -Key "Ctrl+d" -Function DeleteCharOrExit
 
 function Invoke-Starship-PreCommand {
