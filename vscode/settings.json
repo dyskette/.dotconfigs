@@ -3,8 +3,8 @@
   "window.menuBarVisibility": "toggle",
 
   "window.autoDetectColorScheme": true,
-  "workbench.preferredLightColorTheme": "Rosé Pine Dawn",
   "workbench.preferredDarkColorTheme": "Gruvbox Dark Medium",
+  "workbench.preferredLightColorTheme": "Rosé Pine Dawn",
   "workbench.editor.showTabs": "single",
 
   "editor.fontSize": 14,
@@ -207,7 +207,12 @@
         "workbench.action.closeAuxiliaryBar"
       ],
       "silent": true
-    }
+    },
+    {
+      "before": ["<leader>", "f", "f"],
+      "commands": ["editor.action.formatDocument"],
+      "silent": true
+    },
   ],
   "vim.visualModeKeyBindingsNonRecursive": [
     {
@@ -285,6 +290,10 @@
   "[javascript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
+  "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
   "redhat.telemetry.enabled": true,
-  "diffEditor.ignoreTrimWhitespace": false
+  "diffEditor.ignoreTrimWhitespace": false,
+  "window.commandCenter": true
 }
