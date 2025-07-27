@@ -37,10 +37,12 @@
       "args": ["bash"]
     }
   },
-
+  "terminal.integrated.commandsToSkipShell": ["-workbench.action.quickOpen"],
   "dev.containers.dockerPath": "podman",
 
   "gitlens.currentLine.enabled": false,
+  "oil-code.hasNerdFont": true,
+  "magit.display-buffer-function": "same-column",
 
   "vim.hlsearch": true,
   "vim.highlightedyank.enable": true,
@@ -48,16 +50,34 @@
   "vim.leader": "<space>",
   "vim.surround": true,
   "vim.insertModeKeyBindings": [],
+  "vim.insertModeKeyBindingsNonRecursive": [],
   "vim.normalModeKeyBindings": [
     {
-      "before": [
-        "<leader>",
-        "<leader>"
-      ],
+      "before": ["-"],
+      "commands": [
+        {
+          "command": "oil-code.open"
+        }
+      ]
+    },
+    {
+      "before": ["<CR>"],
+      "commands": [
+        {
+          "command": "oil-code.select"
+        }
+      ]
+    },
+    {
+      "before": ["<leader>", "<leader>"],
       "commands": [
         "workbench.action.closeSidebar",
         "workbench.action.closePanel"
       ]
+    },
+    {
+      "before": ["leader", "g", "g"],
+      "commands": ["magit.status"]
     },
     {
       "before": ["u"],
@@ -148,11 +168,6 @@
       "silent": true
     },
     {
-      "before": ["<leader>", "s", "l"],
-      "commands": ["workbench.explorer.fileView.focus"],
-      "silent": true
-    },
-    {
       "before": ["<leader>", "s", "b"],
       "commands": ["workbench.action.showAllEditorsByMostRecentlyUsed"],
       "silent": true
@@ -190,13 +205,13 @@
       "silent": true
     },
     {
-      "before": ["<leader>", "v", "d"],
-      "commands": ["editor.action.marker.nextInFiles"],
-      "silent": false
+      "before": ["<leader>", "d", "k"],
+      "commands": ["editor.action.marker.prevInFiles"],
+      "silent": true
     },
     {
-      "before": ["<leader>", "e"],
-      "commands": ["workbench.view.explorer"],
+      "before": ["<leader>", "d", "j"],
+      "commands": ["editor.action.marker.nextInFiles"],
       "silent": true
     },
     {
@@ -211,10 +226,27 @@
     {
       "before": ["<leader>", "f", "f"],
       "commands": ["editor.action.formatDocument"],
-      "silent": true
+      "silent": false
     },
+    {
+      "before": ["<c-l>"],
+      "commands": [
+        {
+          "command": "oil-code.refresh"
+        }
+      ]
+    },
+    {
+      "before": ["`"],
+      "commands": [
+        {
+          "command": "oil-code.cd"
+        }
+      ]
+    }
   ],
-  "vim.visualModeKeyBindingsNonRecursive": [
+  "vim.normalModeKeyBindingsNonRecursive": [],
+  "vim.visualModeKeyBindings": [
     {
       "before": ["<leader>", "y"],
       "after": ["\"", "+", "y"]
@@ -265,15 +297,14 @@
         "workbench.action.findInFiles"
       ],
       "silent": true
-    }
-  ],
-  "vim.visualModeKeyBindings": [
+    },
     {
       "commands": ["editor.action.commentLine"],
       "before": ["<leader>", "c"],
       "when": "editorTextFocus && !editorReadonly"
     }
   ],
+  "vim.visualModeKeyBindingsNonRecursive": [],
   "vim.handleKeys": {
     "<C-a>": false,
     "<C-f>": false
@@ -284,16 +315,23 @@
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "vscode.typescript-language-features"
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[rust]": {
-      "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
   },
   "redhat.telemetry.enabled": true,
   "diffEditor.ignoreTrimWhitespace": false,
-  "window.commandCenter": true
+  "window.commandCenter": true,
+  "python.analysis.typeCheckingMode": "standard"
 }

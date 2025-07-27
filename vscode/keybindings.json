@@ -1,96 +1,163 @@
 [
-    {
-        "key": "ctrl+y",
-        "command": "acceptSelectedSuggestion",
-        "when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible"
-    },
-    {
-        "key": "Ctrl+n",
-        "command": "workbench.action.quickOpenSelectNext",
-        "when": "inQuickOpen"
-    },
-    {
-        "key": "Ctrl+p",
-        "command": "workbench.action.quickOpenSelectPrevious",
-        "when": "inQuickOpen"
-    },
-    {
-        "key": "ctrl+n",
-        "command": "selectNextCodeAction",
-        "when": "codeActionMenuVisible"
-    },
-    {
-        "key": "ctrl+p",
-        "command": "selectPrevCodeAction",
-        "when": "codeActionMenuVisible"
-    },
-    {
-        "key": "ctrl+w k",
-        "command": "workbench.action.navigateUp",
-        "when": "!editorTextFocus"
-    },
-    {
-        "key": "ctrl+w j",
-        "command": "workbench.action.navigateDown",
-        "when": "!editorTextFocus"
-    },
-    {
-        "key": "ctrl+w h",
-        "command": "workbench.action.navigateLeft",
-        "when": "!editorTextFocus"
-    },
-    {
-        "key": "ctrl+w l",
-        "command": "workbench.action.navigateRight",
-        "when": "!editorTextFocus"
-    },
-    {
-        "key": "q",
-        "command": "workbench.action.toggleSidebarVisibility",
-        "when": "explorerViewletFocus"
-    },
-    {
-        "key": "enter",
-        "command": "list.closeFind",
-        "when": "listFocus && treeFindOpen && inputFocus"
-    },
-    {
-        "key": "r",
-        "command": "renameFile",
-        "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
-    },
-    {
-        "key": "d",
-        "command": "moveFileToTrash",
-        "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
-    },
-    {
-        "key": "y",
-        "command": "filesExplorer.copy",
-        "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !inputFocus"
-    },
-    {
-        "key": "x",
-        "command": "filesExplorer.cut",
-        "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !inputFocus"
-    },
-    {
-        "key": "p",
-        "command": "filesExplorer.paste",
-        "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
-    },
-    {
-        "key": "v",
-        "command": "explorer.openToSide",
-        "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
-    },
-    {
-        "key": "a",
-        "command": "explorer.newFile",
-        "when": "filesExplorerFocus && !inputFocus"
-    },
-    {
-        "key": "ctrl+i",
-        "command": "composerMode.agent"
-    }
+  {
+    "key": "ctrl+z",
+    "command": "workbench.action.terminal.toggleTerminal"
+  },
+  {
+    "key": "ctrl+y",
+    "command": "acceptSelectedSuggestion",
+    "when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible"
+  },
+  {
+    "key": "Ctrl+n",
+    "command": "workbench.action.quickOpenSelectNext",
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "Ctrl+p",
+    "command": "workbench.action.quickOpenSelectPrevious",
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "ctrl+n",
+    "command": "selectNextCodeAction",
+    "when": "codeActionMenuVisible"
+  },
+  {
+    "key": "ctrl+p",
+    "command": "selectPrevCodeAction",
+    "when": "codeActionMenuVisible"
+  },
+  {
+    "key": "ctrl+w k",
+    "command": "workbench.action.navigateUp",
+    "when": "!editorTextFocus"
+  },
+  {
+    "key": "ctrl+w j",
+    "command": "workbench.action.navigateDown",
+    "when": "!editorTextFocus"
+  },
+  {
+    "key": "ctrl+w h",
+    "command": "workbench.action.navigateLeft",
+    "when": "!editorTextFocus"
+  },
+  {
+    "key": "ctrl+w l",
+    "command": "workbench.action.navigateRight",
+    "when": "!editorTextFocus"
+  },
+  {
+    "key": "q",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "explorerViewletFocus"
+  },
+  {
+    "key": "enter",
+    "command": "list.closeFind",
+    "when": "listFocus && treeFindOpen && inputFocus"
+  },
+  {
+    "key": "r",
+    "command": "renameFile",
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
+  },
+  {
+    "key": "d",
+    "command": "moveFileToTrash",
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
+  },
+  {
+    "key": "y",
+    "command": "filesExplorer.copy",
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !inputFocus"
+  },
+  {
+    "key": "x",
+    "command": "filesExplorer.cut",
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !inputFocus"
+  },
+  {
+    "key": "p",
+    "command": "filesExplorer.paste",
+    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
+  },
+  {
+    "key": "v",
+    "command": "explorer.openToSide",
+    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
+  },
+  {
+    "key": "a",
+    "command": "explorer.newFile",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "ctrl+i",
+    "command": "composerMode.agent"
+  },
+  {
+    "key": "g g",
+    "command": "cursorTop",
+    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+  },
+  {
+    "key": "g r",
+    "command": "magit.refresh",
+    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+  },
+  {
+    "key": "tab",
+    "command": "extension.vim_tab",
+    "when": "editorTextFocus && vim.active && !inDebugRepl && vim.mode != 'Insert' && !inlineEditIsVisible && editorLangId != 'magit'"
+  },
+  {
+    "key": "tab",
+    "command": "-extension.vim_tab"
+  },
+  {
+    "key": "x",
+    "command": "magit.discard-at-point",
+    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+  },
+  {
+    "key": "k",
+    "command": "-magit.discard-at-point"
+  },
+  {
+    "key": "-",
+    "command": "magit.reverse-at-point",
+    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+  },
+  {
+    "key": "v",
+    "command": "-magit.reverse-at-point"
+  },
+  {
+    "key": "shift+-",
+    "command": "magit.reverting",
+    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+  },
+  {
+    "key": "shift+v",
+    "command": "-magit.reverting"
+  },
+  {
+    "key": "shift+o",
+    "command": "magit.resetting",
+    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+  },
+  {
+    "key": "shift+x",
+    "command": "-magit.resetting"
+  },
+  {
+    "key": "x",
+    "command": "-magit.reset-mixed"
+  },
+  {
+    "key": "ctrl+u x",
+    "command": "-magit.reset-hard"
+  }
 ]
