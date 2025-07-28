@@ -1,5 +1,6 @@
 -- Pretty colors
 vim.api.nvim_set_option_value("termguicolors", true, {})
+vim.o.winborder = "rounded"
 
 -- Line numbers
 vim.api.nvim_set_option_value("number", true, {})
@@ -26,31 +27,11 @@ vim.api.nvim_set_option_value("softtabstop", 4, {})
 vim.api.nvim_set_option_value("shiftwidth", 4, {})
 vim.api.nvim_set_option_value("smartindent", true, {})
 
-vim.fn.sign_define("DiagnosticSignError", { texthl = "DiagnosticSignError", text = "" })
-vim.fn.sign_define("DiagnosticSignWarn", { texthl = "DiagnosticSignWarn", text = "" })
-vim.fn.sign_define("DiagnosticSignInfo", { texthl = "DiagnosticSignInfo", text = "" })
-vim.fn.sign_define("DiagnosticSignHint", { texthl = "DiagnosticSignHint", text = "" })
+-- Make sure to setup `mapleader` and `maplocalleader` before
+-- loading lazy.nvim so that mappings are correct.
+-- This is also a good place to setup other settings (vim.opt)
+vim.g.mapleader = " "
+vim.g.maplocalleader = "\\"
 
-vim.diagnostic.config({
-  virtual_text = {
-    prefix = "",
-  },
-  float = { border = "rounded", title = " Diagnostic " },
-})
+vim.g.mapleader = " "
 
-local get_hl_name = function()
-  if vim.fn.hlexists("HighlightedyankRegion") == 1 then
-    return "HighlightedyankRegion"
-  end
-
-  return "IncSearch"
-end
-
-local group = vim.api.nvim_create_augroup("dyskette_text_yank_highlight", { clear = true })
-vim.api.nvim_create_autocmd("TextYankPost", {
-  desc = "Text yank highlight",
-  group = group,
-  callback = function()
-    vim.highlight.on_yank({ higroup = get_hl_name(), timeout = 200 })
-  end,
-})

@@ -29,6 +29,8 @@ local lazy_install = function()
 			backdrop = 100,
 		},
 	})
+
+	vim.keymap.set("n", "<leader>y", "<cmd>Lazy<cr>")
 end
 
 lazy_install()
