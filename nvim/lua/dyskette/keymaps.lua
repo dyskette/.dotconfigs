@@ -102,8 +102,12 @@ return {
 		},
 	},
 
+	oil = {
+		{ "-", vim.cmd.Oil, desc = "Open parent directory" }
+	},
+
 	yazi = {
-		{ "<leader>e", "<cmd>Yazi<cr>", mode = { "n", "x" }, desc = "Open parent directory" },
+		{ "<leader>e", vim.cmd.Yazi, mode = { "n", "x" }, desc = "Open parent directory" },
 	},
 
 	imgclip = function()
