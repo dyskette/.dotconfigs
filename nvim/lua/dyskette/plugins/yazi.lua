@@ -7,19 +7,17 @@ local yazi_config = function()
       show_help = "<f1>",
     },
   })
-
-  require("dyskette.keymaps").yazi()
 end
 
 local oil_config = function()
   require("oil").setup()
-  vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
 end
 
 return {
   {
     "stevearc/oil.nvim",
     config = oil_config,
+    keys = require("dyskette.keymaps").oil,
   },
   {
     "mikavilpas/yazi.nvim",
