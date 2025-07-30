@@ -161,7 +161,7 @@ end
 return {
 	{
 		"neovim/nvim-lspconfig",
-		event = utils.events.VeryLazy,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = lspconfig_config,
 		dependencies = {
 			-- Servers
