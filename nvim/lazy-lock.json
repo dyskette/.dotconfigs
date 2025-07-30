@@ -43,5 +43,5 @@
   "rzls.nvim": { "branch": "main", "commit": "1798c64830547d711b14dc2f3f47da15584d8aab" },
   "schemastore.nvim": { "branch": "main", "commit": "c957914d75b4a008ce09f4116e57e59fe6e3fae1" },
   "snacks.nvim": { "branch": "main", "commit": "bc0630e43be5699bb94dadc302c0d21615421d93" },
-  "yazi.nvim": { "branch": "main", "commit": "6e4e9f0353f94ca4965c20dfc2690fb0d21730f0" },
+  "yazi.nvim": { "branch": "main", "commit": "6e4e9f0353f94ca4965c20dfc2690fb0d21730f0" }
 }
