@@ -22,8 +22,6 @@ local conform_config = function()
 		},
 		formatters = {},
 	})
-
-	require("dyskette.keymaps").conform()
 end
 
 local nvim_lint_config = function()
@@ -51,7 +49,7 @@ end
 return {
 	{
 		"mfussenegger/nvim-lint",
-		event = utils.events.BufEnter,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = nvim_lint_config,
 	},
 	{
