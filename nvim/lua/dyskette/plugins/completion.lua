@@ -49,7 +49,7 @@ end
 
 return {
 	"saghen/blink.cmp",
-	event = { utils.events.VeryLazy },
+	event = { utils.events.CmdlineEnter, utils.events.InsertEnter },
 	dependencies = "rafamadriz/friendly-snippets",
 	version = "*",
 	config = blink_config,
