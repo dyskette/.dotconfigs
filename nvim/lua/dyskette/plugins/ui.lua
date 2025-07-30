@@ -118,10 +118,6 @@ local fidget_config = function()
 	})
 end
 
-local zen_mode_config = function()
-	require("dyskette.keymaps").zen_mode()
-end
-
 return {
 	-- Color scheme
 	{
@@ -168,10 +164,5 @@ return {
 		"j-hui/fidget.nvim",
 		event = utils.events.VeryLazy,
 		config = fidget_config,
-	},
-	-- Zen mode
-	{
-		"folke/zen-mode.nvim",
-		keys = require("dyskette.keymaps").zen_mode,
 	},
 }

@@ -170,9 +170,4 @@ return {
 	neogit = {
 		{ "<leader>gg", function() require("neogit").open() end, desc = "Git status open" },
 	},
-
-	zen_mode = function()
-		local zen_mode = require("zen-mode")
-		vim.keymap.set("n", "<leader>Z", zen_mode.toggle, { desc = "Toggle zen mode" })
-	end,
 }
