@@ -58,19 +58,15 @@ local indent_blankline_config = function()
 end
 
 return {
-	{
-		"nvim-treesitter/nvim-treesitter",
-		event = utils.events.BufEnter,
-		build = treesitter_build,
-		config = treesitterconfig_config,
-		dependencies = {
-			{ "windwp/nvim-ts-autotag" },
+	"nvim-treesitter/nvim-treesitter",
+	event = { utils.events.BufReadPre, utils.events.BufNewFile },
+	build = treesitter_build,
+	config = treesitterconfig_config,
+	dependencies = {
+		{ "windwp/nvim-ts-autotag" },
+		{
+			"lukas-reineke/indent-blankline.nvim",
+			config = indent_blankline_config,
 		},
-	},
-	{
-		"lukas-reineke/indent-blankline.nvim",
-		event = utils.events.BufEnter,
-		dependencies = { "nvim-treesitter/nvim-treesitter" },
-		config = indent_blankline_config,
 	},
 }
