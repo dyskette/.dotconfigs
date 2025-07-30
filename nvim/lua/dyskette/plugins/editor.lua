@@ -34,26 +34,26 @@ return {
 	-- Detect expandtab, tabstop, softtabstop and shiftwidth automatically
 	{
 		"nmac427/guess-indent.nvim",
-		event = { utils.events.BufReadPre, utils.events.BufNew },
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = indent_config,
 	},
 	-- Add parenthesis, tags, quotes with vim motions
 	{
 		"kylechui/nvim-surround",
 		version = "*", -- Use for stability; omit to use `main` branch for the latest features
-		event = utils.events.VeryLazy,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = surround_config,
 	},
 	-- Close parenthesis, tags, quotes on insert
 	{
 		"windwp/nvim-autopairs",
-		event = utils.events.InsertEnter,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = autopairs_config,
 	},
 	-- Close tags e.g. <div></div> on insert
 	{
 		"windwp/nvim-ts-autotag",
-		event = utils.events.InsertEnter,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = autotag_config,
 	},
 	{
@@ -64,7 +64,7 @@ return {
 	-- Code commenting with vim motions
 	{
 		"numToStr/Comment.nvim",
-		event = utils.events.BufEnter,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = comment_config,
 	},
 	-- Paste image as a file in cwd/assets/ and get the path
@@ -75,7 +75,7 @@ return {
 	-- Show colors like #eb6f92 with a background of its own color
 	{
 		"brenoprata10/nvim-highlight-colors",
-		event = utils.events.BufReadPost,
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		config = nvim_highlight_colors_config,
 	},
 	-- Json tools

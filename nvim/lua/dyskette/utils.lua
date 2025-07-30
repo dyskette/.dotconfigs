@@ -59,6 +59,8 @@ utils.events = {
 	BufReadPre = "BufReadPre",
 	-- When starting to edit a new buffer, after reading the file into the buffer, before processing models
 	BufReadPost = "BufReadPost",
+	-- When starting to edit a file that doesn't exist
+	BufNewFile = "BufNewFile",
 	-- Just before starting Insert mode
 	InsertEnter = "InsertEnter",
 	-- After entering the command-line (including non-interactive use of ":" in a mapping)
