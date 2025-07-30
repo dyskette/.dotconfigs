@@ -56,7 +56,7 @@ return {
 	},
 	{
 		"stevearc/conform.nvim",
-		event = utils.events.BufEnter,
 		config = conform_config,
+		keys = require("dyskette.keymaps").conform,
 	},
 }

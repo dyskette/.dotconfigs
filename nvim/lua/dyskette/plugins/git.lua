@@ -2,14 +2,9 @@ local utils = require("dyskette.utils")
 
 local gitsigns_config = function()
 	require("gitsigns").setup({})
-	require("dyskette.keymaps").gitsigns()
 end
 
-local diffview_config = function()
-	require("dyskette.keymaps").git_diffview()
-end
-
-local neogit_setup = function()
+local neogit_config = function()
 	require("neogit").setup({
 		integrations = {
 			diffview = true,
@@ -24,27 +19,23 @@ local neogit_setup = function()
 	})
 end
 
-local neogit_config = function()
-	require("dyskette.keymaps").neogit(neogit_setup)
-end
-
 return {
 	{
 		"lewis6991/gitsigns.nvim",
-		event = utils.events.VeryLazy,
+		keys = require("dyskette.keymaps").gitsigns,
 		config = gitsigns_config,
 	},
 	{
 		"NeogitOrg/neogit",
-		event = utils.events.VeryLazy,
+		keys = require("dyskette.keymaps").neogit,
+		config = neogit_config,
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			{
 				"sindrets/diffview.nvim",
-				config = diffview_config,
+				keys = require("dyskette.keymaps").git_diffview,
 			},
 			"ibhagwan/fzf-lua",
 		},
-		config = neogit_config,
 	},
 }

@@ -172,7 +172,6 @@ return {
 	-- Zen mode
 	{
 		"folke/zen-mode.nvim",
-		keys = { { "<leader>Z", modes = { "n" } } },
-		config = zen_mode_config,
+		keys = require("dyskette.keymaps").zen_mode,
 	},
 }

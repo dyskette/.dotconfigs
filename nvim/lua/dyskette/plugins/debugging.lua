@@ -36,7 +36,7 @@ local dap_config = function()
 	require("mason-nvim-dap").setup({
 		handlers = {},
 	})
-	require("dyskette.keymaps").dap()
+	
 end
 
 local virtual_text_config = function()
@@ -52,7 +52,7 @@ return {
 	{
 		"mfussenegger/nvim-dap",
 		config = dap_config,
-		event = utils.events.VeryLazy,
+		keys = require("dyskette.keymaps").dap,
 		dependencies = {
 			-- Async library
 			{ "nvim-neotest/nvim-nio" },
@@ -68,11 +68,6 @@ return {
 			{ "williamboman/mason.nvim" },
 			-- Adapt mason to dap to download debuggers
 			{ "jay-babu/mason-nvim-dap.nvim" },
-			-- Run pre and post tasks (e.g. building, cleaning)
-			{
-				"stevearc/overseer.nvim",
-				config = overseer_config,
-			},
 		},
 	},
 }
