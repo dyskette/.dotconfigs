@@ -110,10 +110,9 @@ return {
 		{ "<leader>e", vim.cmd.Yazi, mode = { "n", "x" }, desc = "Open parent directory" },
 	},
 
-	imgclip = function()
-		local imgclip = require("img-clip")
-		vim.keymap.set({ "n", "x" }, "<leader>ii", imgclip.pasteImage, { desc = "Paste image from clipbard" })
-	end,
+	imgclip = {
+		{ "<leader>ii", function() require("img-clip").pasteImage() end, mode = { "n", "x" }, desc = "Paste image from clipbard" }
+	},
 
 	dap = {
 		{ "<leader>di", function() require("dapui").eval(nil, { enter = true }) end, desc = "Debug inspect value" },
