@@ -22,10 +22,6 @@ local autotag_config = function()
 	require("nvim-ts-autotag").setup({})
 end
 
-local imgclip_config = function()
-	require("dyskette.keymaps").imgclip()
-end
-
 local nvim_highlight_colors_config = function()
 	require("nvim-highlight-colors").setup({})
 end
@@ -60,7 +56,11 @@ return {
 		event = utils.events.InsertEnter,
 		config = autotag_config,
 	},
-	{ "saecki/live-rename.nvim", event = utils.events.VeryLazy, config = live_rename_config },
+	{
+		"saecki/live-rename.nvim",
+		keys = require("dyskette.keymaps").live_rename,
+		config = live_rename_config
+	},
 	-- Code commenting with vim motions
 	{
 		"numToStr/Comment.nvim",
@@ -70,8 +70,7 @@ return {
 	-- Paste image as a file in cwd/assets/ and get the path
 	{
 		"HakonHarnes/img-clip.nvim",
-		keys = { { "<leader>ii", mode = { "n", "x" } } },
-		config = imgclip_config,
+		keys = require("dyskette.keymaps").imgclip,
 	},
 	-- Show colors like #eb6f92 with a background of its own color
 	{

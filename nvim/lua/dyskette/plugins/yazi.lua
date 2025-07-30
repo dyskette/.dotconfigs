@@ -23,10 +23,7 @@ return {
   },
   {
     "mikavilpas/yazi.nvim",
-    event = utils.events.VeryLazy,
-    keys = {
-      { "<leader>e", mode = { "n", "v" } },
-    },
+    keys = require("dyskette.keymaps").yazi,
     config = yazi_config,
     dependencies = {
       { "nvim-lua/plenary.nvim", lazy = true },

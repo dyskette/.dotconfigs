@@ -10,9 +10,6 @@ local on_lsp_attach = function(client, bufnr)
 
 	-- Disable syntax highlighting from lsp server, and let treesitter do it
 	client.server_capabilities.semanticTokensProvider = {}
-
-	-- Enable keymaps
-	require("dyskette.keymaps").lsp(client, bufnr)
 end
 
 --- Default configuration for language servers

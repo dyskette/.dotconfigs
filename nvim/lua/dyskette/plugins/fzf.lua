@@ -18,13 +18,11 @@ local fzf_lua_config = function()
   })
 
   fzf.register_ui_select()
-
-  require("dyskette.keymaps").fzf()
 end
 
 return {
   "ibhagwan/fzf-lua",
   dependencies = { "nvim-tree/nvim-web-devicons" },
   config = fzf_lua_config,
-  event = utils.events.VeryLazy,
+  keys = require("dyskette.keymaps").fzf,
 }
