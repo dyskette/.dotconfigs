@@ -22,6 +22,7 @@ end
 return {
 	{
 		"lewis6991/gitsigns.nvim",
+		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		keys = require("dyskette.keymaps").gitsigns,
 		config = gitsigns_config,
 	},
