@@ -1,40 +1,5 @@
 local utils = require("dyskette.utils")
 
-local vanilla_config = function()
-	vim.fn.sign_define("DiagnosticSignError", { texthl = "DiagnosticSignError", text = "" })
-	vim.fn.sign_define("DiagnosticSignWarn", { texthl = "DiagnosticSignWarn", text = "" })
-	vim.fn.sign_define("DiagnosticSignInfo", { texthl = "DiagnosticSignInfo", text = "" })
-	vim.fn.sign_define("DiagnosticSignHint", { texthl = "DiagnosticSignHint", text = "" })
-
-	vim.diagnostic.config({
-		virtual_text = {
-			prefix = "",
-		},
-		float = { border = "rounded", title = " Diagnostic " },
-	})
-
-	vim.o.winborder = "rounded"
-
-	local get_hl_name = function()
-		if vim.fn.hlexists("HighlightedyankRegion") == 1 then
-			return "HighlightedyankRegion"
-		end
-
-		return "IncSearch"
-	end
-
-	local group = vim.api.nvim_create_augroup("dyskette_text_yank_highlight", { clear = true })
-	vim.api.nvim_create_autocmd("TextYankPost", {
-		desc = "Text yank highlight",
-		group = group,
-		callback = function()
-			vim.highlight.on_yank({ higroup = get_hl_name(), timeout = 200 })
-		end,
-	})
-end
-
-vanilla_config()
-
 local set_dark_mode = function()
 	require("gruvbox").setup({
 		terminal_colors = true, -- add neovim terminal colors
@@ -122,6 +87,7 @@ return {
 	-- Color scheme
 	{
 		"f-person/auto-dark-mode.nvim",
+		event = utils.events.VeryLazy,
 		config = auto_dark_config,
 	},
 	{
@@ -153,7 +119,6 @@ return {
 	-- Status bar
 	{
 		"nvim-lualine/lualine.nvim",
-		event = utils.events.VeryLazy,
 		config = lualine_config,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",

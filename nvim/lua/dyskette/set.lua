@@ -1,27 +1,59 @@
 -- Pretty colors
-vim.api.nvim_set_option_value("termguicolors", true, {})
+vim.o.termguicolors = true
+vim.o.winborder = "rounded"
 
 -- Line numbers
-vim.api.nvim_set_option_value("number", true, {})
-vim.api.nvim_set_option_value("relativenumber", true, {})
+vim.o.number = true
+vim.o.relativenumber = true
 
 -- show <Tab> and <EOL>
-vim.api.nvim_set_option_value("list", true, {})
+vim.o.list = true
 
 -- Minimum number of lines to keep above and below the cursor (keeps the cursor vertically centered)
-vim.api.nvim_set_option_value("scrolloff", 999, {})
+vim.o.scrolloff = 999
 
 -- No line wrapping
-vim.api.nvim_set_option_value("wrap", false, {})
+vim.o.wrap = false
 
 -- Rulers
-vim.api.nvim_set_option_value("colorcolumn", "120", {})
+vim.o.colorcolumn = "120"
 
 -- Default indentation
 -- When guess-indent detects spaces, it will override: 'expandtab', 'tabstop', 'softtabstop', 'shiftwidth'
 -- When guess-indent detects tabs, it will use 'tabstop'
-vim.api.nvim_set_option_value("expandtab", true, {})
-vim.api.nvim_set_option_value("tabstop", 4, {})
-vim.api.nvim_set_option_value("softtabstop", 4, {})
-vim.api.nvim_set_option_value("shiftwidth", 4, {})
-vim.api.nvim_set_option_value("smartindent", true, {})
+vim.o.expandtab = true
+vim.o.tabstop = 4
+vim.o.softtabstop = 4
+vim.o.shiftwidth = 4
+vim.o.smartindent = true
+
+-- Diagnostic
+vim.fn.sign_define("DiagnosticSignError", { texthl = "DiagnosticSignError", text = "" })
+vim.fn.sign_define("DiagnosticSignWarn", { texthl = "DiagnosticSignWarn", text = "" })
+vim.fn.sign_define("DiagnosticSignInfo", { texthl = "DiagnosticSignInfo", text = "" })
+vim.fn.sign_define("DiagnosticSignHint", { texthl = "DiagnosticSignHint", text = "" })
+
+vim.diagnostic.config({
+  virtual_text = {
+    prefix = "",
+  },
+  float = { border = "rounded", title = " Diagnostic " },
+})
+
+-- Yank highlight
+local get_hl_name = function()
+  if vim.fn.hlexists("HighlightedyankRegion") == 1 then
+    return "HighlightedyankRegion"
+  end
+
+  return "IncSearch"
+end
+
+local group = vim.api.nvim_create_augroup("dyskette_text_yank_highlight", { clear = true })
+vim.api.nvim_create_autocmd("TextYankPost", {
+  desc = "Text yank highlight",
+  group = group,
+  callback = function()
+    vim.highlight.on_yank({ higroup = get_hl_name(), timeout = 200 })
+  end,
+})
