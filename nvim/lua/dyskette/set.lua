@@ -1,3 +1,5 @@
+local utils = require("dyskette.utils")
+
 -- Pretty colors
 vim.o.termguicolors = true
 vim.o.winborder = "rounded"
@@ -40,20 +42,29 @@ vim.diagnostic.config({
   float = { border = "rounded", title = " Diagnostic " },
 })
 
--- Yank highlight
-local get_hl_name = function()
-  if vim.fn.hlexists("HighlightedyankRegion") == 1 then
-    return "HighlightedyankRegion"
-  end
-
-  return "IncSearch"
-end
-
+-- Highlight the copied text
 local group = vim.api.nvim_create_augroup("dyskette_text_yank_highlight", { clear = true })
-vim.api.nvim_create_autocmd("TextYankPost", {
-  desc = "Text yank highlight",
+vim.api.nvim_create_autocmd(utils.events.TextYankPost, {
+  desc = "Highlight yanked text",
   group = group,
   callback = function()
-    vim.highlight.on_yank({ higroup = get_hl_name(), timeout = 200 })
+    vim.hl.on_yank({ higroup = "IncSearch", timeout = 200 })
+  end,
+})
+
+-- Relative numbers in normal mode, absolute in insert mode
+local number_toggle_group = vim.api.nvim_create_augroup("dyskette_number_toggle", { clear = true })
+vim.api.nvim_create_autocmd({ utils.events.InsertEnter }, {
+  desc = "Switch to absolute line numbers in insert mode",
+  group = number_toggle_group,
+  callback = function()
+    vim.opt.relativenumber = false
+  end,
+})
+vim.api.nvim_create_autocmd({ utils.events.InsertLeave }, {
+  desc = "Switch to relative line numbers when leaving insert mode",
+  group = number_toggle_group,
+  callback = function()
+    vim.opt.relativenumber = true
   end,
 })

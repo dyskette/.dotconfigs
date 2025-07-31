@@ -63,8 +63,14 @@ utils.events = {
 	BufNewFile = "BufNewFile",
 	-- Just before starting Insert mode
 	InsertEnter = "InsertEnter",
+	-- Just after leaving Insert mode
+	InsertLeave = "InsertLeave",
 	-- After entering the command-line (including non-interactive use of ":" in a mapping)
 	CmdlineEnter = "CmdlineEnter",
+	-- After writing the whole buffer to a file
+	BufWritePost = "BufWritePost",
+	-- Just after a yank or deleting command, but not
+	TextYankPost = "TextYankPost"
 }
 
 return utils
