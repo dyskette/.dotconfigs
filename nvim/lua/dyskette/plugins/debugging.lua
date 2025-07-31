@@ -1,22 +1,24 @@
-local utils = require("dyskette.utils")
+local dapui_opts = {
+	floating = {
+		border = "rounded",
+	},
+}
 
-local dap_config = function()
-	local dap = require("dap")
-	local dapui = require("dapui")
+local nvim_dap_virtual_text_opts = {}
 
+local mason_nvim_dap_opts = {}
+
+local dap_init = function ()
 	vim.fn.sign_define("DapBreakpoint", { text = "󰐱", texthl = "Debug", linehl = "", numhl = "" })
 	vim.fn.sign_define("DapBreakpointCondition", { text = "󱓓", texthl = "Debug", linehl = "", numhl = "" })
 	vim.fn.sign_define("DapLogPoint", { text = "󰩦", texthl = "Debug", linehl = "", numhl = "" })
 	vim.fn.sign_define("DapStopped", { text = "", texthl = "Debug", linehl = "", numhl = "" })
 	vim.fn.sign_define("DapBreakpointRejected", { text = "󱓒", texthl = "Debug", linehl = "", numhl = "" })
+end
 
-	---@diagnostic disable-next-line: missing-fields
-	dapui.setup({
-		---@diagnostic disable-next-line: missing-fields
-		floating = {
-			border = "rounded",
-		},
-	})
+local dap_config = function()
+	local dap = require("dap")
+	local dapui = require("dapui")
 
 	-- Automatically open and close the nvim-dap-ui windows
 	dap.listeners.before.attach.dapui_config = function()
@@ -31,43 +33,34 @@ local dap_config = function()
 	dap.listeners.before.event_exited.dapui_config = function()
 		dapui.close()
 	end
-
-	---@diagnostic disable-next-line: missing-fields
-	require("mason-nvim-dap").setup({
-		handlers = {},
-	})
-	
-end
-
-local virtual_text_config = function()
-	---@diagnostic disable-next-line: missing-fields
-	require("nvim-dap-virtual-text").setup({})
-end
-
-local overseer_config = function ()
-	require("overseer").setup()
 end
 
 return {
 	{
 		"mfussenegger/nvim-dap",
-		config = dap_config,
 		keys = require("dyskette.keymaps").dap,
+		init = dap_init,
+		config = dap_config,
 		dependencies = {
 			-- Async library
 			{ "nvim-neotest/nvim-nio" },
 			-- UI for debugging
-			{ "rcarriga/nvim-dap-ui" },
+			{ "rcarriga/nvim-dap-ui", opts = dapui_opts },
 			-- Virtual text with variable values while debugging
 			{
 				"theHamsta/nvim-dap-virtual-text",
-				config = virtual_text_config,
+				opts = nvim_dap_virtual_text_opts,
 				dependencies = { "nvim-treesitter/nvim-treesitter" },
 			},
-			-- Dependency downloader
-			{ "williamboman/mason.nvim" },
 			-- Adapt mason to dap to download debuggers
-			{ "jay-babu/mason-nvim-dap.nvim" },
+			{
+				"jay-babu/mason-nvim-dap.nvim",
+				opts = mason_nvim_dap_opts,
+				dependencies = {
+					-- Dependency downloader
+					{ "williamboman/mason.nvim" },
+				}
+			},
 		},
 	},
 }

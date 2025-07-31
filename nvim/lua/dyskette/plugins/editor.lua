@@ -1,71 +1,55 @@
 local utils = require("dyskette.utils")
 
-local indent_config = function()
-	require("guess-indent").setup({})
-end
+local indent_opts = {}
 
-local surround_config = function()
-	require("nvim-surround").setup({})
-end
+local surround_opts = {}
 
-local comment_config = function()
-	---@diagnostic disable-next-line: missing-fields
-	require("Comment").setup({})
-end
+local comment_opts = {}
 
-local autopairs_config = function()
-	require("nvim-autopairs").setup({})
-end
+local autopairs_opts = {}
 
-local autotag_config = function()
-	---@diagnostic disable-next-line: missing-fields
-	require("nvim-ts-autotag").setup({})
-end
+local autotag_opts = {}
 
-local nvim_highlight_colors_config = function()
-	require("nvim-highlight-colors").setup({})
-end
+local nvim_highlight_colors_opts = {}
 
-local live_rename_config = function()
-	require("live-rename").setup({})
-end
+local live_rename_opts = {}
 
 return {
 	-- Detect expandtab, tabstop, softtabstop and shiftwidth automatically
 	{
 		"nmac427/guess-indent.nvim",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = indent_config,
+		opts = indent_opts,
 	},
 	-- Add parenthesis, tags, quotes with vim motions
 	{
 		"kylechui/nvim-surround",
 		version = "*", -- Use for stability; omit to use `main` branch for the latest features
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = surround_config,
+		opts = surround_opts,
 	},
 	-- Close parenthesis, tags, quotes on insert
 	{
 		"windwp/nvim-autopairs",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = autopairs_config,
+		opts = autopairs_opts,
 	},
 	-- Close tags e.g. <div></div> on insert
 	{
 		"windwp/nvim-ts-autotag",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = autotag_config,
+		opts = autotag_opts,
 	},
 	{
 		"saecki/live-rename.nvim",
 		keys = require("dyskette.keymaps").live_rename,
-		config = live_rename_config
+		opts = live_rename_opts
 	},
 	-- Code commenting with vim motions
 	{
 		"numToStr/Comment.nvim",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = comment_config,
+		opts = comment_opts,
 	},
 	-- Paste image as a file in cwd/assets/ and get the path
 	{
@@ -77,7 +61,7 @@ return {
 	{
 		"brenoprata10/nvim-highlight-colors",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = nvim_highlight_colors_config,
+		opts = nvim_highlight_colors_opts,
 	},
 	-- Json tools
 	{

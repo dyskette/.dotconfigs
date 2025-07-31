@@ -105,51 +105,45 @@ local lspconfig_config = function()
 	language_servers_configuration()
 end
 
-local lazydev_config = function()
-	---@diagnostic disable-next-line: missing-fields
-	require("lazydev").setup({
-		library = {
-			-- Load luvit types when the `vim.uv` word is found
-			{ path = "luvit-meta/library", words = { "vim%.uv" } },
-		},
-	})
-end
+local lazydev_opts = {
+	library = {
+		-- Load luvit types when the `vim.uv` word is found
+		{ path = "luvit-meta/library", words = { "vim%.uv" } },
+	},
+}
 
-local roslyn_config = function()
-	require("roslyn").setup({
-		args = {
-			"--stdio",
-			"--logLevel=Information",
-			"--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
-			"--razorSourceGenerator=" .. vim.fs.joinpath(
-				vim.fn.stdpath("data") --[[@as string]],
-				"mason",
-				"packages",
-				"roslyn",
-				"libexec",
-				"Microsoft.CodeAnalysis.Razor.Compiler.dll"
-			),
-			"--razorDesignTimePath=" .. vim.fs.joinpath(
-				vim.fn.stdpath("data") --[[@as string]],
-				"mason",
-				"packages",
-				"rzls",
-				"libexec",
-				"Targets",
-				"Microsoft.NET.Sdk.Razor.DesignTime.targets"
-			),
-		},
-		broad_search = true,
-		lock_target = true,
-	})
+local roslyn_opts = {
+	broad_search = true,
+	lock_target = true,
+}
+
+local roslyn_config = function(_, opts)
+	require("roslyn").setup(opts)
+
+	local rzls_path = vim.fn.expand("$MASON/packages/rzls/libexec")
+	local cmd = {
+		"roslyn",
+		"--stdio",
+		"--logLevel=Information",
+		"--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+		"--razorSourceGenerator=" .. vim.fs.joinpath(rzls_path, "Microsoft.CodeAnalysis.Razor.Compiler.dll"),
+		"--razorDesignTimePath=" .. vim.fs.joinpath(rzls_path, "Targets", "Microsoft.NET.Sdk.Razor.DesignTime.targets"),
+		"--extension",
+		vim.fs.joinpath(rzls_path, "RazorExtension", "Microsoft.VisualStudioCode.RazorExtension.dll"),
+	}
 
 	vim.lsp.config(
 		"roslyn",
 		vim.tbl_deep_extend("force", default_config(), {
+			cmd = cmd,
 			handlers = require("rzls.roslyn_handlers"),
 		})
 	)
 
+	vim.lsp.enable("roslyn")
+end
+
+local roslyn_init = function ()
 	vim.filetype.add({
 		extension = {
 			razor = "razor",
@@ -173,23 +167,24 @@ return {
 			-- lua
 			{
 				"folke/lazydev.nvim",
-				config = lazydev_config,
+				opts = lazydev_opts,
 				dependencies = {
 					"Bilal2453/luvit-meta", -- `vim.uv` typings
 				},
 			},
 
-			-- Roslyn C#
-			{
-				"seblyng/roslyn.nvim",
-				config = roslyn_config,
-				dependencies = {
-					"tris203/rzls.nvim",
-				},
-			},
-
 			-- JSON and YAML schemas
 			{ "b0o/schemastore.nvim" },
+		},
+	},
+	{
+		"seblyng/roslyn.nvim",
+		-- ft = { "cs", "razor" },
+		opts = roslyn_opts,
+		config = roslyn_config,
+		init = roslyn_init,
+		dependencies = {
+			{ "tris203/rzls.nvim", config = true },
 		},
 	},
 }

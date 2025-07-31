@@ -1,29 +1,30 @@
 local utils = require("dyskette.utils")
 
+local gruvbox_opts = {
+	terminal_colors = true, -- add neovim terminal colors
+	undercurl = true,
+	underline = true,
+	bold = true,
+	italic = {
+		strings = true,
+		emphasis = true,
+		comments = true,
+		operators = false,
+		folds = true,
+	},
+	strikethrough = true,
+	invert_selection = false,
+	invert_signs = false,
+	invert_tabline = false,
+	inverse = true, -- invert background for search, diffs, statuslines and errors
+	contrast = "", -- can be "hard", "soft" or empty string
+	palette_overrides = {},
+	overrides = {},
+	dim_inactive = false,
+	transparent_mode = false,
+}
+
 local set_dark_mode = function()
-	require("gruvbox").setup({
-		terminal_colors = true, -- add neovim terminal colors
-		undercurl = true,
-		underline = true,
-		bold = true,
-		italic = {
-			strings = true,
-			emphasis = true,
-			comments = true,
-			operators = false,
-			folds = true,
-		},
-		strikethrough = true,
-		invert_selection = false,
-		invert_signs = false,
-		invert_tabline = false,
-		inverse = true, -- invert background for search, diffs, statuslines and errors
-		contrast = "", -- can be "hard", "soft" or empty string
-		palette_overrides = {},
-		overrides = {},
-		dim_inactive = false,
-		transparent_mode = false,
-	})
 	vim.api.nvim_set_option_value("background", "dark", {})
 	vim.cmd.colorscheme("gruvbox")
 	vim.env.BAT_THEME = "gruvbox"
@@ -35,14 +36,12 @@ local set_light_mode = function()
 	vim.env.BAT_THEME = "rose-pine-dawn"
 end
 
-local auto_dark_config = function()
-	require("auto-dark-mode").setup({
-		update_interval = 1000,
-		fallback = "light",
-		set_dark_mode = set_dark_mode,
-		set_light_mode = set_light_mode,
-	})
-end
+local auto_dark_opts = {
+	update_interval = 1000,
+	fallback = "light",
+	set_dark_mode = set_dark_mode,
+	set_light_mode = set_light_mode,
+}
 
 local template_onlyname = function(filetype, name)
 	return {
@@ -58,40 +57,37 @@ local template_onlyname = function(filetype, name)
 	}
 end
 
-local luatab_config = function()
-	require("luatab").setup({})
-end
+local luatab_opts = {}
 
-local lualine_config = function()
+local lualine_opts = function()
 	local diffview_files = template_onlyname("DiffviewFiles", "Diffview Files")
 	local diffview_file_history = template_onlyname("DiffviewFileHistory", "Diffview File History")
 
-	require("lualine").setup({
+	return {
 		extensions = { "lazy", "mason", "oil", "trouble", diffview_files, diffview_file_history },
 		options = {
 			component_separators = { left = "|", right = "|" },
 			section_separators = { left = "", right = "" },
 		},
-	})
+	}
 end
 
-local fidget_config = function()
-	require("fidget").setup({
-		notification = {
-			override_vim_notify = true,
-		},
-	})
-end
+local fidget_opts = {
+	notification = {
+		override_vim_notify = true,
+	},
+}
 
 return {
 	-- Color scheme
 	{
 		"f-person/auto-dark-mode.nvim",
 		event = utils.events.VeryLazy,
-		config = auto_dark_config,
+		opts = auto_dark_opts,
 	},
 	{
 		"ellisonleao/gruvbox.nvim",
+		opts = gruvbox_opts,
 		config = function()
 			if vim.env.SYSTEM_COLOR_THEME == "dark" then
 				set_dark_mode()
@@ -111,7 +107,7 @@ return {
 	{
 		"alvarosevilla95/luatab.nvim",
 		event = utils.events.VeryLazy,
-		config = luatab_config,
+		opts = luatab_opts,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 		},
@@ -119,7 +115,7 @@ return {
 	-- Status bar
 	{
 		"nvim-lualine/lualine.nvim",
-		config = lualine_config,
+		opts = lualine_opts,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 		},
@@ -128,6 +124,6 @@ return {
 	{
 		"j-hui/fidget.nvim",
 		event = utils.events.VeryLazy,
-		config = fidget_config,
+		opts = fidget_opts,
 	},
 }

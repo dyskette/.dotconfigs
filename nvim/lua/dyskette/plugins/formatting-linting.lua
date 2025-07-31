@@ -1,28 +1,24 @@
 local utils = require("dyskette.utils")
 
-local conform_config = function()
-	local conform = require("conform")
-
-	conform.setup({
-		formatters_by_ft = {
-			lua = { "stylua" },
-			sh = { "beautysh" },
-			python = { "isort", "black" },
-			javascript = { "prettier" },
-			typescript = { "prettier" },
-			javascriptreact = { "prettier" },
-			typescriptreact = { "prettier" },
-			svelte = { "prettier" },
-			vue = { "prettier" },
-			css = { "prettier" },
-			html = { "prettier" },
-			json = { "prettier" },
-			yaml = { "prettier" },
-			markdown = { "prettier" },
-		},
-		formatters = {},
-	})
-end
+local conform_opts = {
+	formatters_by_ft = {
+		lua = { "stylua" },
+		sh = { "beautysh" },
+		python = { "isort", "black" },
+		javascript = { "prettier" },
+		typescript = { "prettier" },
+		javascriptreact = { "prettier" },
+		typescriptreact = { "prettier" },
+		svelte = { "prettier" },
+		vue = { "prettier" },
+		css = { "prettier" },
+		html = { "prettier" },
+		json = { "prettier" },
+		yaml = { "prettier" },
+		markdown = { "prettier" },
+	},
+	formatters = {},
+}
 
 local nvim_lint_config = function()
 	local lint = require("lint")
@@ -38,7 +34,7 @@ local nvim_lint_config = function()
 
 	local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
 
-	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
+	vim.api.nvim_create_autocmd({ utils.events.BufReadPre, utils.events.BufWritePost }, {
 		group = lint_augroup,
 		callback = function()
 			lint.try_lint()
@@ -54,7 +50,7 @@ return {
 	},
 	{
 		"stevearc/conform.nvim",
-		config = conform_config,
+		opts = conform_opts,
 		keys = require("dyskette.keymaps").conform,
 	},
 }
