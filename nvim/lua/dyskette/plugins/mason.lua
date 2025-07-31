@@ -81,7 +81,13 @@ return {
 	},
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
-		event = utils.events.VeryLazy,
+		cmd = {
+			"MasonToolsInstall",
+			"MasonToolsInstallSync",
+			"MasonToolsUpdate",
+			"MasonToolsUpdateSync",
+			"MasonToolsClean",
+		},
 		config = mason_tool_installer_config,
 		dependencies = {
 			{ "williamboman/mason.nvim" },
