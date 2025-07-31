@@ -1,9 +1,7 @@
-local utils = require("dyskette.utils")
-
-local fzf_lua_config = function()
+local fzf_opts = function()
   local fzf = require("fzf-lua")
 
-  fzf.setup({
+  return {
     fzf_opts = {
       ["--cycle"] = true,
     },
@@ -15,14 +13,20 @@ local fzf_lua_config = function()
     grep = {
       actions = { ["ctrl-q"] = { fn = fzf.actions.file_sel_to_qf, prefix = "select-all" } },
     },
-  })
+  }
+end
 
+local fzf_lua_config = function(_, opts)
+  local fzf = require("fzf-lua")
+
+  fzf.setup(opts)
   fzf.register_ui_select()
 end
 
 return {
   "ibhagwan/fzf-lua",
   dependencies = { "nvim-tree/nvim-web-devicons" },
-  config = fzf_lua_config,
   keys = require("dyskette.keymaps").fzf,
+  opts = fzf_opts,
+  config = fzf_lua_config,
 }

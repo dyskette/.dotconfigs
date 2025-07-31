@@ -1,28 +1,24 @@
 local utils = require("dyskette.utils")
 
-local yazi_config = function()
-  require("yazi").setup({
-    open_for_directories = true,
-    keymaps = {
-      show_help = "<f1>",
-    },
-  })
-end
+local yazi_opts = {
+  open_for_directories = true,
+  keymaps = {
+    show_help = "<f1>",
+  },
+}
 
-local oil_config = function()
-  require("oil").setup()
-end
+local oil_opts = {}
 
 return {
   {
     "stevearc/oil.nvim",
-    config = oil_config,
+    opts = oil_opts,
     keys = require("dyskette.keymaps").oil,
   },
   {
     "mikavilpas/yazi.nvim",
     keys = require("dyskette.keymaps").yazi,
-    config = yazi_config,
+    opts = yazi_opts,
     dependencies = {
       { "nvim-lua/plenary.nvim", lazy = true },
       { "folke/snacks.nvim", lazy = true },

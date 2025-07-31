@@ -1,35 +1,31 @@
 local utils = require("dyskette.utils")
 
-local gitsigns_config = function()
-	require("gitsigns").setup({})
-end
+local gitsigns_opts = {}
 
-local neogit_config = function()
-	require("neogit").setup({
-		integrations = {
-			diffview = true,
-			fzf = true,
+local neogit_opts = {
+	integrations = {
+		diffview = true,
+		fzf = true,
+	},
+	sections = {
+		recent = {
+			folded = false,
+			hidden = false,
 		},
-		sections = {
-			recent = {
-				folded = false,
-				hidden = false,
-			},
-		},
-	})
-end
+	},
+}
 
 return {
 	{
 		"lewis6991/gitsigns.nvim",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
 		keys = require("dyskette.keymaps").gitsigns,
-		config = gitsigns_config,
+		opts = gitsigns_opts,
 	},
 	{
 		"NeogitOrg/neogit",
 		keys = require("dyskette.keymaps").neogit,
-		config = neogit_config,
+		opts = neogit_opts,
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			{

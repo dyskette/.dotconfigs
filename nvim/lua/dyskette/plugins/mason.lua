@@ -1,20 +1,16 @@
 local utils = require("dyskette.utils")
 
-local mason_config = function()
-	require("mason").setup({
-		ui = {
-			border = "rounded",
-		},
-		registries = {
-			"github:mason-org/mason-registry",
-			"github:Crashdummyy/mason-registry",
-		}
-	})
-end
+local mason_opts = {
+	ui = {
+		border = "rounded",
+	},
+	registries = {
+		"github:mason-org/mason-registry",
+		"github:Crashdummyy/mason-registry",
+	}
+}
 
-local mason_tool_installer_config = function()
-	local mason_tool_installer = require("mason-tool-installer")
-
+local mason_tool_installer_opts = function()
 	local language_servers = {
 		-- scripting
 		"lua-language-server",
@@ -40,6 +36,7 @@ local mason_tool_installer_config = function()
 		-- "omnisharp", -- c#
 		-- "csharp-language-server", -- c#
 		"roslyn", -- c#
+		"rzls", -- razor
 		"rust-analyzer", -- rust
 	}
 
@@ -61,7 +58,7 @@ local mason_tool_installer_config = function()
 		-- "csharpier", -- c# -- TODO: Figure out how to use "dotnet format" instead
 	}
 
-	mason_tool_installer.setup({
+	return {
 		ensure_installed = vim.iter({
 			language_servers,
 			debuggers,
@@ -70,14 +67,14 @@ local mason_tool_installer_config = function()
 		})
 			:flatten()
 			:totable(),
-	})
+	}
 end
 
 return {
 	{
 		"williamboman/mason.nvim",
 		event = utils.events.VeryLazy,
-		config = mason_config
+		opts = mason_opts
 	},
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
@@ -88,7 +85,7 @@ return {
 			"MasonToolsUpdateSync",
 			"MasonToolsClean",
 		},
-		config = mason_tool_installer_config,
+		opts = mason_tool_installer_opts,
 		dependencies = {
 			{ "williamboman/mason.nvim" },
 		},
