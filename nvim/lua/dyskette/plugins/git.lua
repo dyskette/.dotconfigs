@@ -5,7 +5,7 @@ local gitsigns_opts = {}
 local neogit_opts = {
 	integrations = {
 		diffview = true,
-		fzf = true,
+		telescope = true,
 	},
 	sections = {
 		recent = {
@@ -32,7 +32,6 @@ return {
 				"sindrets/diffview.nvim",
 				keys = require("dyskette.keymaps").git_diffview,
 			},
-			"ibhagwan/fzf-lua",
 		},
 	},
 }
