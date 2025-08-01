@@ -1,29 +1,5 @@
 local utils = require("dyskette.utils")
 
-local gruvbox_opts = {
-	terminal_colors = true, -- add neovim terminal colors
-	undercurl = true,
-	underline = true,
-	bold = true,
-	italic = {
-		strings = true,
-		emphasis = true,
-		comments = true,
-		operators = false,
-		folds = true,
-	},
-	strikethrough = true,
-	invert_selection = false,
-	invert_signs = false,
-	invert_tabline = false,
-	inverse = true, -- invert background for search, diffs, statuslines and errors
-	contrast = "", -- can be "hard", "soft" or empty string
-	palette_overrides = {},
-	overrides = {},
-	dim_inactive = false,
-	transparent_mode = false,
-}
-
 local set_dark_mode = function()
 	vim.api.nvim_set_option_value("background", "dark", {})
 	vim.cmd.colorscheme("gruvbox")
@@ -87,8 +63,7 @@ return {
 	},
 	{
 		"ellisonleao/gruvbox.nvim",
-		opts = gruvbox_opts,
-		config = function()
+		init = function()
 			if vim.env.SYSTEM_COLOR_THEME == "dark" then
 				set_dark_mode()
 			end
@@ -97,7 +72,7 @@ return {
 	{
 		"rose-pine/neovim",
 		name = "rose-pine",
-		config = function()
+		init = function()
 			if vim.env.SYSTEM_COLOR_THEME == "light" then
 				set_light_mode()
 			end
