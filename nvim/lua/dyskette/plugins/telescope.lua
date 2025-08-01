@@ -10,7 +10,7 @@ return {
       sorting_strategy = "ascending",
       layout_config = {
         prompt_position = "top",
-        width = 0.5
+        width = 0.5,
       },
       preview = {
         filesize_limit = 0.1, -- MB
