@@ -19,8 +19,8 @@ local mason_tool_installer_opts = function()
 		"pyright", -- python
 
 		-- javascript and typescript
-		"typescript-language-server", -- typescript
-		"vue-language-server", -- volar
+		"vtsls", -- typescript/vue
+		"vue-language-server", -- vue
 		"eslint-lsp", -- javascript linter
 
 		-- web common
