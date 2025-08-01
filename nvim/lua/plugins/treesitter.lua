@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 local treesitter_build = function()
   require("nvim-treesitter.install").update({ with_sync = true })()

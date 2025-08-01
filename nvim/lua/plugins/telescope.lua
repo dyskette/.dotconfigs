@@ -3,7 +3,7 @@ return {
   tag = "0.1.8",
   dependencies = { "nvim-lua/plenary.nvim" },
   cmd = { "Telescope" },
-  keys = require("dyskette.keymaps").telescope,
+  keys = require("config.keymaps").telescope,
   opts = {
     defaults = {
       layout_strategy = "horizontal",

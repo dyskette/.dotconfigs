@@ -38,7 +38,7 @@ end
 return {
   {
     "mfussenegger/nvim-dap",
-    keys = require("dyskette.keymaps").dap,
+    keys = require("config.keymaps").dap,
     init = dap_init,
     config = dap_config,
     dependencies = {

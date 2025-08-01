@@ -22,7 +22,7 @@ local lazy_install = function()
 
   require("lazy").setup({
     spec = {
-      { import = "dyskette.plugins" },
+      { import = "plugins" },
     },
     ui = {
       border = "rounded",

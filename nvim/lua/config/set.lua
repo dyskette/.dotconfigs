@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 -- Pretty colors
 vim.o.termguicolors = true
