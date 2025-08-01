@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 local set_dark_mode = function()
   vim.api.nvim_set_option_value("background", "dark", {})

@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 local gitsigns_opts = {}
 
@@ -19,18 +19,18 @@ return {
   {
     "lewis6991/gitsigns.nvim",
     event = { utils.events.BufReadPre, utils.events.BufNewFile },
-    keys = require("dyskette.keymaps").gitsigns,
+    keys = require("config.keymaps").gitsigns,
     opts = gitsigns_opts,
   },
   {
     "NeogitOrg/neogit",
-    keys = require("dyskette.keymaps").neogit,
+    keys = require("config.keymaps").neogit,
     opts = neogit_opts,
     dependencies = {
       "nvim-lua/plenary.nvim",
       {
         "sindrets/diffview.nvim",
-        keys = require("dyskette.keymaps").git_diffview,
+        keys = require("config.keymaps").git_diffview,
       },
     },
   },

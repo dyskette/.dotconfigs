@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 local yazi_opts = {
   open_for_directories = true,
@@ -13,11 +13,11 @@ return {
   {
     "stevearc/oil.nvim",
     opts = oil_opts,
-    keys = require("dyskette.keymaps").oil,
+    keys = require("config.keymaps").oil,
   },
   {
     "mikavilpas/yazi.nvim",
-    keys = require("dyskette.keymaps").yazi,
+    keys = require("config.keymaps").yazi,
     opts = yazi_opts,
     dependencies = {
       { "nvim-lua/plenary.nvim", lazy = true },

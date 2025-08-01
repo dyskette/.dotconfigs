@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 -- Configure global LSP settings that apply to all language servers
 local function setup_global_lsp_config()

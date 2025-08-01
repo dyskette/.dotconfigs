@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 local conform_opts = {
   formatters_by_ft = {
@@ -51,6 +51,6 @@ return {
   {
     "stevearc/conform.nvim",
     opts = conform_opts,
-    keys = require("dyskette.keymaps").conform,
+    keys = require("config.keymaps").conform,
   },
 }

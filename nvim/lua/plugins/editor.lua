@@ -1,4 +1,4 @@
-local utils = require("dyskette.utils")
+local utils = require("config.utils")
 
 local indent_opts = {}
 
@@ -42,7 +42,7 @@ return {
   },
   {
     "saecki/live-rename.nvim",
-    keys = require("dyskette.keymaps").live_rename,
+    keys = require("config.keymaps").live_rename,
     opts = live_rename_opts,
   },
   -- Code commenting with vim motions
@@ -55,7 +55,7 @@ return {
   {
     "HakonHarnes/img-clip.nvim",
     event = { utils.events.BufReadPre, utils.events.BufNewFile },
-    keys = require("dyskette.keymaps").imgclip,
+    keys = require("config.keymaps").imgclip,
   },
   -- Show colors like #eb6f92 with a background of its own color
   {
