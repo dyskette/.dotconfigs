@@ -1,125 +1,227 @@
 local utils = require("dyskette.utils")
 
---- Things to do when the LSP has attached to the buffer
---- @param client vim.lsp.Client
---- @param bufnr integer
-local on_lsp_attach = function(client, bufnr)
-	if client == nil then
-		return
-	end
-
-	-- Disable syntax highlighting from lsp server, and let treesitter do it
-	client.server_capabilities.semanticTokensProvider = {}
-end
-
---- Default configuration for language servers
---- @return lspconfig.Config
-local default_config = function()
-	return {
+-- Configure global LSP settings that apply to all language servers
+local function setup_global_lsp_config()
+	-- Set default configuration for all LSP clients
+	-- This uses the new vim.lsp.config() API with the '*' wildcard
+	vim.lsp.config('*', {
+		-- LSP client capabilities (what the editor can do)
 		capabilities = require("blink.cmp").get_lsp_capabilities(),
-		---@diagnostic disable-next-line: missing-fields
+
+		-- Client behavior flags
 		flags = {
-			debounce_text_changes = 300, -- miliseconds
+			-- Debounce text changes to reduce server load
+			debounce_text_changes = 300, -- milliseconds
 		},
-		on_attach = on_lsp_attach,
-	}
+
+		-- Position encoding for LSP communication (fixes position_encoding warnings)
+		offset_encoding = 'utf-16',
+
+		-- Default root directory markers for workspace detection
+		-- Nested lists indicate equal priority
+		root_markers = { '.git', '.gitignore' },
+	})
 end
 
---- Configuration for typescript server
---- @return lspconfig.Config
-local ts_ls_config = function()
-	local vue_typescript_plugin = vim.fn.expand("$MASON/packages/" .. "vue-language-server")
-		.. "/node_modules/@vue/language-server"
-		.. "/node_modules/@vue/typescript-plugin"
-	--- @type lspconfig.Config
-	local config = vim.tbl_deep_extend("force", default_config(), {
-		init_options = {
-			plugins = {
-				{
-					name = "@vue/typescript-plugin",
-					location = vue_typescript_plugin,
-					languages = { "javascript", "typescript", "vue" },
+-- Handler called when an LSP client attaches to a buffer
+-- This is where we configure buffer-local LSP behavior
+local function on_lsp_attach()
+	vim.api.nvim_create_autocmd('LspAttach', {
+		group = vim.api.nvim_create_augroup('dyskette_lsp_attach', { clear = true }),
+		callback = function(args)
+			local client = vim.lsp.get_client_by_id(args.data.client_id)
+			if not client then return end
+
+			-- Disable semantic tokens from LSP servers
+			-- Let Treesitter handle syntax highlighting for better performance
+			client.server_capabilities.semanticTokensProvider = nil
+		end,
+	})
+end
+
+-- Configure individual language servers using the modern vim.lsp.config() API
+local function setup_language_servers()
+	-- Scripting Languages
+	-- ==================
+
+	-- Lua Language Server
+	vim.lsp.config.lua_ls = {
+		cmd = { 'lua-language-server' },
+		filetypes = { 'lua' },
+		root_markers = { '.luarc.json', '.luarc.jsonc', '.stylua.toml' },
+	}
+
+	-- Bash Language Server
+	vim.lsp.config.bashls = {
+		cmd = { 'bash-language-server', 'start' },
+		filetypes = { 'sh', 'bash' },
+		root_markers = { '.git' },
+	}
+
+	-- PowerShell Editor Services
+	vim.lsp.config.powershell_es = {
+		cmd = { 'pwsh', '-NoLogo', '-NoProfile', '-Command' },
+		filetypes = { 'ps1', 'psm1', 'psd1' },
+		root_markers = { '.git' },
+		settings = {
+			powershell = {
+				codeFormatting = { preset = 'OTBS' },
+			},
+		},
+	}
+
+	-- Python Language Server
+	vim.lsp.config.pyright = {
+		cmd = { 'pyright-langserver', '--stdio' },
+		filetypes = { 'python' },
+		root_markers = { 'pyproject.toml', 'setup.py', 'requirements.txt' },
+	}
+
+	-- JavaScript/TypeScript
+	-- ====================
+
+	-- VTSLS - Modern TypeScript Language Server with Vue support
+	vim.lsp.config.vtsls = {
+		cmd = { 'vtsls', '--stdio' },
+		filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+		root_markers = { 'tsconfig.json', 'package.json', 'jsconfig.json', '.git' },
+		settings = {
+			vtsls = {
+				tsserver = {
+					globalPlugins = {
+						{
+							name = '@vue/typescript-plugin',
+							location = vim.fn.expand(
+								"$MASON/packages/vue-language-server/node_modules/@vue/language-server"),
+							languages = { 'vue' },
+							configNamespace = 'typescript',
+						},
+					},
 				},
 			},
 		},
-		filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
-	})
+	}
+	-- ESLint Language Server
+	vim.lsp.config.eslint = {
+		cmd = { 'vscode-eslint-language-server', '--stdio' },
+		filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
+		root_markers = { '.eslintrc.js', '.eslintrc.json', 'eslint.config.js' },
+	}
 
-	return config
-end
+	-- Vue Language Server (using vue_ls instead of deprecated volar)
+	vim.lsp.config.vue_ls = {
+		cmd = { 'vue-language-server', '--stdio' },
+		filetypes = { 'vue' },
+		root_markers = { 'package.json', 'vue.config.js', 'nuxt.config.js' },
+		init_options = {
+			typescript = {
+				-- Path to TypeScript SDK for Vue TypeScript support
+				tsdk = vim.fn.expand("$MASON/packages/typescript-language-server/node_modules/typescript/lib")
+			}
+		},
+	}
 
-local language_servers_configuration = function()
-	local lspconfig = require("lspconfig")
+	-- Web Technologies
+	-- ===============
 
-	lspconfig.util.default_config = vim.tbl_deep_extend("force", lspconfig.util.default_config, default_config())
+	-- HTML Language Server
+	vim.lsp.config.html = {
+		cmd = { 'vscode-html-language-server', '--stdio' },
+		filetypes = { 'html', 'templ' },
+		root_markers = { 'package.json', '.git' },
+	}
 
-	-- scripting
-	lspconfig.lua_ls.setup({})
-	lspconfig.bashls.setup({})
-	lspconfig.powershell_es.setup({
-		bundle_path = vim.fn.expand("$MASON/packages/" .. "powershell-editor-services"),
-	})
-	lspconfig.pyright.setup({})
+	-- CSS Language Server
+	vim.lsp.config.cssls = {
+		cmd = { 'vscode-css-language-server', '--stdio' },
+		filetypes = { 'css', 'scss', 'less' },
+		root_markers = { 'package.json', '.git' },
+	}
 
-	-- javascript and typescript
-	lspconfig.ts_ls.setup(ts_ls_config())
-	lspconfig.eslint.setup({})
-	lspconfig.volar.setup({})
-
-	-- web common
-	lspconfig.html.setup({})
-	lspconfig.cssls.setup({})
-	lspconfig.jsonls.setup({
+	-- JSON Language Server with schema support
+	vim.lsp.config.jsonls = {
+		cmd = { 'vscode-json-language-server', '--stdio' },
+		filetypes = { 'json', 'jsonc' },
+		root_markers = { 'package.json', '.git' },
 		settings = {
 			json = {
+				-- Use external schema store for better JSON validation
 				schemas = require("schemastore").json.schemas(),
 				validate = { enable = true },
 			},
 		},
-	})
-	lspconfig.yamlls.setup({
+	}
+
+	-- YAML Language Server with schema support
+	vim.lsp.config.yamlls = {
+		cmd = { 'yaml-language-server', '--stdio' },
+		filetypes = { 'yaml', 'yml' },
+		root_markers = { '.git' },
 		settings = {
 			yaml = {
 				schemaStore = {
-					-- Disable built-in schemaStore support in favor of b0o/schemastore.nvim
+					-- Disable built-in schema store in favor of external one
 					enable = false,
-					-- Avoid TypeError: Cannot read properties of undefined (reading 'length')
 					url = "",
 				},
+				-- Use external schema store for better YAML validation
 				schemas = require("schemastore").yaml.schemas(),
 			},
 		},
-	})
-	lspconfig.lemminx.setup({}) -- XML language server
-
-	-- other languages
-	lspconfig.dartls.setup({})
-	lspconfig.rust_analyzer.setup({})
-end
-
-local lspconfig_config = function()
-	require("lspconfig.ui.windows").default_options = {
-		border = "rounded",
 	}
 
-	language_servers_configuration()
+	-- XML Language Server
+	vim.lsp.config.lemminx = {
+		cmd = { 'lemminx' },
+		filetypes = { 'xml', 'xsd', 'xsl', 'xslt', 'svg' },
+		root_markers = { '.git' },
+	}
+
+	-- Other Languages
+	-- ==============
+
+	-- Dart Language Server
+	vim.lsp.config.dartls = {
+		cmd = { 'dart', 'language-server', '--protocol=lsp' },
+		filetypes = { 'dart' },
+		root_markers = { 'pubspec.yaml' },
+	}
+
+	-- Rust Analyzer
+	vim.lsp.config.rust_analyzer = {
+		cmd = { 'rust-analyzer' },
+		filetypes = { 'rust' },
+		root_markers = { 'Cargo.toml', 'rust-project.json' },
+	}
 end
 
-local lazydev_opts = {
-	library = {
-		-- Load luvit types when the `vim.uv` word is found
-		{ path = "luvit-meta/library", words = { "vim%.uv" } },
-	},
-}
+-- Enable all configured language servers
+local function enable_language_servers()
+	local servers = {
+		'lua_ls', 'bashls', 'powershell_es', 'pyright',
+		'vtsls', 'eslint', 'vue_ls',
+		'html', 'cssls', 'jsonls', 'yamlls', 'lemminx',
+		'dartls', 'rust_analyzer'
+	}
 
-local roslyn_opts = {
-	broad_search = true,
-	lock_target = true,
-}
+	for _, server in ipairs(servers) do
+		vim.lsp.enable(server)
+	end
+end
 
+-- Main function that sets up the entire LSP configuration
+local function lsp_config()
+	setup_global_lsp_config()
+	on_lsp_attach()
+	setup_language_servers()
+	enable_language_servers()
+end
+
+-- Configuration for C# development using Roslyn language server
 local roslyn_config = function(_, opts)
 	require("roslyn").setup(opts)
 
+	-- Configure Razor support paths
 	local rzls_path = vim.fn.expand("$MASON/packages/rzls/libexec")
 	local cmd = {
 		"roslyn",
@@ -132,18 +234,19 @@ local roslyn_config = function(_, opts)
 		vim.fs.joinpath(rzls_path, "RazorExtension", "Microsoft.VisualStudioCode.RazorExtension.dll"),
 	}
 
-	vim.lsp.config(
-		"roslyn",
-		vim.tbl_deep_extend("force", default_config(), {
-			cmd = cmd,
-			handlers = require("rzls.roslyn_handlers"),
-		})
-	)
+	-- Configure Roslyn using modern vim.lsp.config() API
+	vim.lsp.config.roslyn = {
+		cmd = cmd,
+		filetypes = { 'cs' },
+		root_markers = { '*.sln', '*.csproj', 'omnisharp.json' },
+		handlers = require("rzls.roslyn_handlers"),
+	}
 
 	vim.lsp.enable("roslyn")
 end
 
-local roslyn_init = function ()
+-- Initialize Razor file type detection
+local function roslyn_init()
 	vim.filetype.add({
 		extension = {
 			razor = "razor",
@@ -153,37 +256,52 @@ local roslyn_init = function ()
 end
 
 return {
+	-- Main LSP configuration plugin
 	{
 		"neovim/nvim-lspconfig",
 		event = { utils.events.BufReadPre, utils.events.BufNewFile },
-		config = lspconfig_config,
+		config = lsp_config,
 		dependencies = {
-			-- Servers
+			-- Mason for automatic LSP server installation
 			{ "williamboman/mason.nvim" },
 
-			-- Completion
+			-- Blink completion engine
 			{ "saghen/blink.cmp" },
 
-			-- lua
+			-- Enhanced Lua development with proper LSP setup
 			{
 				"folke/lazydev.nvim",
-				opts = lazydev_opts,
+				ft = "lua",
+				opts = {
+					library = {
+						-- Load luvit types when vim.uv is detected
+						{ path = "luvit-meta/library", words = { "vim%.uv" } },
+					},
+				},
 				dependencies = {
-					"Bilal2453/luvit-meta", -- `vim.uv` typings
+					-- Luvit meta types for vim.uv
+					{ "Bilal2453/luvit-meta", lazy = true },
 				},
 			},
 
-			-- JSON and YAML schemas
-			{ "b0o/schemastore.nvim" },
+			-- JSON and YAML schema support
+			{ "b0o/schemastore.nvim", lazy = true },
 		},
 	},
+
+	-- C# Roslyn language server
 	{
 		"seblyng/roslyn.nvim",
+		-- Only load for C# and Razor files
 		ft = { "cs", "razor" },
-		opts = roslyn_opts,
+		opts = {
+			broad_search = true,
+			lock_target = true,
+		},
 		config = roslyn_config,
 		init = roslyn_init,
 		dependencies = {
+			-- Razor LSP support
 			{ "tris203/rzls.nvim", config = true },
 		},
 	},
