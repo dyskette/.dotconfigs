@@ -179,7 +179,7 @@ return {
 	},
 	{
 		"seblyng/roslyn.nvim",
-		-- ft = { "cs", "razor" },
+		ft = { "cs", "razor" },
 		opts = roslyn_opts,
 		config = roslyn_config,
 		init = roslyn_init,
