@@ -71,6 +71,8 @@ utils.events = {
   BufWritePost = "BufWritePost",
   -- Just after a yank or deleting command, but not
   TextYankPost = "TextYankPost",
+  -- When the 'filetype' option has been set
+  FileType = "FileType",
 }
 
 return utils
