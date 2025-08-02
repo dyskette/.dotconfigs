@@ -44,6 +44,7 @@ local lualine_opts = function()
     options = {
       component_separators = { left = "|", right = "|" },
       section_separators = { left = "", right = "" },
+      globalstatus = true,
     },
   }
 end
