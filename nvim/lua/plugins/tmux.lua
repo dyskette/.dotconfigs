@@ -18,5 +18,9 @@ return {
       { "<C-w>l", "<cmd>TmuxNavigateRight<cr>", desc = "Navigate right (tmux/vim)" },
       { "<C-w>\\", "<cmd>TmuxNavigatePrevious<cr>", desc = "Navigate to previous (tmux/vim)" },
     },
+    init = function()
+      -- Disable the plugin's default keymaps
+      vim.g.tmux_navigator_no_mappings = 1
+    end,
   },
 }
