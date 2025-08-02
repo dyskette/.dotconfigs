@@ -25,7 +25,7 @@ local treesitterconfig_opts = {
     enable = true,
   },
   auto_install = true,
-  sync_install = true,
+  sync_install = false,  -- Don't block on parser installation
   modules = {},
   ignore_install = {},
   ensure_installed = {

@@ -10,8 +10,8 @@ local function setup_global_lsp_config()
 
     -- Client behavior flags
     flags = {
-      -- Debounce text changes to reduce server load
-      debounce_text_changes = 300, -- milliseconds
+      -- Reduce debounce for faster responsiveness
+      debounce_text_changes = 150, -- milliseconds
     },
 
     -- Position encoding for LSP communication (fixes position_encoding warnings)
@@ -196,28 +196,75 @@ local function setup_language_servers()
   }
 end
 
--- Enable all configured language servers
+-- Enable language servers dynamically based on file type
 local function enable_language_servers()
-  local servers = {
-    "lua_ls",
-    "bashls",
-    "powershell_es",
-    "pyright",
-    "vtsls",
-    "eslint",
-    "vue_ls",
-    "html",
-    "cssls",
-    "jsonls",
-    "yamlls",
-    "lemminx",
-    "dartls",
-    "rust_analyzer",
-  }
+  -- Track which servers have already been enabled
+  local enabled_servers = {}
+  local group = vim.api.nvim_create_augroup("dyskette_lsp_filetype", { clear = true })
 
-  for _, server in ipairs(servers) do
-    vim.lsp.enable(server)
-  end
+  vim.api.nvim_create_autocmd("FileType", {
+    desc = "Enable LSP servers per filetype",
+    group = group,
+    callback = function(args)
+      local ft = args.match
+      local server_map = {
+        lua = "lua_ls",
+        sh = "bashls",
+        bash = "bashls",
+        ps1 = "powershell_es",
+        python = "pyright",
+        javascript = "vtsls",
+        typescript = "vtsls",
+        javascriptreact = "vtsls",
+        typescriptreact = "vtsls",
+        vue = { "vtsls", "vue_ls" },
+        html = "html",
+        css = "cssls",
+        scss = "cssls",
+        less = "cssls",
+        json = "jsonls",
+        jsonc = "jsonls",
+        yaml = "yamlls",
+        yml = "yamlls",
+        xml = "lemminx",
+        dart = "dartls",
+        rust = "rust_analyzer",
+        cs = "roslyn",
+        razor = "roslyn",
+      }
+
+      local servers = server_map[ft]
+      if servers then
+        if type(servers) == "table" then
+          for _, server in ipairs(servers) do
+            if not enabled_servers[server] then
+              vim.lsp.enable(server)
+              enabled_servers[server] = true
+            end
+          end
+        else
+          if not enabled_servers[servers] then
+            vim.lsp.enable(servers)
+            enabled_servers[servers] = true
+          end
+        end
+
+        -- Also enable eslint for JS/TS files
+        if
+          ft == "javascript"
+          or ft == "typescript"
+          or ft == "javascriptreact"
+          or ft == "typescriptreact"
+          or ft == "vue"
+        then
+          if not enabled_servers["eslint"] then
+            vim.lsp.enable("eslint")
+            enabled_servers["eslint"] = true
+          end
+        end
+      end
+    end,
+  })
 end
 
 -- Main function that sets up the entire LSP configuration
