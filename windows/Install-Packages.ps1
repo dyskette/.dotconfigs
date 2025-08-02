@@ -143,6 +143,10 @@ $packageMappings = @{
         name = "sxyazi.yazi"
         manager = "winget"
     }
+    wezterm = @{
+        name = "wez.wezterm"
+        manager = "winget"
+    }
 }
 
 function Test-WingetPackageInstalled {

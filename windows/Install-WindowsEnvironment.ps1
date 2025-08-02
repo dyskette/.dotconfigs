@@ -58,6 +58,9 @@ param(
     [Parameter(HelpMessage="Install only Yazi file manager")]
     [switch]$Yazi,
     
+    [Parameter(HelpMessage="Install only WezTerm terminal")]
+    [switch]$WezTerm,
+    
     [Parameter(HelpMessage="Configure Windows settings (Explorer, Virtual Desktops, etc.)")]
     [switch]$WindowsConfig,
     
@@ -81,6 +84,9 @@ param(
     
     [Parameter(HelpMessage="Configure Windows Terminal")]
     [switch]$WindowsTerminalConfig,
+    
+    [Parameter(HelpMessage="Configure WezTerm")]
+    [switch]$WezTermConfig,
     
     [Parameter(HelpMessage="Skip WSL installation")]
     [switch]$SkipWSL,
@@ -162,7 +168,7 @@ if (-not $SkipWSL) {
 
 # Determine which components to install/configure
 # Force boolean conversion to prevent array issues
-$hasSpecificParams = $VSCode -or $VSCodeExtensions -or $JetBrainsFont -or $MinGW -or $Deno -or $CliTools -or $PowerShell -or $Fnm -or $Python -or $Neovim -or $WindowsTerminal -or $ProductivityApps -or $Yazi -or $WindowsConfig -or $Configuration -or $BatConfig -or $PowerShellConfig -or $StarshipConfig -or $NeovimConfig -or $VSCodeConfig -or $WindowsTerminalConfig
+$hasSpecificParams = $VSCode -or $VSCodeExtensions -or $JetBrainsFont -or $MinGW -or $Deno -or $CliTools -or $PowerShell -or $Fnm -or $Python -or $Neovim -or $WindowsTerminal -or $ProductivityApps -or $Yazi -or $WezTerm -or $WindowsConfig -or $Configuration -or $BatConfig -or $PowerShellConfig -or $StarshipConfig -or $NeovimConfig -or $VSCodeConfig -or $WindowsTerminalConfig -or $WezTermConfig
 $runAll = [bool]($All -or (-not $hasSpecificParams))
 
 # Helper function to run scripts with error handling
@@ -227,6 +233,7 @@ if ([bool]($runAll -or $ProductivityApps)) {
     $packagesToInstall += @("obsidian", "firefox", "keepassxc", "dropbox")
 }
 if ([bool]($runAll -or $Yazi)) { $packagesToInstall += "yazi" }
+if ([bool]($runAll -or $WezTerm)) { $packagesToInstall += "wezterm" }
 
 # Call the Install-Packages script and function
 $scriptPath = Join-Path $PSScriptRoot "Install-Packages.ps1"
@@ -297,6 +304,10 @@ if ($runAll -or $VSCodeConfig -or $Configuration) {
 
 if ($runAll -or $WindowsTerminalConfig -or $Configuration) {
     Invoke-ModularScript -ScriptName "Configure-WindowsTerminal.ps1" -Description "Configuring Windows Terminal"
+}
+
+if ($runAll -or $WezTermConfig -or $Configuration) {
+    Invoke-ModularScript -ScriptName "Configure-WezTerm.ps1" -Description "Configuring WezTerm"
 }
 
 if ($runAll -or $VSCodeExtensions) {
