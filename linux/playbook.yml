@@ -41,6 +41,7 @@
         - import_tasks: tasks/bin/jq.yml
         - import_tasks: tasks/bin/yq.yml
         - import_tasks: tasks/bin/starship.yml
+        - import_tasks: tasks/bin/imagemagick.yml
 
     - name: Dotnet
       tags: dotnet
