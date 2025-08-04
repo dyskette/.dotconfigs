@@ -30,6 +30,7 @@
             state: directory
         - import_tasks: tasks/bin/fd.yml
         - import_tasks: tasks/bin/deno.yml
+        - import_tasks: tasks/bin/poetry.yml
         - import_tasks: tasks/bin/fnm.yml
         - import_tasks: tasks/bin/fzf.yml
         - import_tasks: tasks/bin/ripgrep.yml
