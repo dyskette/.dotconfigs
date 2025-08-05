@@ -17,7 +17,7 @@
     state: directory
   loop:
     - { path: "{{ ansible_env.HOME }}/.config/Code/User/" }
-    - { path: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/.config/Code/User" }
+    - { path: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User" }
 
 - name: Dotfiles | Create symbolic links
   ansible.builtin.file:
