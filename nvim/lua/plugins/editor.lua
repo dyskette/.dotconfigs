@@ -51,12 +51,6 @@ return {
     event = { utils.events.BufReadPre, utils.events.BufNewFile },
     opts = comment_opts,
   },
-  -- Paste image as a file in cwd/assets/ and get the path
-  {
-    "HakonHarnes/img-clip.nvim",
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
-    keys = require("config.keymaps").imgclip,
-  },
   -- Show colors like #eb6f92 with a background of its own color
   {
     "brenoprata10/nvim-highlight-colors",
