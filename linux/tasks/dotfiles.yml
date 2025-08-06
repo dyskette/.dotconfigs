@@ -39,6 +39,7 @@
     - { src: "vscode/settings.json", dest: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User/settings.json" }
     - { src: "vscode/keybindings.json", dest: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User/keybindings.json" }
     - { src: "wezterm", dest: "{{ config_dir }}/wezterm" }
+    - { src: "zellij", dest: "{{ config_dir }}/zellij" }
   tags: dotfiles
 
 - name: Dotfiles | Run bat cache
