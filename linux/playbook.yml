@@ -36,6 +36,7 @@
         - import_tasks: tasks/bin/ripgrep.yml
         - import_tasks: tasks/bin/bat.yml
         - import_tasks: tasks/bin/eza.yml
+        - import_tasks: tasks/bin/zellij.yml
         - import_tasks: tasks/bin/nvim.yml
         - import_tasks: tasks/bin/yazi.yml
         - import_tasks: tasks/bin/jq.yml
