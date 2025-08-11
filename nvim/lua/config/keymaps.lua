@@ -15,13 +15,13 @@ return {
       "n",
       "<leader>O",
       '<Cmd>call append(line(".") - 1, repeat([""], v:count1))<CR>',
-      { desc = "Enter a new line without entering insert mode" }
+      { desc = "Append a new line without entering insert mode" }
     )
     vim.keymap.set(
       "n",
       "<leader>o",
       '<Cmd>call append(line("."),     repeat([""], v:count1))<CR>',
-      { desc = "Enter a new line without entering insert mode" }
+      { desc = "Append a new line without entering insert mode" }
     )
 
     -- keep cursor in the middle of the buffer vertically and unfold (zv) if there is a fold
@@ -61,7 +61,7 @@ return {
     end, { desc = "Format document using LSP" })
     vim.keymap.set({ "n", "x" }, "<leader>va", function()
       vim.lsp.buf.code_action()
-    end, { desc = "Format document using LSP" })
+    end, { desc = "View LSP code actions" })
 
     -- Diagnostic
     vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, { desc = "View diagnostic" })
