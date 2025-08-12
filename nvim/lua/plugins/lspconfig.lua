@@ -178,6 +178,13 @@ local function setup_language_servers()
     root_markers = { ".git" },
   }
 
+  -- TOML Language Server
+  vim.lsp.config.taplo = {
+    cmd = { "taplo", "lsp", "stdio" },
+    filetypes = { "toml" },
+    root_markers = { ".git" },
+  }
+
   -- Other Languages
   -- ==============
 
@@ -227,6 +234,7 @@ local function enable_language_servers()
         yaml = "yamlls",
         yml = "yamlls",
         xml = "lemminx",
+        toml = "taplo",
         dart = "dartls",
         rust = "rust_analyzer",
         cs = "roslyn",

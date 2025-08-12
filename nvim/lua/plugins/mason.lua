@@ -28,6 +28,7 @@ local mason_tool_installer_opts = function()
     "json-lsp", -- json (vscode-json-language-server)
     "yaml-language-server", -- yaml
     "lemminx", -- xml
+    "taplo", -- toml
 
     -- other languages
     -- "omnisharp", -- c#
