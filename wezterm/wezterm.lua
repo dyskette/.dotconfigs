@@ -4,9 +4,9 @@ local config = wezterm.config_builder()
 config.automatically_reload_config = true
 
 if wezterm.target_triple == "x86_64-pc-windows-msvc" then
-  config.default_prog = { "wsl", "-e", "tmux" }
+  config.default_prog = { "wsl", "--distribution", "Ubuntu-24.04" }
 else
-  config.default_prog = { "toolbox", "run", "tmux" }
+  config.default_prog = { "toolbox", "enter" }
 end
 
 -- wezterm.gui is not available to the mux server, so take care to
@@ -43,12 +43,6 @@ config.enable_tab_bar = false
 
 config.initial_cols = 120
 config.initial_rows = 32
-
--- Start maximized
-wezterm.on("gui-startup", function(cmd)
-  local tab, pane, window = wezterm.mux.spawn_window(cmd or {})
-  window:gui_window():maximize()
-end)
 
 config.keys = {
   -- Fullscreen
