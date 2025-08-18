@@ -42,9 +42,28 @@ local lualine_opts = function()
   return {
     extensions = { "lazy", "mason", "oil", "trouble", diffview_files, diffview_file_history },
     options = {
-      component_separators = { left = "|", right = "|" },
+      component_separators = {
+        left = utils.icons.separators.triple_dash_vertical,
+        right = utils.icons.separators.triple_dash_vertical,
+      },
       section_separators = { left = "", right = "" },
       globalstatus = true,
+    },
+    sections = {
+      lualine_b = {
+        "branch",
+        "diff",
+        {
+          "diagnostics",
+          -- symbols = { error = " ", warn = " ", info = " ", hint = "" },
+          symbols = {
+            error = utils.icons.error,
+            warn = utils.icons.warn,
+            info = utils.icons.info,
+            hint = utils.icons.hint,
+          },
+        },
+      },
     },
   }
 end
