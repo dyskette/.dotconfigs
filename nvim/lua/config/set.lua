@@ -21,8 +21,8 @@ vim.o.wrap = false
 vim.o.colorcolumn = "120"
 
 -- Merge status line with command line
-vim.o.laststatus = 3  -- Global status line
-vim.o.cmdheight = 0   -- Hide command line when not in use
+vim.o.laststatus = 3 -- Global status line
+vim.o.cmdheight = 0 -- Hide command line when not in use
 
 -- Default indentation
 -- When guess-indent detects spaces, it will override: 'expandtab', 'tabstop', 'softtabstop', 'shiftwidth'
@@ -34,14 +34,18 @@ vim.o.shiftwidth = 4
 vim.o.smartindent = true
 
 -- Diagnostic
-vim.fn.sign_define("DiagnosticSignError", { texthl = "DiagnosticSignError", text = "" })
-vim.fn.sign_define("DiagnosticSignWarn", { texthl = "DiagnosticSignWarn", text = "" })
-vim.fn.sign_define("DiagnosticSignInfo", { texthl = "DiagnosticSignInfo", text = "" })
-vim.fn.sign_define("DiagnosticSignHint", { texthl = "DiagnosticSignHint", text = "" })
-
 vim.diagnostic.config({
+  virtual_lines = true,
   virtual_text = {
-    prefix = "",
+    prefix = utils.icons.square,
+  },
+  signs = {
+    text = {
+      [vim.diagnostic.severity.ERROR] = utils.icons.error,
+      [vim.diagnostic.severity.WARN] = utils.icons.warn,
+      [vim.diagnostic.severity.HINT] = utils.icons.hint,
+      [vim.diagnostic.severity.INFO] = utils.icons.info,
+    },
   },
   float = { border = "rounded", title = " Diagnostic " },
 })

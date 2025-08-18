@@ -9,7 +9,7 @@ end
 local get_buf_size = function(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   local ok, stat = pcall(function()
-    return vim.loop.fs_stat(vim.api.nvim_buf_get_name(bufnr))
+    return vim.uv.fs_stat(vim.api.nvim_buf_get_name(bufnr))
   end)
 
   if not (ok and stat) then
@@ -73,6 +73,72 @@ utils.events = {
   TextYankPost = "TextYankPost",
   -- When the 'filetype' option has been set
   FileType = "FileType",
+}
+
+-- DOCS: Sets up icons used everywhere else. These require a Nerd Font to be
+-- installed. Find more and customize from here: https://www.nerdfonts.com/cheat-sheet
+utils.icons = {
+  error = " ",
+  info = " ",
+  hint = "",
+  warn = " ",
+  square = "",
+  dap = {
+    step_into = "",
+    step_over = "",
+    step_out = "",
+    step_back = "",
+    run_last = "",
+    terminate = "",
+  },
+  git = {
+    branch = "",
+    added = "",
+    modified = "",
+    removed = "",
+    renamed = "➜",
+    untracked = "★",
+    ignored = "◌",
+    unstaged = "✗",
+    staged = "✓",
+    conflict = "",
+  },
+  separators = {
+    triple_dash_vertical = "┋",
+  },
+  folders = {
+    closed = "",
+    open = "",
+    empty = "",
+    default = "",
+  },
+  files = {
+    code = "󰎧",
+    find = "󰱼",
+    new = "",
+  },
+  coding = {
+    class = "",
+    color = "",
+    constant = "",
+    constructor = "",
+    enum = "",
+    field = "",
+    func = "󰊕",
+    interface = "",
+    keyword = "",
+    method = "m",
+    module = "",
+    operator = "",
+    property = "",
+    reference = "",
+    snippet = "",
+    struct = "",
+    type = "",
+    unit = "",
+    value = "",
+    variable = "󰫧",
+  },
 }
 
 return utils
