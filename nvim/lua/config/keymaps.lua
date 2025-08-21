@@ -206,8 +206,8 @@ return {
     { "-", vim.cmd.Oil, desc = "Open parent directory" },
   },
 
-  yazi = {
-    { "<leader>e", vim.cmd.Yazi, mode = { "n", "x" }, desc = "Open parent directory" },
+  neo_tree = {
+    { "<leader>e", "<cmd>Neotree<cr>", desc = "Open file explorer" },
   },
 
   imgclip = {
