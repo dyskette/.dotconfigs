@@ -44,6 +44,7 @@
   "rzls.nvim": { "branch": "main", "commit": "1798c64830547d711b14dc2f3f47da15584d8aab" },
   "schemastore.nvim": { "branch": "main", "commit": "a23c631533b60f8d24ca9826bf28c9e21bec0424" },
   "smart-splits.nvim": { "branch": "master", "commit": "52ee119752ee7e98a2a62f0f172926b5fbbc28a5" },
+  "telescope-ui-select.nvim": { "branch": "master", "commit": "6e51d7da30bd139a6950adf2a47fda6df9fa06d2" },
   "telescope.nvim": { "branch": "master", "commit": "a0bbec21143c7bc5f8bb02e0005fa0b982edc026" },
   "which-key.nvim": { "branch": "main", "commit": "370ec46f710e058c9c1646273e6b225acf47cbed" }
 }
