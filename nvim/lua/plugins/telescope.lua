@@ -1,9 +1,16 @@
 return {
   "nvim-telescope/telescope.nvim",
   tag = "0.1.8",
-  dependencies = { "nvim-lua/plenary.nvim" },
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-telescope/telescope-ui-select.nvim",
+  },
   cmd = { "Telescope" },
   keys = require("config.keymaps").telescope,
+  config = function(_, opts)
+    require("telescope").setup(opts)
+    require("telescope").load_extension("ui-select")
+  end,
   opts = {
     defaults = {
       layout_strategy = "horizontal",
@@ -28,6 +35,16 @@ return {
       },
       buffers = {
         previewer = false,
+      },
+    },
+    extensions = {
+      ["ui-select"] = {
+        require("telescope.themes").get_dropdown({
+          layout_config = {
+            width = 0.8,
+            height = 0.9,
+          },
+        }),
       },
     },
   },
