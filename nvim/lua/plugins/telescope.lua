@@ -22,6 +22,7 @@ return {
       preview = {
         filesize_limit = 0.1, -- MB
       },
+      borderchars = { "─", "│", "─", "│", "┌", "┐", "┘", "└" },
     },
     pickers = {
       find_files = {

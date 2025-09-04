@@ -54,7 +54,7 @@ return {
 
     -- LSP
     vim.keymap.set("n", "K", function()
-      vim.lsp.buf.hover({ border = "rounded", title = " Information " })
+      vim.lsp.buf.hover({ border = "single", title = " Information " })
     end, { desc = "Open symbol information" })
     vim.keymap.set({ "n", "x" }, "<leader>fl", function()
       vim.lsp.buf.format({ async = true })

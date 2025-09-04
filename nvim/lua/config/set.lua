@@ -2,7 +2,7 @@ local utils = require("config.utils")
 
 -- Pretty colors
 vim.o.termguicolors = true
-vim.o.winborder = "rounded"
+vim.o.winborder = "single"
 
 -- Line numbers
 vim.o.number = true
@@ -35,7 +35,8 @@ vim.o.smartindent = true
 
 -- Diagnostic
 vim.diagnostic.config({
-  virtual_lines = true,
+  severity_sort = true,
+  virtual_lines = false,
   virtual_text = {
     prefix = utils.icons.square,
   },
@@ -47,7 +48,7 @@ vim.diagnostic.config({
       [vim.diagnostic.severity.INFO] = utils.icons.info,
     },
   },
-  float = { border = "rounded", title = " Diagnostic " },
+  float = { border = "single", title = " Diagnostic " },
 })
 
 -- Highlight the copied text

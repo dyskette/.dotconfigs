@@ -60,7 +60,7 @@ local lualine_opts = function()
             error = utils.icons.error,
             warn = utils.icons.warn,
             info = utils.icons.info,
-            hint = utils.icons.hint,
+            hint = utils.icons.hint .. " ",
           },
         },
       },
