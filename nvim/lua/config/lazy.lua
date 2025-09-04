@@ -25,7 +25,7 @@ local lazy_install = function()
       { import = "plugins" },
     },
     ui = {
-      border = "rounded",
+      border = "single",
       backdrop = 100,
     },
   })

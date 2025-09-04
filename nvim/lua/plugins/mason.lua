@@ -1,9 +1,6 @@
 local utils = require("config.utils")
 
 local mason_opts = {
-  ui = {
-    border = "rounded",
-  },
   registries = {
     "github:mason-org/mason-registry",
     "github:Crashdummyy/mason-registry",
