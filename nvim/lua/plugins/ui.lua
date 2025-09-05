@@ -1,13 +1,13 @@
 local utils = require("config.utils")
 
 local set_dark_mode = function()
-  vim.api.nvim_set_option_value("background", "dark", {})
+  vim.o.background = "dark"
   vim.cmd.colorscheme("gruvbox")
   vim.env.BAT_THEME = "gruvbox"
 end
 
 local set_light_mode = function()
-  vim.api.nvim_set_option_value("background", "light", {})
+  vim.o.background = "light"
   vim.cmd.colorscheme("rose-pine-dawn")
   vim.env.BAT_THEME = "rose-pine-dawn"
 end
@@ -33,7 +33,98 @@ local template_onlyname = function(filetype, name)
   }
 end
 
-local luatab_opts = {}
+local tabby_opts = function()
+  -- Build theme matching your tmux configs exactly
+  local is_dark = vim.o.background == "dark"
+  local theme = {}
+
+  if is_dark then
+    -- Gruvbox colors from your tmux config
+    theme = {
+      fill = { fg = "#ebdbb2", bg = "#282828" },
+      head = { fg = "#282828", bg = "#ebdbb2", style = "bold" },
+      current_tab = { fg = "#282828", bg = "#928374", style = "bold" },
+      tab = { fg = "#ebdbb2", bg = "#3c3836" },
+      win = { fg = "#282828", bg = "#a89984" },
+      tail = { fg = "#282828", bg = "#83a598", style = "bold" },
+    }
+  else
+    -- Rose Pine Dawn colors from your tmux config
+    theme = {
+      fill = { fg = "#575279", bg = "#faf4ed" },
+      head = { fg = "#f2e9e1", bg = "#907aa9", style = "bold" },
+      current_tab = { fg = "#575279", bg = "#d7827e", style = "bold" },
+      tab = { fg = "#575279", bg = "#f2e9e1" },
+      win = { fg = "#f2e9e1", bg = "#56949f" },
+      tail = { fg = "#f2e9e1", bg = "#ea9d34", style = "bold" },
+    }
+  end
+
+  return {
+    line = function(line)
+      return {
+        {
+          { " 󰓩  ", hl = theme.head },
+          line.sep("", theme.head, theme.fill),
+        },
+        line.tabs().foreach(function(tab)
+          local hl = tab.is_current() and theme.current_tab or theme.tab
+          return {
+            line.sep("", hl, theme.fill),
+            tab.is_current() and " " or " ",
+            tab.number(),
+            " ",
+            tab.name(),
+            tab.close_btn(" 󰅖 "),
+            line.sep("", hl, theme.fill),
+            hl = hl,
+            margin = " ",
+          }
+        end),
+        line.spacer(),
+        line.wins_in_tab(line.api.get_current_tab()).foreach(function(win)
+          local hl = win.is_current() and theme.current_tab or theme.win
+          return {
+            line.sep("", hl, theme.fill),
+            win.is_current() and " " or " ",
+            win.file_icon(),
+            " ",
+            win.buf_name(),
+            line.sep("", hl, theme.fill),
+            hl = hl,
+            margin = " ",
+          }
+        end),
+        {
+          line.sep("", theme.tail, theme.fill),
+          { " 󰘲 ", hl = theme.tail },
+        },
+        hl = theme.fill,
+      }
+    end,
+    option = {
+      buf_name = {
+        mode = "unique",
+      },
+    },
+  }
+end
+
+local tabby_config = function()
+  local setup_tabby = function()
+    require("tabby").setup(tabby_opts())
+  end
+
+  setup_tabby()
+
+  -- Call tabby setup when colorscheme changes
+  local tabby_config_group = vim.api.nvim_create_augroup("dyskette_tabby_config", { clear = true })
+  vim.api.nvim_create_autocmd({ utils.events.ColorScheme }, {
+    desc = "Update tabby configuration on colorscheme change",
+    group = tabby_config_group,
+    callback = setup_tabby,
+  })
+end
 
 local lualine_opts = function()
   local diffview_files = template_onlyname("DiffviewFiles", "Diffview Files")
@@ -55,7 +146,6 @@ local lualine_opts = function()
         "diff",
         {
           "diagnostics",
-          -- symbols = { error = " ", warn = " ", info = " ", hint = "" },
           symbols = {
             error = utils.icons.error,
             warn = utils.icons.warn,
@@ -100,9 +190,9 @@ return {
   },
   -- tab bar
   {
-    "alvarosevilla95/luatab.nvim",
+    "nanozuki/tabby.nvim",
     event = utils.events.VeryLazy,
-    opts = luatab_opts,
+    config = tabby_config,
     dependencies = {
       "nvim-tree/nvim-web-devicons",
     },
