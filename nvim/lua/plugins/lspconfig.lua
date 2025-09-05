@@ -62,7 +62,25 @@ local function setup_language_servers()
 
   -- PowerShell Editor Services
   vim.lsp.config.powershell_es = {
-    cmd = { "pwsh", "-NoLogo", "-NoProfile", "-Command" },
+    bundle_path = vim.fn.expand("$MASON/packages/powershell-editor-services/PowerShellEditorServices"),
+    cmd = {
+      "pwsh",
+      "-NoLogo",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      vim.fn.expand("$MASON/packages/powershell-editor-services/PowerShellEditorServices/Start-EditorServices.ps1"),
+      "-HostName",
+      "nvim",
+      "-HostProfileId",
+      "0",
+      "-HostVersion",
+      "1.0.0",
+      "-LogLevel",
+      "Warning",
+      "-Stdio",
+    },
     filetypes = { "ps1", "psm1", "psd1" },
     root_markers = { ".git" },
     settings = {
