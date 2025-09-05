@@ -44,6 +44,5 @@
   "roslyn.nvim": { "branch": "main", "commit": "8c949b1485aea6f56a7acc24c2362517e6002f2b" },
   "rzls.nvim": { "branch": "main", "commit": "1798c64830547d711b14dc2f3f47da15584d8aab" },
   "schemastore.nvim": { "branch": "main", "commit": "a23c631533b60f8d24ca9826bf28c9e21bec0424" },
-  "smart-splits.nvim": { "branch": "master", "commit": "52ee119752ee7e98a2a62f0f172926b5fbbc28a5" },
   "which-key.nvim": { "branch": "main", "commit": "370ec46f710e058c9c1646273e6b225acf47cbed" }
 }
