@@ -6,8 +6,13 @@ function sd() {
       --layout=reverse \
       --height=50% \
       --min-height=20 \
-      --preview 'eza --tree --git-ignore --level 2 --colour=always --icons=always {}')" \
-  && cd $directory_path
+      --border=none \
+      --preview-window=border-left \
+      --preview 'eza --tree --git-ignore --level 2 --colour=always --icons=always {}')"
+  
+  if [ -n "$directory_path" ]; then
+    cd "$directory_path"
+  fi
 }
 
 function sf() {
@@ -18,8 +23,13 @@ function sf() {
       --layout=reverse \
       --height=50% \
       --min-height=20 \
-      --preview 'bat --color=always --style=plain {}')" \
-  && nvim $file_path
+      --border=none \
+      --preview-window=border-left \
+      --preview 'bat --color=always --style=plain {}')"
+  
+  if [ -n "$file_path" ]; then
+    nvim "$file_path"
+  fi
 }
 
 function sg() {
@@ -42,8 +52,9 @@ function sg() {
     --layout reverse \
     --height 50% \
     --min-height 20 \
+    --border=none \
+    --preview-window=border-left,"+{2}/2" \
     --delimiter : \
     --preview "$exec_bat" \
-    --preview-window "+{2}/2" \
     --query "$search_query"
 }
