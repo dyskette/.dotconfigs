@@ -4,8 +4,8 @@ local gitsigns_opts = {}
 
 local neogit_opts = {
   integrations = {
-    diffview = true,
-    telescope = true,
+    diffview = true, -- enables diff popup
+    fzf_lua = true,  -- use fzf-lua for menu selection
   },
   sections = {
     recent = {

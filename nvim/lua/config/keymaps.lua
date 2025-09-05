@@ -59,9 +59,7 @@ return {
     vim.keymap.set({ "n", "x" }, "<leader>fl", function()
       vim.lsp.buf.format({ async = true })
     end, { desc = "Format document using LSP" })
-    vim.keymap.set({ "n", "x" }, "<leader>va", function()
-      vim.lsp.buf.code_action()
-    end, { desc = "View LSP code actions" })
+
 
     -- Diagnostic
     vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, { desc = "View diagnostic" })
@@ -73,113 +71,7 @@ return {
     end, { desc = "Next diagnostic" })
   end,
 
-  telescope = {
-    {
-      "<leader>sf",
-      function()
-        require("telescope.builtin").find_files()
-      end,
-      desc = "Search files",
-    },
-    {
-      "<leader>sr",
-      function()
-        require("telescope.builtin").oldfiles({ only_cwd = true })
-      end,
-      desc = "Search recent files (current working directory only)",
-    },
-    {
-      "<leader>si",
-      function()
-        require("telescope.builtin").git_files()
-      end,
-      desc = "Search git files",
-    },
-    {
-      "<leader>sg",
-      function()
-        require("telescope.builtin").live_grep()
-      end,
-      desc = "Search by grep",
-    },
-    {
-      "<leader>sw",
-      function()
-        require("telescope.builtin").grep_string()
-      end,
-      desc = "Search current word",
-    },
-    {
-      "<leader>sw",
-      function()
-        -- Extracts the currently selected text in visual mode for telescope search.
-        -- Uses vim marks: '.' (cursor position) and 'v' (visual selection start)
-        -- to determine selection boundaries, then extracts the text with getregion().
-        local function get_visual_selection()
-          local cursor_mark = "."
-          local visual_start_mark = "v"
-          local cursor_position = vim.fn.getpos(cursor_mark)
-          local visual_start_position = vim.fn.getpos(visual_start_mark)
-          local region_text = vim.fn.getregion(cursor_position, visual_start_position)
 
-          return region_text[1]
-        end
-
-        require("telescope.builtin").grep_string({ search = get_visual_selection() })
-      end,
-      mode = "x",
-      desc = "Search current selection",
-    },
-    {
-      "<leader>sb",
-      function()
-        require("telescope.builtin").buffers()
-      end,
-      desc = "Search buffers",
-    },
-    {
-      "<leader>so",
-      function()
-        require("telescope.builtin").lsp_workspace_symbols()
-      end,
-      desc = "Search workspace symbols",
-    },
-    {
-      "gd",
-      function()
-        require("telescope.builtin").lsp_definitions()
-      end,
-      desc = "Go to definition",
-    },
-    {
-      "gD",
-      function()
-        require("telescope.builtin").lsp_declarations()
-      end,
-      desc = "Go to declaration",
-    },
-    {
-      "gi",
-      function()
-        require("telescope.builtin").lsp_implementations()
-      end,
-      desc = "Go to implementation",
-    },
-    {
-      "go",
-      function()
-        require("telescope.builtin").lsp_typedefs()
-      end,
-      desc = "Go to definition of the type",
-    },
-    {
-      "gr",
-      function()
-        require("telescope.builtin").lsp_references()
-      end,
-      desc = "Go to references",
-    },
-  },
 
   live_rename = {
     {
@@ -370,6 +262,109 @@ return {
         require("neogit").open()
       end,
       desc = "Git status open",
+    },
+  },
+
+  fzf = {
+    {
+      "<leader>sf",
+      function()
+        require("fzf-lua").files()
+      end,
+      desc = "Search files",
+    },
+    {
+      "<leader>sr",
+      function()
+        require("fzf-lua").oldfiles({ cwd_only = true })
+      end,
+      desc = "Search recent files (current working directory only)",
+    },
+    {
+      "<leader>si",
+      function()
+        require("fzf-lua").git_files()
+      end,
+      desc = "Search git files",
+    },
+    {
+      "<leader>sg",
+      function()
+        require("fzf-lua").live_grep()
+      end,
+      desc = "Search by grep",
+    },
+    {
+      "<leader>sw",
+      function()
+        require("fzf-lua").grep_cword()
+      end,
+      desc = "Search current word",
+    },
+    {
+      "<leader>sw",
+      function()
+        require("fzf-lua").grep_visual()
+      end,
+      mode = "x",
+      desc = "Search current selection",
+    },
+    {
+      "<leader>sb",
+      function()
+        require("fzf-lua").buffers()
+      end,
+      desc = "Search buffers",
+    },
+    {
+      "<leader>so",
+      function()
+        require("fzf-lua").lsp_workspace_symbols()
+      end,
+      desc = "Search workspace symbols",
+    },
+    {
+      "gd",
+      function()
+        require("fzf-lua").lsp_definitions()
+      end,
+      desc = "Go to definition",
+    },
+    {
+      "gD",
+      function()
+        require("fzf-lua").lsp_declarations()
+      end,
+      desc = "Go to declaration",
+    },
+    {
+      "gi",
+      function()
+        require("fzf-lua").lsp_implementations()
+      end,
+      desc = "Go to implementation",
+    },
+    {
+      "go",
+      function()
+        require("fzf-lua").lsp_typedefs()
+      end,
+      desc = "Go to definition of the type",
+    },
+    {
+      "gr",
+      function()
+        require("fzf-lua").lsp_references()
+      end,
+      desc = "Go to references",
+    },
+    {
+      "<leader>va",
+      function()
+        require("fzf-lua").lsp_code_actions()
+      end,
+      mode = { "n", "x" },
+      desc = "View LSP code actions",
     },
   },
 
