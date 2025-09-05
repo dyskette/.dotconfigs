@@ -60,7 +60,6 @@ return {
       vim.lsp.buf.format({ async = true })
     end, { desc = "Format document using LSP" })
 
-
     -- Diagnostic
     vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, { desc = "View diagnostic" })
     vim.keymap.set("n", "<leader>dk", function()
@@ -70,8 +69,6 @@ return {
       vim.diagnostic.jump({ count = 1, float = true })
     end, { desc = "Next diagnostic" })
   end,
-
-
 
   live_rename = {
     {
@@ -365,100 +362,6 @@ return {
       end,
       mode = { "n", "x" },
       desc = "View LSP code actions",
-    },
-  },
-
-  smart_splits = {
-    {
-      "<A-h>",
-      function()
-        require("smart-splits").resize_left()
-      end,
-      desc = "Resize split left",
-    },
-    {
-      "<A-j>",
-      function()
-        require("smart-splits").resize_down()
-      end,
-      desc = "Resize split down",
-    },
-    {
-      "<A-k>",
-      function()
-        require("smart-splits").resize_up()
-      end,
-      desc = "Resize split up",
-    },
-    {
-      "<A-l>",
-      function()
-        require("smart-splits").resize_right()
-      end,
-      desc = "Resize split right",
-    },
-    {
-      "<C-h>",
-      function()
-        require("smart-splits").move_cursor_left()
-      end,
-      desc = "Navigate left (tmux/vim)",
-    },
-    {
-      "<C-j>",
-      function()
-        require("smart-splits").move_cursor_down()
-      end,
-      desc = "Navigate down (tmux/vim)",
-    },
-    {
-      "<C-k>",
-      function()
-        require("smart-splits").move_cursor_up()
-      end,
-      desc = "Navigate up (tmux/vim)",
-    },
-    {
-      "<C-l>",
-      function()
-        require("smart-splits").move_cursor_right()
-      end,
-      desc = "Navigate right (tmux/vim)",
-    },
-    {
-      "<C-\\>",
-      function()
-        require("smart-splits").move_cursor_previous()
-      end,
-      desc = "Navigate to previous (tmux/vim)",
-    },
-    {
-      "<leader><leader>h",
-      function()
-        require("smart-splits").swap_buf_left()
-      end,
-      desc = "Swap buffer left",
-    },
-    {
-      "<leader><leader>j",
-      function()
-        require("smart-splits").swap_buf_down()
-      end,
-      desc = "Swap buffer down",
-    },
-    {
-      "<leader><leader>k",
-      function()
-        require("smart-splits").swap_buf_up()
-      end,
-      desc = "Swap buffer up",
-    },
-    {
-      "<leader><leader>l",
-      function()
-        require("smart-splits").swap_buf_right()
-      end,
-      desc = "Swap buffer right",
     },
   },
 }
