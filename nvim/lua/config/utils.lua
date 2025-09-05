@@ -73,6 +73,8 @@ utils.events = {
   TextYankPost = "TextYankPost",
   -- When the 'filetype' option has been set
   FileType = "FileType",
+  -- After loading a color scheme.
+  ColorScheme = "ColorScheme",
 }
 
 -- DOCS: Sets up icons used everywhere else. These require a Nerd Font to be

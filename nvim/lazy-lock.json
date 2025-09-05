@@ -17,7 +17,6 @@
   "lazydev.nvim": { "branch": "main", "commit": "2367a6c0a01eb9edb0464731cc0fb61ed9ab9d2c" },
   "live-rename.nvim": { "branch": "main", "commit": "78fcdb4072c6b1a8e909872f9a971b2f2b642d1e" },
   "lualine.nvim": { "branch": "master", "commit": "a94fc68960665e54408fe37dcf573193c4ce82c9" },
-  "luatab.nvim": { "branch": "master", "commit": "7ac54b014b542f02a73b62fcae65db7a2382a378" },
   "luvit-meta": { "branch": "main", "commit": "1df30b60b1b4aecfebc785aa98943db6c6989716" },
   "markdown-preview.nvim": { "branch": "master", "commit": "a923f5fc5ba36a3b17e289dc35dc17f66d0548ee" },
   "mason-nvim-dap.nvim": { "branch": "main", "commit": "86389a3dd687cfaa647b6f44731e492970034baa" },
@@ -44,5 +43,6 @@
   "roslyn.nvim": { "branch": "main", "commit": "8c949b1485aea6f56a7acc24c2362517e6002f2b" },
   "rzls.nvim": { "branch": "main", "commit": "1798c64830547d711b14dc2f3f47da15584d8aab" },
   "schemastore.nvim": { "branch": "main", "commit": "a23c631533b60f8d24ca9826bf28c9e21bec0424" },
+  "tabby.nvim": { "branch": "main", "commit": "b3affa6db7eab80fca2a2db5b73b473144507039" },
   "which-key.nvim": { "branch": "main", "commit": "370ec46f710e058c9c1646273e6b225acf47cbed" }
 }
