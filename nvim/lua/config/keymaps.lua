@@ -278,7 +278,7 @@ return {
     {
       "<leader>sr",
       function()
-        require("fzf-lua").oldfiles({ cwd_only = true })
+        require("fzf-lua").oldfiles({ cwd_only = true, include_current_session = true})
       end,
       desc = "Search recent files (current working directory only)",
     },
