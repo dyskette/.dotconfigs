@@ -95,8 +95,13 @@ return {
     { "-", vim.cmd.Oil, desc = "Open parent directory" },
   },
 
-  neo_tree = {
-    { "<leader>e", "<cmd>Neotree<cr>", desc = "Open file explorer" },
+  yazi = {
+    {
+      -- Open in the current working directory
+      "<leader>e",
+      "<cmd>Yazi<cr>",
+      desc = "Open the file manager in nvim's working directory",
+    },
   },
 
   imgclip = {
