@@ -51,7 +51,7 @@
   {
     "key": "q",
     "command": "workbench.action.toggleSidebarVisibility",
-    "when": "explorerViewletFocus"
+    "when": "explorerViewletFocus && !inputFocus"
   },
   {
     "key": "enter",
