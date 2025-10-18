@@ -1,0 +1,120 @@
+- name: Tmux | Install build dependencies (Debian/Ubuntu)
+  ansible.builtin.package:
+    name:
+      - libevent-dev
+      - libncurses-dev
+      - build-essential
+      - bison
+      - pkg-config
+      - autotools-dev
+      - automake
+      - git
+    state: present
+  become: true
+  when: is_ubuntu
+
+- name: Tmux | Install build dependencies (Fedora)
+  ansible.builtin.package:
+    name:
+      - libevent-devel
+      - ncurses-devel
+      - gcc
+      - make
+      - bison
+      - pkg-config
+      - autoconf
+      - automake
+      - git
+    state: present
+  become: true
+  when: is_fedora or is_fedora_silverblue
+
+- name: Tmux | Check if tmux is already installed and get version
+  ansible.builtin.shell: |
+    if command -v {{ ansible_env.HOME }}/.local/bin/tmux &> /dev/null; then
+      {{ ansible_env.HOME }}/.local/bin/tmux -V
+    else
+      echo "not installed"
+    fi
+  register: tmux_current_version
+  changed_when: false
+
+- name: Tmux | Get latest master branch commit hash
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/tmux/tmux/commits/master
+    method: GET
+  register: tmux_latest_commit
+
+- name: Tmux | Set target version
+  ansible.builtin.set_fact:
+    tmux_target_version: "{{ tmux_latest_commit.json.sha[:7] }}"
+
+- name: Tmux | Show current and target versions
+  ansible.builtin.debug:
+    msg: |
+      Current: {{ tmux_current_version.stdout }}
+      Target: master-{{ tmux_target_version }}
+
+- name: Tmux | Build and install from source
+  when: tmux_current_version.stdout == "not installed" or tmux_target_version not in tmux_current_version.stdout
+  block:
+    - name: Tmux | Create build directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.local/src"
+        state: directory
+
+    - name: Tmux | Remove existing source directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.local/src/tmux"
+        state: absent
+
+    - name: Tmux | Clone tmux repository (shallow)
+      ansible.builtin.git:
+        repo: https://github.com/tmux/tmux.git
+        dest: "{{ ansible_env.HOME }}/.local/src/tmux"
+        version: master
+        depth: 1
+        force: true
+
+    - name: Tmux | Generate configure script
+      ansible.builtin.command:
+        cmd: sh autogen.sh
+        chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
+      environment:
+        PATH: "{{ ansible_env.PATH }}"
+
+    - name: Tmux | Configure build
+      ansible.builtin.command:
+        cmd: ./configure --prefix={{ ansible_env.HOME }}/.local
+        chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
+      environment:
+        PATH: "{{ ansible_env.PATH }}"
+
+    - name: Tmux | Build tmux
+      ansible.builtin.command:
+        cmd: make -j{{ ansible_processor_vcpus }}
+        chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
+      environment:
+        PATH: "{{ ansible_env.PATH }}"
+
+    - name: Tmux | Install tmux
+      ansible.builtin.command:
+        cmd: make install
+        chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
+      environment:
+        PATH: "{{ ansible_env.PATH }}"
+
+    - name: Tmux | Verify installation
+      ansible.builtin.command:
+        cmd: "{{ ansible_env.HOME }}/.local/bin/tmux -V"
+      register: tmux_installed_version
+
+    - name: Tmux | Show installed version
+      ansible.builtin.debug:
+        msg: "Successfully installed: {{ tmux_installed_version.stdout }}"
+
+- name: Tmux | Clean up source directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/src/tmux"
+    state: absent
+  when: tmux_current_version.stdout == "not installed" or tmux_target_version not in tmux_current_version.stdout
