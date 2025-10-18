@@ -33,7 +33,7 @@
     - { src: "ghostty", dest: "{{ config_dir }}/ghostty" }
     - { src: "jetbrains/ideavimrc", dest: "{{ ansible_env.HOME }}/.ideavimrc" }
     - { src: "starship", dest: "{{ config_dir }}/starship" }
-    - { src: "tmux/tmux.conf", dest: "{{ ansible_env.HOME }}/.tmux.conf" }
+    - { src: "tmux", dest: "{{ config_dir }}/tmux" }
     - { src: "vscode/settings.json", dest: "{{ ansible_env.HOME }}/.config/Code/User/settings.json" }
     - { src: "vscode/keybindings.json", dest: "{{ ansible_env.HOME }}/.config/Code/User/keybindings.json" }
     - { src: "vscode/settings.json", dest: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User/settings.json" }
