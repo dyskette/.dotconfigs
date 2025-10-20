@@ -6,17 +6,13 @@ return {
   opts = {
     winopts = {
       height = 0.50,
-      width = 0.80,
-      row = 0.35,
-      border = "single",
+      width = 1.00,
+      row = 1.00,
+      border = "border-top",
       preview = {
         default = "bat",
-        layout = "flex",
-        vertical = "down:45%",
-        horizontal = "right:60%",
-        flip_columns = 100,
-        scrollbar = "float",
-        delay = 20,
+        vertical = "down:50%",
+        horizontal = "right:50%",
       },
     },
     fzf_opts = {
@@ -29,7 +25,7 @@ return {
     previewers = {
       bat = {
         cmd = "bat",
-        args = "--color=always --style=numbers,changes",
+        args = "--color=always --style=default",
       },
     },
     files = {
