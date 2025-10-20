@@ -25,7 +25,7 @@ function sf() {
       --min-height=20 \
       --border=none \
       --preview-window=border-left \
-      --preview 'bat --color=always --style=plain {}')"
+      --preview 'echo -e "📄 Previewing: {}\n-----------------------------\n"; bat --color=always --style=numbers,changes,snip {}')"
   
   if [ -n "$file_path" ]; then
     nvim "$file_path"
@@ -41,7 +41,7 @@ function sg() {
   
   local exec_ripgrep='rg --column --color=always --smart-case {q} || :'
   local exec_nvim='nvim {1} +{2}'
-  local exec_bat='bat --style=numbers --color=always --highlight-line {2} {1}'
+  local exec_bat='bat --style=numbers,changes,snip --color=always --highlight-line {2} {1}'
   
   fzf \
     --disabled \
