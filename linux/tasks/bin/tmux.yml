@@ -38,6 +38,7 @@
     fi
   register: tmux_current_version
   changed_when: false
+  failed_when: false
 
 - name: Tmux | Get latest master branch commit hash
   ansible.builtin.uri:
