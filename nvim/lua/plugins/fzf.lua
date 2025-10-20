@@ -1,7 +1,10 @@
+local utils = require("config.utils")
+
 return {
   "ibhagwan/fzf-lua",
-  dependencies = { "nvim-tree/nvim-web-devicons" },
+  dependencies = { "nvim-tree/nvim-web-devicons", "folke/trouble.nvim" },
   cmd = { "FzfLua" },
+  event = { utils.events.VeryLazy },
   keys = require("config.keymaps").fzf,
   opts = {
     winopts = {
@@ -41,4 +44,12 @@ return {
       color_icons = true,
     },
   },
+  config = function(_, opts)
+    local config = require("fzf-lua.config")
+    local actions = require("trouble.sources.fzf").actions
+    config.defaults.actions.files["ctrl-t"] = actions.open
+
+    require("fzf-lua").setup(opts)
+    require("fzf-lua").register_ui_select()
+  end,
 }

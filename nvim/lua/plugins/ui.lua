@@ -130,6 +130,16 @@ local lualine_opts = function()
   local diffview_files = template_onlyname("DiffviewFiles", "Diffview Files")
   local diffview_file_history = template_onlyname("DiffviewFileHistory", "Diffview File History")
 
+  local trouble = require("trouble")
+  local symbols = trouble.statusline({
+    mode = "lsp_document_symbols",
+    groups = {},
+    title = false,
+    filter = { range = true },
+    format = "{kind_icon}{symbol.name:Normal}",
+    hl_group = "lualine_c_normal",
+  })
+
   return {
     extensions = { "lazy", "mason", "oil", "trouble", diffview_files, diffview_file_history },
     options = {
@@ -152,6 +162,12 @@ local lualine_opts = function()
             info = utils.icons.info,
             hint = utils.icons.hint .. " ",
           },
+        },
+      },
+      lualine_c = {
+        {
+          symbols.get,
+          cond = symbols.has,
         },
       },
     },
@@ -203,6 +219,7 @@ return {
     opts = lualine_opts,
     dependencies = {
       "nvim-tree/nvim-web-devicons",
+      "folke/trouble.nvim",
     },
   },
   -- LSP progress/vim.notify
