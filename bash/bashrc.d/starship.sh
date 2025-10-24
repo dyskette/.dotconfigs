@@ -1,6 +1,8 @@
 function set_system_color_theme() {
 	color_theme='dark'
-	if [ "$(systemd-detect-virt)" == "wsl" ]; then
+
+	# Check if we're in WSL
+	if command -v systemd-detect-virt &>/dev/null && [ "$(systemd-detect-virt)" == "wsl" ]; then
 		use_light_theme=`reg.exe Query "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" /v AppsUseLightTheme | awk '{if (match($0, 0x)) print substr($3, 3, 1)}'`
 
 		if [ "$use_light_theme" == "0" ]; then
@@ -10,7 +12,20 @@ function set_system_color_theme() {
 		fi
 
 		unset use_light_theme
-	else
+	# Check if we're on Windows (git bash) - detect by presence of reg.exe
+	elif command -v reg.exe &>/dev/null; then
+		# Git bash requires MSYS_NO_PATHCONV to prevent path translation
+		use_light_theme=$(MSYS_NO_PATHCONV=1 reg.exe query "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v AppsUseLightTheme 2>/dev/null | awk '{if (match($0, /0x/)) print substr($3, 3, 1)}')
+
+		if [ "$use_light_theme" == "0" ]; then
+			color_theme='dark'
+		else
+			color_theme='light'
+		fi
+
+		unset use_light_theme
+	# Check if we're on Linux with GNOME
+	elif command -v gsettings &>/dev/null; then
 		color_scheme=`gsettings get org.gnome.desktop.interface color-scheme`
 
 		if [ "$color_scheme" == \'prefer-dark\' ]; then
@@ -21,6 +36,7 @@ function set_system_color_theme() {
 
 		unset color_scheme
 	fi
+
 	export SYSTEM_COLOR_THEME=$color_theme
 	unset color_theme
 }

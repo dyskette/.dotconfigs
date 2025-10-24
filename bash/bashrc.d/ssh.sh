@@ -1,4 +1,4 @@
-if [ "$(systemd-detect-virt)" == "wsl" ]; then
+if command -v systemd-detect-virt &>/dev/null && [ "$(systemd-detect-virt)" == "wsl" ]; then
     SSH_ENV="$HOME/.ssh/agent-environment"
 
     function start_agent {
