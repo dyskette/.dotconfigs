@@ -73,6 +73,9 @@ param(
     [Parameter(HelpMessage="Configure PowerShell")]
     [switch]$PowerShellConfig,
     
+    [Parameter(HelpMessage="Configure bash")]
+    [switch]$BashConfig,
+    
     [Parameter(HelpMessage="Configure Starship")]
     [switch]$StarshipConfig,
     
@@ -168,7 +171,7 @@ if (-not $SkipWSL) {
 
 # Determine which components to install/configure
 # Force boolean conversion to prevent array issues
-$hasSpecificParams = $VSCode -or $VSCodeExtensions -or $JetBrainsFont -or $MinGW -or $Deno -or $CliTools -or $PowerShell -or $Fnm -or $Python -or $Neovim -or $WindowsTerminal -or $ProductivityApps -or $Yazi -or $WezTerm -or $WindowsConfig -or $Configuration -or $BatConfig -or $PowerShellConfig -or $StarshipConfig -or $NeovimConfig -or $VSCodeConfig -or $WindowsTerminalConfig -or $WezTermConfig
+$hasSpecificParams = $VSCode -or $VSCodeExtensions -or $JetBrainsFont -or $MinGW -or $Deno -or $CliTools -or $PowerShell -or $Fnm -or $Python -or $Neovim -or $WindowsTerminal -or $ProductivityApps -or $Yazi -or $WezTerm -or $WindowsConfig -or $Configuration -or $BatConfig -or $PowerShellConfig -or $BashConfig -or $StarshipConfig -or $NeovimConfig -or $VSCodeConfig -or $WindowsTerminalConfig -or $WezTermConfig
 $runAll = [bool]($All -or (-not $hasSpecificParams))
 
 # Helper function to run scripts with error handling
@@ -284,6 +287,10 @@ if ($runAll -or $WindowsConfig) {
 
 if ($runAll -or $PowerShellConfig -or $Configuration) {
     Invoke-ModularScript -ScriptName "Configure-PowerShell.ps1" -Description "Configuring PowerShell"
+}
+
+if ($runAll -or $BashConfig -or $Configuration) {
+    Invoke-ModularScript -ScriptName "Configure-Bash.ps1" -Description "Configuring bash"
 }
 
 if ($runAll -or $BatConfig -or $Configuration) {
