@@ -1,0 +1,83 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+    "ui_font_size": 16,
+    "buffer_font_size": 15,
+    "theme": {
+        "mode": "system",
+        "light": "One Light",
+        "dark": "One Dark"
+    },
+
+    // Vim mode configuration
+    "vim_mode": true,
+    "vim": {
+        "use_system_clipboard": "never",
+        "use_smartcase_find": true,
+        "toggle_relative_line_numbers": true
+    },
+
+    // Editor appearance
+    "relative_line_numbers": true,
+    "scroll_beyond_last_line": "off",
+    "vertical_scroll_margin": 999,
+    "wrap_guides": [120],
+    "preferred_line_length": 120,
+    "soft_wrap": "none",
+    "show_whitespaces": "all",
+    "tab_bar": {
+        "show": true
+    },
+
+    // Indentation (matching nvim defaults)
+    "tab_size": 4,
+    "hard_tabs": false,
+    "indent_guides": {
+        "enabled": true
+    },
+
+    // LSP and diagnostics
+    "diagnostics": {
+        "include_warnings": true
+    },
+
+    // Terminal
+    "terminal": {
+        "dock": "bottom",
+        "shell": {
+            "program": "bash"
+        }
+    },
+
+    // File tree and project
+    "project_panel": {
+        "dock": "left",
+        "git_status": true
+    },
+
+    // Git
+    "git": {
+        "git_gutter": "tracked_files",
+        "inline_blame": {
+            "enabled": false
+        }
+    },
+
+    // Format on save
+    "format_on_save": "off",
+
+    // Cursor and selection
+    "cursor_blink": false,
+    "show_completion_documentation": true,
+
+    // Collaboration
+    "collaboration_panel": {
+        "dock": "right"
+    }
+}

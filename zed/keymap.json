@@ -1,0 +1,160 @@
+// Zed keymap
+//
+// For information on binding keys, see the Zed
+// documentation: https://zed.dev/docs/key-bindings
+//
+// To see the default key bindings run `zed: open default keymap`
+// from the command palette.
+[
+    // ============================================================================
+    // Workspace-level bindings
+    // ============================================================================
+    {
+        "context": "Workspace",
+        "bindings": {
+            // Pane navigation
+            "ctrl-w h": "workspace::ActivatePaneLeft",
+            "ctrl-w l": "workspace::ActivatePaneRight",
+            "ctrl-w j": "workspace::ActivatePaneUp",
+            "ctrl-w k": "workspace::ActivatePaneDown"
+        }
+    },
+
+    {
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator",
+        "bindings": {
+            // File navigation (matching fzf keymaps)
+            "space s f": "file_finder::Toggle",
+            "space s i": "file_finder::Toggle", // git files fallback
+            "space s r": "file_finder::Toggle",
+            "space s b": "tab_switcher::Toggle",
+            "space s g": "pane::DeploySearch",
+
+            // File explorer
+            "space e": "project_panel::ToggleFocus",
+
+            // Git operations
+            "space g g": "git_panel::ToggleFocus",
+            "space g s": "git::StageAndNext",      // Stage hunk
+            "space g u": "git::UnstageAndNext",    // Unstage hunk
+            "space g r": "git::Restore",           // Restore hunk
+            // "space g b": "editor::ToggleGitBlame",
+            "space g d": "git::Diff",
+
+            // Quickfix / Problems
+            "space q": "diagnostics::Deploy",
+            "space x x": "diagnostics::Deploy",
+
+            // Terminal
+            "ctrl |": "terminal_panel::ToggleFocus"
+        }
+    },
+
+    // ============================================================================
+    // Editor bindings (normal mode)
+    // ============================================================================
+    {
+        "context": "VimControl && !menu",
+        "bindings": {
+            // Keep cursor centered when searching
+            // "n": "vim::SearchNext",
+            // "shift-n": "vim::SearchPrev",
+
+            // LSP navigation (matching fzf LSP keymaps)
+            "g d": "editor::GoToDefinition",
+            "g shift-d": "editor::GoToDeclaration",
+            "g i": "editor::GoToImplementation",
+            "g r": "editor::FindAllReferences",
+            "g o": "editor::GoToTypeDefinition",
+            "shift-k": "editor::Hover",
+
+            // Diagnostics navigation
+            "space d j": "editor::GoToDiagnostic",
+            // "space d k": "editor::GoToPrevDiagnostic",
+            "space v d": "editor::Hover",
+
+            // LSP actions
+            "space r n": "editor::Rename",
+            "space v a": "editor::ToggleCodeActions",
+
+            // Formatting
+            "space f l": "editor::Format",
+            "space f f": "editor::Format",
+
+            // Selection
+            "space a": "editor::SelectAll",
+
+            // Line insertion without entering insert mode
+            "space o": ["workspace::SendKeystrokes", "o escape"],
+            "space shift-o": ["workspace::SendKeystrokes", "shift-o escape"],
+
+            // Symbol search
+            "space s o": "outline::Toggle"
+        }
+    },
+
+    // ============================================================================
+    // Editor bindings (insert mode)
+    // ============================================================================
+    {
+        "context": "Editor && vim_mode == insert",
+        "bindings": {
+            // Quick escape from insert mode (optional, commented out)
+            // "j k": "vim::NormalBefore"
+        }
+    },
+
+    // ============================================================================
+    // Editor bindings (visual mode)
+    // ============================================================================
+    {
+        "context": "Editor && vim_mode == visual",
+        "bindings": {
+            // Move lines up/down in visual mode
+            "shift-j": "editor::MoveLineDown",
+            "shift-k": "editor::MoveLineUp",
+
+            // Indentation while staying in visual mode
+            "<": "editor::Outdent",
+            ">": "editor::Indent",
+
+            // LSP actions in visual mode
+            "space v a": "editor::ToggleCodeActions",
+            "space f f": "editor::Format",
+            "space f l": "editor::Format"
+        }
+    },
+
+    // ============================================================================
+    // Editor bindings (normal + visual mode)
+    // ============================================================================
+    {
+        "context": "Editor && vim_mode == normal || Editor && vim_mode == visual",
+        "bindings": {
+            // System clipboard operations
+            "space y": "editor::Copy",
+            "space p": "editor::Paste"
+        }
+    },
+
+    // ============================================================================
+    // Terminal bindings
+    // ============================================================================
+    {
+        "context": "Terminal",
+        "bindings": {
+            "ctrl |": "workspace::ToggleBottomDock"
+        }
+    },
+
+    // ============================================================================
+    // Project panel bindings
+    // ============================================================================
+    {
+        "context": "ProjectPanel",
+        "bindings": {
+            "-": "project_panel::ToggleFocus",
+            "space e": "workspace::ToggleLeftDock"
+        }
+    }
+]

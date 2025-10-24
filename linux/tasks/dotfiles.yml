@@ -38,6 +38,8 @@
     - { src: "vscode/keybindings.json", dest: "{{ ansible_env.HOME }}/.config/Code/User/keybindings.json" }
     - { src: "vscode/settings.json", dest: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User/settings.json" }
     - { src: "vscode/keybindings.json", dest: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User/keybindings.json" }
+    - { src: "zed/keymap.json", dest: "{{ config_dir }}/zed/keymap.json" }
+    - { src: "zed/settings.json", dest: "{{ config_dir }}/zed/settings.json" }
     - { src: "wezterm", dest: "{{ config_dir }}/wezterm" }
     - { src: "zellij", dest: "{{ config_dir }}/zellij" }
   tags: dotfiles
