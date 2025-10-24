@@ -69,6 +69,12 @@
       ]
     },
     {
+      "before": ["<leader>", "e"],
+      "commands": [
+        "workbench.files.action.focusFilesExplorer",
+      ]
+    },
+    {
       "before": ["<leader>", "<leader>"],
       "commands": [
         "workbench.action.closeSidebar",

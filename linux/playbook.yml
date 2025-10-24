@@ -17,8 +17,25 @@
     - import_tasks: tasks/packages.yml
       tags: packages
 
-    - name: Bin
-      tags: bin
+    - name: Bin setup directories
+      tags: 
+        - bin
+        - fd
+        - deno
+        - poetry
+        - fnm
+        - fzf
+        - ripgrep
+        - bat
+        - eza
+        - zellij
+        - nvim
+        - yazi
+        - jq
+        - yq
+        - starship
+        - imagemagick
+        - tmux
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -28,18 +45,39 @@
           ansible.builtin.file:
             path: "{{ ansible_env.HOME }}/.local/opt"
             state: directory
-        - import_tasks: tasks/bin/fd.yml
-        - import_tasks: tasks/bin/deno.yml
-        - import_tasks: tasks/bin/fnm.yml
-        - import_tasks: tasks/bin/fzf.yml
-        - import_tasks: tasks/bin/ripgrep.yml
-        - import_tasks: tasks/bin/bat.yml
-        - import_tasks: tasks/bin/eza.yml
-        - import_tasks: tasks/bin/nvim.yml
-        - import_tasks: tasks/bin/yazi.yml
-        - import_tasks: tasks/bin/jq.yml
-        - import_tasks: tasks/bin/yq.yml
-        - import_tasks: tasks/bin/starship.yml
+
+    - import_tasks: tasks/bin/fd.yml
+      tags: [bin, fd]
+    - import_tasks: tasks/bin/deno.yml
+      tags: [bin, deno]
+    - import_tasks: tasks/bin/poetry.yml
+      tags: [bin, poetry]
+    - import_tasks: tasks/bin/fnm.yml
+      tags: [bin, fnm]
+    - import_tasks: tasks/bin/fzf.yml
+      tags: [bin, fzf]
+    - import_tasks: tasks/bin/ripgrep.yml
+      tags: [bin, ripgrep]
+    - import_tasks: tasks/bin/bat.yml
+      tags: [bin, bat]
+    - import_tasks: tasks/bin/eza.yml
+      tags: [bin, eza]
+    - import_tasks: tasks/bin/zellij.yml
+      tags: [bin, zellij]
+    - import_tasks: tasks/bin/nvim.yml
+      tags: [bin, nvim]
+    - import_tasks: tasks/bin/yazi.yml
+      tags: [bin, yazi]
+    - import_tasks: tasks/bin/jq.yml
+      tags: [bin, jq]
+    - import_tasks: tasks/bin/yq.yml
+      tags: [bin, yq]
+    - import_tasks: tasks/bin/starship.yml
+      tags: [bin, starship]
+    - import_tasks: tasks/bin/imagemagick.yml
+      tags: [bin, imagemagick]
+    - import_tasks: tasks/bin/tmux.yml
+      tags: [bin, tmux]
 
     - name: Dotnet
       tags: dotnet
