@@ -1,1 +1,1 @@
-require('dyskette')
+require("config")
