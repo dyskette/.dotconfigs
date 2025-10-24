@@ -1,0 +1,82 @@
+---
+- name: Retrieve latest release information from github
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/ImageMagick/ImageMagick/releases/latest
+    method: GET
+    return_content: true
+  register: imagemagick_github_response
+
+- name: Select download url from json response
+  ansible.builtin.set_fact:
+    imagemagick_download_url: "{{ 0 | extract(imagemagick_github_response.json | community.general.json_query(url_query)) }}"
+  vars:
+    url_query: assets[?ends_with(browser_download_url,'x86_64.AppImage')].browser_download_url
+
+- name: Get filename for AppImage
+  ansible.builtin.set_fact:
+    imagemagick_filename: "{{ imagemagick_download_url | basename }}"
+
+- name: Download ImageMagick AppImage
+  ansible.builtin.get_url:
+    url: "{{ imagemagick_download_url }}"
+    dest: "/tmp/{{ imagemagick_filename }}"
+    mode: "0755"
+  register: download_status
+
+- name: Remove existing ImageMagick installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/imagemagick/"
+    state: absent
+  when: download_status.changed # Remove only if the AppImage was re-downloaded
+
+- name: Create ImageMagick installation directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/imagemagick/"
+    state: directory
+    mode: "0755"
+  when: download_status.changed # Create only if the AppImage was re-downloaded
+
+- name: Extract ImageMagick AppImage
+  ansible.builtin.shell:
+    cmd: "cd /tmp && chmod +x {{ imagemagick_filename }} && ./{{ imagemagick_filename }} --appimage-extract"
+    creates: "/tmp/squashfs-root"
+  when: download_status.changed # Extract only if the AppImage was re-downloaded
+
+- name: Install extracted ImageMagick files
+  ansible.builtin.copy:
+    src: "/tmp/squashfs-root/"
+    dest: "{{ ansible_env.HOME }}/.local/opt/imagemagick/"
+    mode: preserve
+    remote_src: yes
+  when: download_status.changed # Install only if the AppImage was re-downloaded
+
+- name: Create symlink to magick binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/imagemagick/usr/bin/magick"
+    dest: "{{ ansible_env.HOME }}/.local/bin/magick"
+    state: link
+    force: yes
+
+- name: Create symlink for convert command (legacy compatibility)
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/imagemagick/usr/bin/magick"
+    dest: "{{ ansible_env.HOME }}/.local/bin/convert"
+    state: link
+    force: yes
+
+- name: Create symlink for identify command
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/imagemagick/usr/bin/magick"
+    dest: "{{ ansible_env.HOME }}/.local/bin/identify"
+    state: link
+    force: yes
+
+- name: Clean up extracted AppImage directory
+  ansible.builtin.file:
+    path: "/tmp/squashfs-root"
+    state: absent
+
+- name: Clean up downloaded AppImage
+  ansible.builtin.file:
+    path: "/tmp/{{ imagemagick_filename }}"
+    state: absent

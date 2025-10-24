@@ -8,7 +8,7 @@ $directory\
 $git_branch\
 \n$character\
 """
-palette = "gruvbox"
+palette = "rose-pine-dawn"
 
 [palettes.gruvbox]
 background  = "#282828"
