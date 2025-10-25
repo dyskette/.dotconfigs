@@ -36,6 +36,7 @@
         - starship
         - imagemagick
         - tmux
+        - zed
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -78,6 +79,8 @@
       tags: [bin, imagemagick]
     - import_tasks: tasks/bin/tmux.yml
       tags: [bin, tmux]
+    - import_tasks: tasks/bin/zed.yml
+      tags: [bin, zed]
 
     - name: Dotnet
       tags: dotnet
