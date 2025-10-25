@@ -7,8 +7,8 @@
 .DESCRIPTION
     This script uses Boxstarter and Chocolatey to install and configure Windows applications
     and development tools. It also sets up WSL with Ubuntu 24.04 for future use.
-    
-    Boxstarter provides a more reliable and simpler approach than WSL+Ansible for 
+
+    Boxstarter provides a more reliable and simpler approach than WSL+Ansible for
     Windows environment setup, with built-in reboot resilience.
 
 .NOTES
@@ -21,79 +21,82 @@
 param(
     [Parameter(HelpMessage="Install only VS Code application")]
     [switch]$VSCode,
-    
+
     [Parameter(HelpMessage="Install only VS Code extensions")]
     [switch]$VSCodeExtensions,
-    
+
     [Parameter(HelpMessage="Install only JetBrains Mono Nerd Font")]
     [switch]$JetBrainsFont,
-    
+
     [Parameter(HelpMessage="Install only MinGW compiler")]
     [switch]$MinGW,
-    
+
     [Parameter(HelpMessage="Install only Deno runtime")]
     [switch]$Deno,
-    
+
     [Parameter(HelpMessage="Install command-line tools (make, wget, jq, fzf, etc.)")]
     [switch]$CliTools,
-    
+
     [Parameter(HelpMessage="Install only PowerShell Core")]
     [switch]$PowerShell,
-    
+
     [Parameter(HelpMessage="Install only fnm (Fast Node Manager)")]
     [switch]$Fnm,
-    
+
     [Parameter(HelpMessage="Install only Python 3.12")]
     [switch]$Python,
-    
+
     [Parameter(HelpMessage="Install only Neovim")]
     [switch]$Neovim,
-    
+
     [Parameter(HelpMessage="Install only Windows Terminal")]
     [switch]$WindowsTerminal,
-    
+
     [Parameter(HelpMessage="Install productivity apps (Obsidian, Firefox, KeePassXC, Dropbox)")]
     [switch]$ProductivityApps,
-    
+
     [Parameter(HelpMessage="Install only Yazi file manager")]
     [switch]$Yazi,
-    
+
     [Parameter(HelpMessage="Install only WezTerm terminal")]
     [switch]$WezTerm,
-    
+
     [Parameter(HelpMessage="Configure Windows settings (Explorer, Virtual Desktops, etc.)")]
     [switch]$WindowsConfig,
-    
+
     [Parameter(HelpMessage="Configure all applications (bat, PowerShell, Starship, Neovim, VS Code, Windows Terminal)")]
     [switch]$Configuration,
-    
+
     [Parameter(HelpMessage="Configure bat")]
     [switch]$BatConfig,
-    
+
     [Parameter(HelpMessage="Configure PowerShell")]
     [switch]$PowerShellConfig,
-    
+
     [Parameter(HelpMessage="Configure bash")]
     [switch]$BashConfig,
-    
+
     [Parameter(HelpMessage="Configure Starship")]
     [switch]$StarshipConfig,
-    
+
     [Parameter(HelpMessage="Configure Neovim")]
     [switch]$NeovimConfig,
-    
+
     [Parameter(HelpMessage="Configure VS Code")]
     [switch]$VSCodeConfig,
-    
+
     [Parameter(HelpMessage="Configure Windows Terminal")]
     [switch]$WindowsTerminalConfig,
-    
+
     [Parameter(HelpMessage="Configure WezTerm")]
     [switch]$WezTermConfig,
-    
+
+    [Parameter(HelpMessage="Configure Zed")]
+    [switch]$ZedConfig,
+
     [Parameter(HelpMessage="Skip WSL installation")]
     [switch]$SkipWSL,
-    
+
     [Parameter(HelpMessage="Run all tasks (default behavior)")]
     [switch]$All
 )
@@ -101,16 +104,16 @@ param(
 # Check if running as Administrator and auto-elevate if needed
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Host "Administrator privileges required. Attempting to elevate..." -ForegroundColor Yellow
-    
+
     # Build the argument string for re-launching with the same parameters
     $argString = ""
     if ($PSBoundParameters.Count -gt 0) {
-        $argString = ($PSBoundParameters.GetEnumerator() | ForEach-Object { 
-            if ($_.Value -eq $true) { "-$($_.Key)" } 
+        $argString = ($PSBoundParameters.GetEnumerator() | ForEach-Object {
+            if ($_.Value -eq $true) { "-$($_.Key)" }
             elseif ($_.Value -ne $false) { "-$($_.Key) '$($_.Value)'" }
         }) -join " "
     }
-    
+
     try {
         # Re-launch the script with Administrator privileges
         $processArgs = @{
@@ -171,7 +174,7 @@ if (-not $SkipWSL) {
 
 # Determine which components to install/configure
 # Force boolean conversion to prevent array issues
-$hasSpecificParams = $VSCode -or $VSCodeExtensions -or $JetBrainsFont -or $MinGW -or $Deno -or $CliTools -or $PowerShell -or $Fnm -or $Python -or $Neovim -or $WindowsTerminal -or $ProductivityApps -or $Yazi -or $WezTerm -or $WindowsConfig -or $Configuration -or $BatConfig -or $PowerShellConfig -or $BashConfig -or $StarshipConfig -or $NeovimConfig -or $VSCodeConfig -or $WindowsTerminalConfig -or $WezTermConfig
+$hasSpecificParams = $VSCode -or $VSCodeExtensions -or $JetBrainsFont -or $MinGW -or $Deno -or $CliTools -or $PowerShell -or $Fnm -or $Python -or $Neovim -or $WindowsTerminal -or $ProductivityApps -or $Yazi -or $WezTerm -or $WindowsConfig -or $Configuration -or $BatConfig -or $PowerShellConfig -or $BashConfig -or $StarshipConfig -or $NeovimConfig -or $VSCodeConfig -or $WindowsTerminalConfig -or $WezTermConfig -or $ZedConfig
 $runAll = [bool]($All -or (-not $hasSpecificParams))
 
 # Helper function to run scripts with error handling
@@ -181,19 +184,19 @@ function Invoke-ModularScript {
         [hashtable]$Parameters = @{},
         [string]$Description = "Running script"
     )
-    
+
     $scriptPath = Join-Path $PSScriptRoot $ScriptName
     if (Test-Path $scriptPath) {
         try {
             Write-Host "$Description..." -ForegroundColor Yellow
             $result = & $scriptPath @Parameters
-            
+
             # Check if the script exited with an error (LASTEXITCODE will be set)
             if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
                 Write-Error "$Description failed with exit code: $LASTEXITCODE"
                 return @{ status = "error"; message = "Script exited with code $LASTEXITCODE" }
             }
-            
+
             # If we got a result object with status, use it
             if ($result -and $result.status) {
                 Write-Host "$Description completed: $($result.message)" -ForegroundColor Green
@@ -223,7 +226,7 @@ $packagesToInstall = @()
 
 if ([bool]($runAll -or $MinGW)) { $packagesToInstall += "mingw" }
 if ([bool]($runAll -or $Deno)) { $packagesToInstall += "deno" }
-if ([bool]($runAll -or $CliTools)) { 
+if ([bool]($runAll -or $CliTools)) {
     $packagesToInstall += @("make", "wget", "jq", "yq", "fzf", "fd", "eza", "ripgrep", "bat", "ffmpeg", "starship", "less")
 }
 if ([bool]($runAll -or $PowerShell)) { $packagesToInstall += "powershell-core" }
@@ -232,7 +235,7 @@ if ([bool]($runAll -or $Python)) { $packagesToInstall += "python312" }
 if ([bool]($runAll -or $Neovim)) { $packagesToInstall += "neovim" }
 if ([bool]($runAll -or $WindowsTerminal)) { $packagesToInstall += "microsoft-windows-terminal" }
 if ([bool]($runAll -or $VSCode)) { $packagesToInstall += "vscode" }
-if ([bool]($runAll -or $ProductivityApps)) { 
+if ([bool]($runAll -or $ProductivityApps)) {
     $packagesToInstall += @("obsidian", "firefox", "keepassxc", "dropbox")
 }
 if ([bool]($runAll -or $Yazi)) { $packagesToInstall += "yazi" }
@@ -243,16 +246,16 @@ $scriptPath = Join-Path $PSScriptRoot "Install-Packages.ps1"
 if (Test-Path $scriptPath) {
     try {
         Write-Host "Installing packages via winget and chocolatey..." -ForegroundColor Yellow
-        
+
         if ($packagesToInstall.Count -gt 0) {
             Write-Host "Installing $($packagesToInstall.Count) packages: $($packagesToInstall -join ', ')" -ForegroundColor Cyan
-            
+
             # Source the script to load the function and mappings
             . $scriptPath
-            
+
             # Call the Install-Packages function
             Install-Packages -PackageNames $packagesToInstall
-            
+
             $packageResult = @{ status = "success"; message = "Package installation completed" }
         } else {
             Write-Host "No packages selected for installation." -ForegroundColor Yellow
@@ -317,6 +320,10 @@ if ($runAll -or $WezTermConfig -or $Configuration) {
     Invoke-ModularScript -ScriptName "Configure-WezTerm.ps1" -Description "Configuring WezTerm"
 }
 
+if ($runAll -or $ZedConfig -or $Configuration) {
+    Invoke-ModularScript -ScriptName "Configure-Zed.ps1" -Description "Configuring Zed"
+}
+
 if ($runAll -or $VSCodeExtensions) {
     Invoke-ModularScript -ScriptName "Install-VSCodeExtensions.ps1" -Description "Installing VS Code extensions"
 }
@@ -331,4 +338,4 @@ Write-Host "Your Windows development environment has been configured using Boxst
 Write-Host "WSL with Ubuntu 24.04 is available for future use." -ForegroundColor White
 Write-Host ""
 Write-Host "You may need to restart your shell to use newly installed tools." -ForegroundColor Yellow
-Write-Host "Some applications may have been installed and are ready to use." -ForegroundColor White 
+Write-Host "Some applications may have been installed and are ready to use." -ForegroundColor White

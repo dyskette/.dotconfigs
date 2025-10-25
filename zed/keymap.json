@@ -20,6 +20,14 @@
         }
     },
 
+    // Fix select previous in file finder
+    {
+        "context": "FileFinder || (FileFinder > Picker > Editor)",
+        "bindings": {
+            "ctrl-p": "menu::SelectPrevious"
+        }
+    },
+
     {
         "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator",
         "bindings": {
@@ -35,9 +43,9 @@
 
             // Git operations
             "space g g": "git_panel::ToggleFocus",
-            "space g s": "git::StageAndNext",      // Stage hunk
-            "space g u": "git::UnstageAndNext",    // Unstage hunk
-            "space g r": "git::Restore",           // Restore hunk
+            "space g s": "git::StageAndNext", // Stage hunk
+            "space g u": "git::UnstageAndNext", // Unstage hunk
+            "space g r": "git::Restore", // Restore hunk
             // "space g b": "editor::ToggleGitBlame",
             "space g d": "git::Diff",
 
