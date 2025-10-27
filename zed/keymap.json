@@ -37,23 +37,12 @@
             "space s r": "file_finder::Toggle",
             "space s b": "tab_switcher::Toggle",
             "space s g": "pane::DeploySearch",
+            "space s w": "pane::DeploySearch",
 
-            // File explorer
-            "space e": "project_panel::ToggleFocus",
-
-            // Git operations
+            // Panels
             "space g g": "git_panel::ToggleFocus",
-            "space g s": "git::StageAndNext", // Stage hunk
-            "space g u": "git::UnstageAndNext", // Unstage hunk
-            "space g r": "git::Restore", // Restore hunk
-            // "space g b": "editor::ToggleGitBlame",
-            "space g d": "git::Diff",
-
-            // Quickfix / Problems
-            "space q": "diagnostics::Deploy",
-            "space x x": "diagnostics::Deploy",
-
-            // Terminal
+            "space e": "project_panel::ToggleFocus",
+            "space x x": "diagnostics::Deploy", // quickfix
             "ctrl |": "terminal_panel::ToggleFocus"
         }
     },
@@ -64,6 +53,13 @@
     {
         "context": "VimControl && !menu",
         "bindings": {
+            // Git operations
+            "space g s": "git::StageAndNext", // Stage hunk
+            "space g u": "git::UnstageAndNext", // Unstage hunk
+            "space g x": "git::Restore", // Restore hunk
+            "space g b": "git::Blame",
+            "space g d": "git::Diff",
+
             // Keep cursor centered when searching
             // "n": "vim::SearchNext",
             // "shift-n": "vim::SearchPrev",
@@ -113,6 +109,17 @@
     },
 
     // ============================================================================
+    // Completion menu bindings
+    // ============================================================================
+    {
+        "context": "Editor && showing_completions",
+        "bindings": {
+            // Accept completion suggestion
+            "ctrl-y": "editor::ConfirmCompletion"
+        }
+    },
+
+    // ============================================================================
     // Editor bindings (visual mode)
     // ============================================================================
     {
@@ -142,6 +149,31 @@
             // System clipboard operations
             "space y": "editor::Copy",
             "space p": "editor::Paste"
+        }
+    },
+
+    // ============================================================================
+    // Agent Panel bindings
+    // ============================================================================
+    {
+        "context": "AgentPanel || (AgentPanel > MessageEditor > Editor && vim_mode == normal)",
+        "bindings": {
+            "ctrl-y": "agent::AllowOnce",
+            "ctrl-shift-y": "agent::AllowAlways",
+            "ctrl-x": "agent::RejectOnce"
+        }
+    },
+
+    // ============================================================================
+    // Git Panel bindings
+    // ============================================================================
+    {
+        "context": "GitPanel && ChangesList",
+        "use_key_equivalents": true,
+        "bindings": {
+            "s": "git::StageFile",
+            "u": "git::UnstageFile",
+            "x": ["git::RestoreFile", { "skip_prompt": false }]
         }
     },
 
