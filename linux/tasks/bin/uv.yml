@@ -1,0 +1,20 @@
+---
+- name: Install UV to ~/.local/opt/uv
+  ansible.builtin.shell: |
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$HOME/.local/opt/uv" UV_NO_MODIFY_PATH=1 sh
+  args:
+    creates: "{{ ansible_env.HOME }}/.local/opt/deno/uv"
+
+- name: Create symlink to UV binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/uv/uv"
+    dest: "{{ ansible_env.HOME }}/.local/bin/uv"
+    state: link
+    force: yes
+
+- name: Create symlink to UVX binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/uv/uvx"
+    dest: "{{ ansible_env.HOME }}/.local/bin/uvx"
+    state: link
+    force: yes
