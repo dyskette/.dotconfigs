@@ -22,6 +22,7 @@
         - bin
         - fd
         - deno
+        - uv
         - poetry
         - fnm
         - fzf
@@ -37,6 +38,7 @@
         - imagemagick
         - tmux
         - zed
+        - lazygit
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -51,6 +53,8 @@
       tags: [bin, fd]
     - import_tasks: tasks/bin/deno.yml
       tags: [bin, deno]
+    - import_tasks: tasks/bin/uv.yml
+      tags: [bin, uv]
     - import_tasks: tasks/bin/poetry.yml
       tags: [bin, poetry]
     - import_tasks: tasks/bin/fnm.yml
@@ -81,6 +85,8 @@
       tags: [bin, tmux]
     - import_tasks: tasks/bin/zed.yml
       tags: [bin, zed]
+    - import_tasks: tasks/bin/lazygit.yml
+      tags: [bin, lazygit]
 
     - name: Dotnet
       tags: dotnet

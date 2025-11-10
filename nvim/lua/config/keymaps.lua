@@ -255,6 +255,52 @@ return {
       end,
       desc = "Show git blame",
     },
+    {
+      "<leader>gs",
+      function()
+        require("gitsigns").stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
+      end,
+      mode = { "x" },
+      desc = "Stage hunk",
+    },
+    {
+      "<leader>gs",
+      function()
+        require("gitsigns").stage_hunk()
+      end,
+      mode = { "n" },
+      desc = "Stage hunk",
+    },
+    {
+      "<leader>gx",
+      function()
+        require("gitsigns").reset_hunk()
+      end,
+      mode = { "n" },
+      desc = "Reset hunk",
+    },
+    {
+      "<leader>gx",
+      function()
+        require("gitsigns").reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
+      end,
+      mode = { "x" },
+      desc = "Reset hunk",
+    },
+    {
+      "<leader>gS",
+      function()
+        require("gitsigns").stage_buffer()
+      end,
+      desc = "Stage buffer",
+    },
+    {
+      "<leader>gX",
+      function()
+        require("gitsigns").reset_buffer()
+      end,
+      desc = "Reset buffer",
+    },
   },
 
   neogit = {
@@ -278,7 +324,7 @@ return {
     {
       "<leader>sr",
       function()
-        require("fzf-lua").oldfiles({ cwd_only = true, include_current_session = true})
+        require("fzf-lua").oldfiles({ cwd_only = true, include_current_session = true })
       end,
       desc = "Search recent files (current working directory only)",
     },
@@ -374,7 +420,7 @@ return {
     {
       "<leader>oa",
       function()
-        require("opencode").ask("@this: ", { submit = true })
+        require("opencode").ask("", { submit = true })
       end,
       mode = { "n", "x" },
       desc = "Ask about this",

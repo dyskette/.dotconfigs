@@ -42,6 +42,8 @@
     - { src: "zed/settings.json", dest: "{{ config_dir }}/zed/settings.json" }
     - { src: "wezterm", dest: "{{ config_dir }}/wezterm" }
     - { src: "zellij", dest: "{{ config_dir }}/zellij" }
+    - { src: "yazi", dest: "{{ config_dir }}/yazi" }
+    - { src: "opencode", dest: "{{ config_dir }}/opencode" }
   tags: dotfiles
 
 - name: Dotfiles | Run bat cache
