@@ -26,6 +26,7 @@
           pkg:
             - git
             - unzip
+            - xz-utils
             - make
             - gcc
             - python3-venv
@@ -69,6 +70,7 @@
             - wl-clipboard
             - p7zip
             - p7zip-plugins
+            - xz
             - ghostty
 
       - name: Fedora Silverblue | Add flathub repository
@@ -117,5 +119,6 @@
             - wl-clipboard
             - p7zip
             - p7zip-plugins
+            - xz
             - dbus-tools
             - gtk4

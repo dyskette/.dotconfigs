@@ -39,6 +39,8 @@
         - tmux
         - zed
         - lazygit
+        - jetbrains-mono-nerd-font
+        - nerd-fonts-symbols-only
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -87,6 +89,10 @@
       tags: [bin, zed]
     - import_tasks: tasks/bin/lazygit.yml
       tags: [bin, lazygit]
+    - import_tasks: tasks/bin/jetbrains-mono-nerd-font.yml
+      tags: [bin, jetbrains-mono-nerd-font, fonts]
+    - import_tasks: tasks/bin/nerd-fonts-symbols-only.yml
+      tags: [bin, nerd-fonts-symbols-only, fonts]
 
     - name: Dotnet
       tags: dotnet
