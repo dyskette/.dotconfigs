@@ -7,13 +7,28 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+    "git_panel": {
+        "sort_by_path": true
+    },
     "wsl_connections": [
         {
             "distro_name": "FedoraLinux-42",
             "user": null,
             "projects": [
                 {
-                    "paths": ["/home/eddyca/Projects/bitbucket-zucarmex/cac-catalog-service/./"]
+                    "paths": [
+                        "/home/eddyca/Projects/bitbucket-zucarmex/cac-catalog-service/./"
+                    ]
+                },
+                {
+                    "paths": [
+                        "/home/eddyca/Projects/bitbucket-zucarmex/cac-credit-service/./"
+                    ]
+                },
+                {
+                    "paths": [
+                        "/home/eddyca/Projects/fgr/has-visto-a/./"
+                    ]
                 }
             ]
         }
@@ -29,7 +44,7 @@
     "buffer_font_size": 14,
     "theme": {
         "mode": "system",
-        "light": "One Light",
+        "light": "Rosé Pine Dawn",
         "dark": "Gruvbox Dark"
     },
 
@@ -46,16 +61,13 @@
 
     // Editor appearance
     "buffer_font_family": "JetBrainsMonoNL Nerd Font",
-    "relative_line_numbers": true,
+    "relative_line_numbers": "enabled",
     "scroll_beyond_last_line": "off",
     "vertical_scroll_margin": 999,
     "wrap_guides": [120],
     "preferred_line_length": 120,
     "soft_wrap": "none",
     "show_whitespaces": "all",
-    "tab_bar": {
-        "show": false
-    },
 
     // Indentation (matching nvim defaults)
     "tab_size": 4,
