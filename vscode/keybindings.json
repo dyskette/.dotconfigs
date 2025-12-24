@@ -29,6 +29,11 @@
     "when": "codeActionMenuVisible"
   },
   {
+    "key": "ctrl+w d",
+    "command": "workbench.action.compareEditor.focusOtherSide",
+    "when": "textCompareEditorActive"
+  },
+  {
     "key": "ctrl+w k",
     "command": "workbench.action.navigateUp",
     "when": "!editorTextFocus"
