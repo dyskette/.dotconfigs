@@ -1,3 +1,5 @@
+// Amazing keys
+//
 // Zed keymap
 //
 // For information on binding keys, see the Zed
@@ -5,9 +7,12 @@
 //
 // To see the default key bindings run `zed: open default keymap`
 // from the command palette.
+//
+// Custom vim-style keybindings for Zed editor
+
 [
     // ============================================================================
-    // Workspace-level bindings
+    // WORKSPACE & PANES
     // ============================================================================
     {
         "context": "Workspace",
@@ -20,51 +25,35 @@
         }
     },
 
-    // Fix select previous in file finder
+    // ============================================================================
+    // FILE NAVIGATION & SEARCH
+    // ============================================================================
     {
-        "context": "FileFinder || (FileFinder > Picker > Editor)",
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
         "bindings": {
-            "ctrl-p": "menu::SelectPrevious"
-        }
-    },
-
-    {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator",
-        "bindings": {
-            // File navigation (matching fzf keymaps)
-            "space s f": "file_finder::Toggle",
-            "space s i": "file_finder::Toggle", // git files fallback
-            "space s r": "file_finder::Toggle",
-            "space s b": "tab_switcher::Toggle",
-            "space s g": "pane::DeploySearch",
-            "space s w": "pane::DeploySearch",
+            // File search (matching fzf keymaps)
+            "space s f": "file_finder::Toggle",         // Search files
+            "space s i": "file_finder::Toggle",         // Search git files (fallback)
+            "space s r": "file_finder::Toggle",         // Search recent files
+            "space s b": "tab_switcher::Toggle",        // Search buffers
+            "space s g": "pane::DeploySearch",          // Search by grep
+            "space s w": "pane::DeploySearch",          // Search current word
+            "space s o": "outline::Toggle",             // Symbol search
 
             // Panels
-            "space g g": "git_panel::ToggleFocus",
-            "space e": "project_panel::ToggleFocus",
-            "space x x": "diagnostics::Deploy", // quickfix
-            "ctrl |": "terminal_panel::ToggleFocus"
+            "space e": "project_panel::ToggleFocus",    // File explorer
+            "space o o": "agent::ToggleFocus",          // AI agent
+            "space x x": "diagnostics::Deploy"          // Diagnostics (quickfix)
         }
     },
 
     // ============================================================================
-    // Editor bindings (normal mode)
+    // LSP NAVIGATION & ACTIONS
     // ============================================================================
     {
         "context": "VimControl && !menu",
         "bindings": {
-            // Git operations
-            "space g s": "git::StageAndNext", // Stage hunk
-            "space g u": "git::UnstageAndNext", // Unstage hunk
-            "space g x": "git::Restore", // Restore hunk
-            "space g b": "git::Blame",
-            "space g d": "git::Diff",
-
-            // Keep cursor centered when searching
-            // "n": "vim::SearchNext",
-            // "shift-n": "vim::SearchPrev",
-
-            // LSP navigation (matching fzf LSP keymaps)
+            // Navigation
             "g d": "editor::GoToDefinition",
             "g shift-d": "editor::GoToDeclaration",
             "g i": "editor::GoToImplementation",
@@ -72,33 +61,103 @@
             "g o": "editor::GoToTypeDefinition",
             "shift-k": "editor::Hover",
 
-            // Diagnostics navigation
-            "space d j": "editor::GoToDiagnostic",
-            // "space d k": "editor::GoToPrevDiagnostic",
-            "space v d": "editor::Hover",
-
-            // LSP actions
+            // Actions
             "space r n": "editor::Rename",
             "space v a": "editor::ToggleCodeActions",
+            "space v d": "editor::Hover",
 
             // Formatting
-            "space f l": "editor::Format",
             "space f f": "editor::Format",
-
-            // Selection
-            "space a": "editor::SelectAll",
-
-            // Line insertion without entering insert mode
-            "space o": ["workspace::SendKeystrokes", "o escape"],
-            "space shift-o": ["workspace::SendKeystrokes", "shift-o escape"],
-
-            // Symbol search
-            "space s o": "outline::Toggle"
+            "space f l": "editor::Format"
         }
     },
 
     // ============================================================================
-    // Editor bindings (insert mode)
+    // DIAGNOSTICS
+    // ============================================================================
+    {
+        "context": "VimControl && !menu",
+        "bindings": {
+            "space d j": "editor::GoToDiagnostic",
+            "space d k": "editor::GoToPreviousDiagnostic"
+        }
+    },
+
+    // ============================================================================
+    // GIT OPERATIONS
+    // ============================================================================
+    {
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
+        "bindings": {
+            "space g g": "git_panel::ToggleFocus"       // Git status
+        }
+    },
+    {
+        "context": "VimControl && !menu",
+        "bindings": {
+            "space g s": "git::StageAndNext",           // Stage hunk
+            "space g u": "git::UnstageAndNext",         // Unstage hunk
+            "space g x": "git::Restore",                // Restore hunk
+            "space g b": "git::Blame",                  // Git blame
+            "space g d": "git::Diff"                    // Git diff
+        }
+    },
+
+    // Git panel bindings
+    {
+        "context": "GitPanel && ChangesList",
+        "use_key_equivalents": true,
+        "bindings": {
+            "s": "git::StageFile",
+            "u": "git::UnstageFile",
+            "x": ["git::RestoreFile", { "skip_prompt": false }],
+            "p p": "git::Pull",
+            "shift-p p": "git::Push",
+            "b b": "git::Branch"
+        }
+    },
+
+    // ============================================================================
+    // AI AGENT OPERATIONS
+    // ============================================================================
+    {
+        "context": "(VimControl && !menu) || (AgentPanel && !Editor) || (AgentPanel > MessageEditor > Editor && VimControl && vim_mode == normal)",
+        "bindings": {
+            "space o y": "agent::AllowOnce",
+            "space o shift-y": "agent::AllowAlways",
+            "space o x": "agent::RejectOnce",
+            "space o shift-x": "agent::RejectAll",
+            "space o k": "agent::KeepAll"
+        }
+    },
+
+    // // Agent diff view bindings
+    // {
+    //     "context": "Editor && editor_agent_diff",
+    //     "bindings": {
+    //         "space o y": "agent::Keep",
+    //         "space o shift-y": "agent::KeepAll",
+    //         "space o x": "agent::Reject",
+    //         "space o shift-x": "agent::RejectAll"
+    //     }
+    // },
+
+    // ============================================================================
+    // EDITOR - NORMAL MODE
+    // ============================================================================
+    {
+        "context": "VimControl && !menu",
+        "bindings": {
+            // Selection
+            "space a": "editor::SelectAll",
+
+            // Focus mode - hide all panels
+            "space space": "workspace::ToggleZoom"
+        }
+    },
+
+    // ============================================================================
+    // EDITOR - INSERT MODE
     // ============================================================================
     {
         "context": "Editor && vim_mode == insert",
@@ -109,91 +168,78 @@
     },
 
     // ============================================================================
-    // Completion menu bindings
-    // ============================================================================
-    {
-        "context": "Editor && showing_completions",
-        "bindings": {
-            // Accept completion suggestion
-            "ctrl-y": "editor::ConfirmCompletion"
-        }
-    },
-
-    // ============================================================================
-    // Editor bindings (visual mode)
+    // EDITOR - VISUAL MODE
     // ============================================================================
     {
         "context": "Editor && vim_mode == visual",
         "bindings": {
-            // Move lines up/down in visual mode
+            // Move lines
             "shift-j": "editor::MoveLineDown",
             "shift-k": "editor::MoveLineUp",
 
-            // Indentation while staying in visual mode
+            // Indentation
             "<": "editor::Outdent",
             ">": "editor::Indent",
 
-            // LSP actions in visual mode
+            // LSP actions
             "space v a": "editor::ToggleCodeActions",
-            "space f f": "editor::Format",
-            "space f l": "editor::Format"
+            "space f f": "editor::Format"
         }
     },
 
     // ============================================================================
-    // Editor bindings (normal + visual mode)
+    // EDITOR - NORMAL + VISUAL MODE
     // ============================================================================
     {
         "context": "Editor && vim_mode == normal || Editor && vim_mode == visual",
         "bindings": {
-            // System clipboard operations
+            // System clipboard
             "space y": "editor::Copy",
             "space p": "editor::Paste"
         }
     },
 
     // ============================================================================
-    // Agent Panel bindings
+    // COMPLETION MENU
     // ============================================================================
     {
-        "context": "AgentPanel || (AgentPanel > MessageEditor > Editor && vim_mode == normal)",
+        "context": "Editor && showing_completions",
         "bindings": {
-            "ctrl-y": "agent::AllowOnce",
-            "ctrl-shift-y": "agent::AllowAlways",
-            "ctrl-x": "agent::RejectOnce"
+            "ctrl-y": "editor::ConfirmCompletion"
         }
     },
 
     // ============================================================================
-    // Git Panel bindings
+    // TERMINAL
     // ============================================================================
     {
-        "context": "GitPanel && ChangesList",
-        "use_key_equivalents": true,
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
         "bindings": {
-            "s": "git::StageFile",
-            "u": "git::UnstageFile",
-            "x": ["git::RestoreFile", { "skip_prompt": false }]
+            "ctrl-z": "terminal_panel::ToggleFocus"
         }
     },
-
-    // ============================================================================
-    // Terminal bindings
-    // ============================================================================
     {
         "context": "Terminal",
         "bindings": {
-            "ctrl |": "workspace::ToggleBottomDock"
+            "ctrl z": "terminal_panel::Toggle",
+            // Deshabilitar ctrl-n y ctrl-p para permitir navegación en fzf
+            "ctrl-n": null,
+            "ctrl-p": null
         }
     },
 
     // ============================================================================
-    // Project panel bindings
+    // PROJECT PANEL
     // ============================================================================
+    {
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
+        "bindings": {
+            "space e": "project_panel::ToggleFocus"
+        }
+    },
     {
         "context": "ProjectPanel",
         "bindings": {
-            "-": "project_panel::ToggleFocus",
             "space e": "workspace::ToggleLeftDock"
         }
     }

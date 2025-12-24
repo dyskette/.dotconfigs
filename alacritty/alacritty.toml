@@ -1,0 +1,12 @@
+# :schema https://raw.githubusercontent.com/distinction-dev/alacritty-schema/refs/heads/main/alacritty/reference.json
+[general]
+import = [
+    "./gruvbox.toml",
+    "./kanagawa.toml",
+]
+
+[font]
+normal = { family = "JetBrainsMonoNL Nerd Font" }
+
+[terminal]
+shell = { program = "wsl.exe ~ -d Ubuntu-24.04" }

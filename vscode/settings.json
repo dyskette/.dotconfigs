@@ -86,6 +86,11 @@
       "commands": ["magit.status"]
     },
     {
+      "before": ["<Leader>", "g", "d"],
+      // "commands": ["git.openChange"]
+      "commands": ["gitlens.diffWithPrevious"]
+    },
+    {
       "before": ["u"],
       "after": [],
       "commands": [
@@ -339,5 +344,18 @@
   "redhat.telemetry.enabled": true,
   "diffEditor.ignoreTrimWhitespace": false,
   "window.commandCenter": true,
-  "python.analysis.typeCheckingMode": "standard"
+  "python.analysis.typeCheckingMode": "standard",
+  "markdown-preview-enhanced.previewTheme": "monokai.css",
+  "mssql.connectionGroups": [
+    {
+      "name": "ROOT",
+      "id": "F669F3D4-5C4B-4052-A2CF-380982E2B64D"
+    },
+    {
+      "name": "fgr",
+      "color": "#7160E8",
+      "id": "F6FBA804-5AB4-4245-A4EE-BDC66137C57A",
+      "parentId": "F669F3D4-5C4B-4052-A2CF-380982E2B64D"
+    }
+  ]
 }
