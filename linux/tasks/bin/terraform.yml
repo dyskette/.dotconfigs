@@ -1,0 +1,56 @@
+---
+# Fedora installation (dnf)
+- name: Install dnf-plugins-core (Fedora)
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+  become: true
+  when: is_fedora
+
+- name: Add HashiCorp repository (Fedora)
+  ansible.builtin.shell: |
+    wget -O- https://rpm.releases.hashicorp.com/fedora/hashicorp.repo | sudo tee /etc/yum.repos.d/hashicorp.repo
+  args:
+    creates: /etc/yum.repos.d/hashicorp.repo
+  when: is_fedora
+
+- name: Install Terraform (Fedora)
+  ansible.builtin.dnf:
+    name: terraform
+    state: present
+  become: true
+  when: is_fedora
+
+# Ubuntu installation (apt)
+- name: Install prerequisite packages (Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - wget
+      - gpg
+      - lsb-release
+    state: present
+    update_cache: true
+  become: true
+  when: is_ubuntu
+
+- name: Download and install HashiCorp GPG key (Ubuntu)
+  ansible.builtin.shell: |
+    wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  when: is_ubuntu
+
+- name: Add HashiCorp repository (Ubuntu)
+  ansible.builtin.shell: |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+  args:
+    creates: /etc/apt/sources.list.d/hashicorp.list
+  when: is_ubuntu
+
+- name: Install Terraform (Ubuntu)
+  ansible.builtin.apt:
+    name: terraform
+    state: present
+    update_cache: true
+  become: true
+  when: is_ubuntu
