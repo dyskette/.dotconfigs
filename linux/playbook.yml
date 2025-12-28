@@ -47,6 +47,7 @@
         - postgresql
         - openjdk
         - sqlcl
+        - terraform
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -111,6 +112,8 @@
       tags: [bin, openjdk]
     - import_tasks: tasks/bin/sqlcl.yml
       tags: [bin, sqlcl]
+    - import_tasks: tasks/bin/terraform.yml
+      tags: [bin, terraform]
 
     - name: Dotnet
       tags: dotnet
