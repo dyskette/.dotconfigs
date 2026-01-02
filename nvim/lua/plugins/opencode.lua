@@ -7,23 +7,17 @@ return {
     keys = require("config.keymaps").opencode,
     dependencies = {
       -- Recommended for `ask()` and `select()`.
-      -- Required for `toggle()`.
-      { "folke/snacks.nvim", opts = { input = {}, picker = {} } },
+      -- Required for `snacks` provider.
+      { "folke/snacks.nvim", opts = { input = {}, picker = {}, terminal = {} } },
     },
     config = function()
+      ---@type opencode.Opts
       vim.g.opencode_opts = {
         -- Your configuration, if any — see `lua/opencode/config.lua`
       }
 
-      -- Required for `vim.g.opencode_opts.auto_reload`
-      vim.opt.autoread = true
-    end,
-  },
-  {
-    "supermaven-inc/supermaven-nvim",
-    event = utils.events.VeryLazy,
-    config = function()
-      require("supermaven-nvim").setup({})
+      -- Required for `opts.events.reload`
+      vim.o.autoread = true
     end,
   },
 }
