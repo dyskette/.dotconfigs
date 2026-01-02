@@ -39,6 +39,8 @@
         - tmux
         - zed
         - lazygit
+        - azure-cli
+        - tree-sitter-cli
         - jetbrains-mono-nerd-font
         - nerd-fonts-symbols-only
       block:
@@ -89,6 +91,10 @@
       tags: [bin, zed]
     - import_tasks: tasks/bin/lazygit.yml
       tags: [bin, lazygit]
+    - import_tasks: tasks/bin/azure-cli.yml
+      tags: [bin, azure-cli]
+    - import_tasks: tasks/bin/tree-sitter-cli.yml
+      tags: [bin, tree-sitter-cli]
     - import_tasks: tasks/bin/jetbrains-mono-nerd-font.yml
       tags: [bin, jetbrains-mono-nerd-font, fonts]
     - import_tasks: tasks/bin/nerd-fonts-symbols-only.yml
@@ -113,6 +119,10 @@
           vars:
             dotnet_version: 9.0
           tags: dotnet9
+        - import_tasks: tasks/dotnet.yml
+          vars:
+            dotnet_version: 10.0
+          tags: dotnet10
 
     - import_tasks: tasks/dotfiles.yml
       tags: dotfiles
