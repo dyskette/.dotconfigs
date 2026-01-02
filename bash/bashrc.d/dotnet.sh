@@ -3,7 +3,8 @@
 dotnetdir="$HOME/.local/opt/dotnet"
 if [ -d "$dotnetdir" ]; then
 	export DOTNET_ROOT="$dotnetdir"
-	export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+	export DOTNET_CLI_HOME="$dotnetdir"
+	export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/.dotnet/tools
 fi
 unset dotnetdir
 
