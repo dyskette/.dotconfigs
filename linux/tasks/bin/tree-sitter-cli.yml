@@ -1,0 +1,50 @@
+---
+- name: Retrieve latest release information from GitHub
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/tree-sitter/tree-sitter/releases/latest
+    method: GET
+    return_content: true
+  register: tree_sitter_github_response
+
+- name: Select download url from json response
+  ansible.builtin.set_fact:
+    tree_sitter_download_url: "{{ 0 | extract(tree_sitter_github_response.json | community.general.json_query(url_query)) }}"
+  vars:
+    url_query: assets[?ends_with(browser_download_url,'linux-x64.gz')].browser_download_url
+
+- name: Download tree-sitter-cli tarball
+  ansible.builtin.get_url:
+    url: "{{ tree_sitter_download_url }}"
+    dest: /tmp/tree-sitter-linux-x64.gz
+    mode: "0644"
+  register: download_status
+
+- name: Remove existing tree-sitter-cli installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/tree-sitter"
+    state: absent
+  when: download_status.changed # Remove only if the tarball was re-downloaded
+
+- name: Create tree-sitter-cli directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/tree-sitter"
+    state: directory
+  when: download_status.changed # Create only if the tarball was re-downloaded
+
+- name: Extract tree-sitter-cli binary
+  ansible.builtin.shell: |
+    gunzip -c /tmp/tree-sitter-linux-x64.gz > {{ ansible_env.HOME }}/.local/opt/tree-sitter/tree-sitter
+    chmod +x {{ ansible_env.HOME }}/.local/opt/tree-sitter/tree-sitter
+  when: download_status.changed # Extract only if the tarball was re-downloaded
+
+- name: Create symlink to binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/tree-sitter/tree-sitter"
+    dest: "{{ ansible_env.HOME }}/.local/bin/tree-sitter"
+    state: link
+    force: yes
+
+- name: Clean up downloaded tarball
+  ansible.builtin.file:
+    path: /tmp/tree-sitter-linux-x64.gz
+    state: absent

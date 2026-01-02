@@ -33,8 +33,7 @@ local mason_tool_installer_opts = function()
     -- other languages
     -- "omnisharp", -- c#
     -- "csharp-language-server", -- c#
-    "roslyn", -- c#
-    "rzls", -- razor
+    "roslyn", -- c# (includes integrated Razor support)
     "rust-analyzer", -- rust
   }
 

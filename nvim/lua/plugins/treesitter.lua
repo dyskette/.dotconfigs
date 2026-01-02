@@ -1,55 +1,151 @@
 local utils = require("config.utils")
 
-local treesitter_build = function()
-  require("nvim-treesitter.install").update({ with_sync = true })()
+-- Install parsers on plugin build/update
+local treesitter_build = ":TSUpdate"
+
+-- Setup function for nvim-treesitter (main branch)
+local treesitter_setup = function()
+  -- Map of languages with their related variants
+  -- Each key is a base language, and the value is a list of related treesitter parsers
+  local language_families = {
+    -- Scripting languages
+    lua = { "lua", "luadoc", "luap" },
+    bash = { "bash" },
+    sh = { "bash" }, -- alias for bash
+    powershell = { "powershell" },
+    python = { "python" },
+
+    -- JavaScript/TypeScript family
+    javascript = { "javascript", "jsdoc" },
+    typescript = { "typescript", "tsx" },
+    javascriptreact = { "javascript", "tsx", "jsdoc" },
+    typescriptreact = { "typescript", "tsx", "jsdoc" },
+    vue = { "vue", "javascript", "typescript" },
+
+    -- Web technologies
+    html = { "html" },
+    css = { "css", "scss", "sass" },
+    scss = { "scss", "css" },
+    less = { "less", "css" },
+
+    -- Data formats
+    json = { "json", "jsonc", "json5" },
+    jsonc = { "json", "jsonc" },
+    yaml = { "yaml" },
+    yml = { "yaml" },
+    xml = { "xml" },
+    toml = { "toml" },
+
+    -- Compiled languages
+    cs = { "c_sharp" },
+    razor = { "razor", "c_sharp", "html" },
+    dart = { "dart" },
+    rust = { "rust" },
+
+    -- Editor/Neovim specific
+    vim = { "vim", "vimdoc" },
+    markdown = { "markdown", "markdown_inline" },
+    query = { "query" },
+    gitcommit = { "gitcommit", "git_rebase", "gitignore", "gitattributes" },
+
+    -- System
+    c = { "c" },
+    sql = { "sql" },
+  }
+
+  -- Collect all unique parsers from language families
+  local parser_set = {}
+  for _, parsers in pairs(language_families) do
+    for _, parser in ipairs(parsers) do
+      parser_set[parser] = true
+    end
+  end
+
+  -- Convert set to list
+  local parsers = {}
+  for parser, _ in pairs(parser_set) do
+    table.insert(parsers, parser)
+  end
+
+  -- Schedule parser installation to run after startup
+  vim.schedule(function()
+    local ok, ts = pcall(require, "nvim-treesitter")
+    if ok and ts.install then
+      ts.install(parsers)
+    end
+  end)
 end
 
----@param lang string
----@param buffer_number number
-local treesitter_disable = function(lang, buffer_number)
-  return vim.api.nvim_buf_line_count(buffer_number) > 8000
-end
-
-local treesitterconfig_init = function()
+-- Enable treesitter highlighting for supported languages
+local treesitter_init = function()
   -- Disable default vim syntax highlighting
   vim.cmd.syntax("off")
-end
 
-local treesitterconfig_opts = {
-  highlight = {
-    enable = true,
-    disable = treesitter_disable,
-    additional_vim_regex_highlighting = false,
-  },
-  indent = {
-    enable = true,
-  },
-  auto_install = true,
-  sync_install = false,  -- Don't block on parser installation
-  modules = {},
-  ignore_install = {},
-  ensure_installed = {
-    -- The following parsers should always be installed
-    "c",
+  -- Define all filetypes that have treesitter support
+  -- This matches the languages configured in LSP plus their variants
+  local supported_filetypes = {
+    -- Scripting
     "lua",
-    "markdown",
-    "markdown_inline",
+    "sh",
+    "bash",
+    "ps1",
+    "psm1",
+    "psd1",
+    "python",
+
+    -- JavaScript/TypeScript ecosystem
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact",
+    "vue",
+
+    -- Web technologies
+    "html",
+    "css",
+    "scss",
+    "sass",
+    "less",
+
+    -- Data formats
+    "json",
+    "jsonc",
+    "yaml",
+    "yml",
+    "xml",
+    "toml",
+
+    -- Compiled languages
+    "cs",
+    "dart",
+    "rust",
+
+    -- Editor/Git
     "vim",
     "vimdoc",
     "query",
-    -- Other parsers
-    "javascript",
-    "typescript",
-    "c_sharp",
-    "razor",
-    "html",
-    "python",
+    "markdown",
     "gitcommit",
+    "gitrebase",
+    "gitignore",
+    "gitattributes",
+
+    -- System
+    "c",
     "sql",
-    "css",
-    "vue",
-  },
-}
+  }
+
+  -- Enable treesitter highlighting for supported filetypes
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = supported_filetypes,
+    callback = function()
+      vim.treesitter.start()
+    end,
+  })
+
+  -- Razor highlighting is handled by rzls.nvim plugin
+  -- Don't auto-start treesitter for razor files to avoid conflicts
+end
 
 local indent_blankline_opts = {
   scope = {
@@ -59,11 +155,11 @@ local indent_blankline_opts = {
 
 return {
   "nvim-treesitter/nvim-treesitter",
-  event = { utils.events.BufReadPre, utils.events.BufNewFile },
+  lazy = false,
+  branch = "main",
   build = treesitter_build,
-  init = treesitterconfig_init,
-  opts = treesitterconfig_opts,
-  main = "nvim-treesitter.configs",
+  init = treesitter_init,
+  config = treesitter_setup,
   dependencies = {
     { "windwp/nvim-ts-autotag" },
     {
