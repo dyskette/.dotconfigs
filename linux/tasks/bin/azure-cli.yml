@@ -1,0 +1,84 @@
+---
+# Ubuntu/Debian installation
+- name: Install Azure CLI on Ubuntu
+  when: is_ubuntu
+  block:
+    - name: Install required packages for Azure CLI
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Create apt keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      become: yes
+
+    - name: Download and install Microsoft signing key
+      ansible.builtin.shell: |
+        curl -sLS https://packages.microsoft.com/keys/microsoft.asc | \
+        gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+        chmod go+r /etc/apt/keyrings/microsoft.gpg
+      args:
+        creates: /etc/apt/keyrings/microsoft.gpg
+      become: yes
+
+    - name: Add Azure CLI repository
+      ansible.builtin.shell: |
+        AZ_DIST=$(lsb_release -cs)
+        echo "Types: deb
+        URIs: https://packages.microsoft.com/repos/azure-cli/
+        Suites: ${AZ_DIST}
+        Components: main
+        Architectures: $(dpkg --print-architecture)
+        Signed-by: /etc/apt/keyrings/microsoft.gpg" | tee /etc/apt/sources.list.d/azure-cli.sources
+      args:
+        creates: /etc/apt/sources.list.d/azure-cli.sources
+      become: yes
+
+    - name: Install Azure CLI
+      ansible.builtin.apt:
+        name: azure-cli
+        state: present
+        update_cache: yes
+      become: yes
+
+# Fedora installation
+- name: Install Azure CLI on Fedora
+  when: is_fedora
+  block:
+    - name: Import Microsoft repository key
+      ansible.builtin.rpm_key:
+        key: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+      become: yes
+
+    - name: Determine Fedora version
+      ansible.builtin.set_fact:
+        fedora_major_version: "{{ ansible_distribution_major_version }}"
+
+    - name: Add Azure CLI repository (Fedora)
+      ansible.builtin.shell: |
+        echo -e "[azure-cli]
+        name=Azure CLI
+        baseurl=https://packages.microsoft.com/yumrepos/azure-cli
+        enabled=1
+        gpgcheck=1
+        gpgkey=https://packages.microsoft.com/keys/microsoft.asc" | tee /etc/yum.repos.d/azure-cli.repo
+      args:
+        creates: /etc/yum.repos.d/azure-cli.repo
+      become: yes
+
+    - name: Install Azure CLI
+      ansible.builtin.dnf:
+        name: azure-cli
+        state: present
+      become: yes
