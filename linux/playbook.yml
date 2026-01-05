@@ -43,6 +43,7 @@
         - tree-sitter-cli
         - jetbrains-mono-nerd-font
         - nerd-fonts-symbols-only
+        - sqlplus
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -99,6 +100,8 @@
       tags: [bin, jetbrains-mono-nerd-font, fonts]
     - import_tasks: tasks/bin/nerd-fonts-symbols-only.yml
       tags: [bin, nerd-fonts-symbols-only, fonts]
+    - import_tasks: tasks/bin/sqlplus.yml
+      tags: [bin, sqlplus]
 
     - name: Dotnet
       tags: dotnet
