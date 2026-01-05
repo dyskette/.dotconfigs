@@ -5,6 +5,11 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
+# Source secrets (API keys, tokens, etc.)
+if [ -f ~/.secrets ]; then
+	. ~/.secrets
+fi
+
 # User specific environment
 if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
 then
@@ -30,3 +35,4 @@ if [ -d ~/.bashrc.d ]; then
 
 	unset rc
 fi
+export LD_LIBRARY_PATH=/home/eddyca/.local/opt/oracle/instantclient_23_26:$LD_LIBRARY_PATH
