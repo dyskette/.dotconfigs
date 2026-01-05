@@ -1,0 +1,159 @@
+---
+- name: SQL*Plus | Check if SQL*Plus is already installed
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.local/bin/sqlplus"
+  register: sqlplus_installed
+
+- name: SQL*Plus | Show installation status
+  ansible.builtin.debug:
+    msg: "SQL*Plus {{ 'is already installed' if sqlplus_installed.stat.exists else 'will be installed' }}"
+
+- name: SQL*Plus | Installation block
+  when: not sqlplus_installed.stat.exists
+  block:
+    - name: SQL*Plus | Display download instructions
+      ansible.builtin.pause:
+        prompt: |
+          
+          ================================================================================
+          Oracle Instant Client requires manual download due to Oracle's license terms.
+          
+          Please follow these steps:
+          
+          1. Visit: https://www.oracle.com/database/technologies/instant-client/downloads.html
+          
+          2. Download these files for Linux x86-64:
+             - instantclient-basic-linux.x64-<version>.zip
+             - instantclient-sqlplus-linux.x64-<version>.zip
+          
+          3. Place them in: /tmp/
+          
+          4. Press ENTER to continue or CTRL+C to abort
+          ================================================================================
+
+    - name: SQL*Plus | Find Instant Client Basic package
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: 'instantclient-basic-linux.x64-*.zip'
+      register: basic_package
+
+    - name: SQL*Plus | Find Instant Client SQL*Plus package
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: 'instantclient-sqlplus-linux.x64-*.zip'
+      register: sqlplus_package
+
+    - name: SQL*Plus | Verify packages are present
+      ansible.builtin.fail:
+        msg: "Required Oracle Instant Client packages not found in /tmp. Please download them first."
+      when: basic_package.matched == 0 or sqlplus_package.matched == 0
+
+    - name: SQL*Plus | Install unzip package (Debian/Ubuntu)
+      ansible.builtin.package:
+        name: unzip
+        state: present
+      become: true
+      when: is_ubuntu
+
+    - name: SQL*Plus | Install unzip package (Fedora)
+      ansible.builtin.package:
+        name: unzip
+        state: present
+      become: true
+      when: is_fedora or is_fedora_silverblue
+
+    - name: SQL*Plus | Install libaio package (Debian/Ubuntu)
+      ansible.builtin.package:
+        name: libaio1
+        state: present
+      become: true
+      when: is_ubuntu
+
+    - name: SQL*Plus | Install libaio package (Fedora)
+      ansible.builtin.package:
+        name: libaio
+        state: present
+      become: true
+      when: is_fedora or is_fedora_silverblue
+
+    - name: SQL*Plus | Create installation directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.local/opt/oracle"
+        state: directory
+
+    - name: SQL*Plus | Extract Instant Client Basic
+      ansible.builtin.unarchive:
+        src: "{{ basic_package.files[0].path }}"
+        dest: "{{ ansible_env.HOME }}/.local/opt/oracle/"
+        remote_src: yes
+
+    - name: SQL*Plus | Extract Instant Client SQL*Plus
+      ansible.builtin.unarchive:
+        src: "{{ sqlplus_package.files[0].path }}"
+        dest: "{{ ansible_env.HOME }}/.local/opt/oracle/"
+        remote_src: yes
+
+    - name: SQL*Plus | Find extracted instant client directory
+      ansible.builtin.find:
+        paths: "{{ ansible_env.HOME }}/.local/opt/oracle"
+        patterns: 'instantclient_*'
+        file_type: directory
+      register: instantclient_dir
+
+    - name: SQL*Plus | Set instant client path
+      ansible.builtin.set_fact:
+        oracle_home: "{{ instantclient_dir.files[0].path }}"
+
+    - name: SQL*Plus | Create symlink to sqlplus binary
+      ansible.builtin.file:
+        src: "{{ oracle_home }}/sqlplus"
+        dest: "{{ ansible_env.HOME }}/.local/bin/sqlplus"
+        state: link
+        force: yes
+
+    - name: SQL*Plus | Create symlink to sqlplus64 binary
+      ansible.builtin.file:
+        src: "{{ oracle_home }}/sqlplus"
+        dest: "{{ ansible_env.HOME }}/.local/bin/sqlplus64"
+        state: link
+        force: yes
+
+    - name: SQL*Plus | Add LD_LIBRARY_PATH to bashrc if not present
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        line: 'export LD_LIBRARY_PATH={{ oracle_home }}:$LD_LIBRARY_PATH'
+        regexp: '^export LD_LIBRARY_PATH=.*instantclient.*'
+        state: present
+        create: yes
+
+    - name: SQL*Plus | Verify installation
+      ansible.builtin.command:
+        cmd: "{{ ansible_env.HOME }}/.local/bin/sqlplus -version"
+      register: sqlplus_version
+      environment:
+        LD_LIBRARY_PATH: "{{ oracle_home }}"
+      changed_when: false
+      failed_when: false
+
+    - name: SQL*Plus | Show installed version
+      ansible.builtin.debug:
+        msg: "Successfully installed: {{ sqlplus_version.stdout }}"
+      when: sqlplus_version.rc == 0
+
+    - name: SQL*Plus | Installation complete
+      ansible.builtin.pause:
+        seconds: 1
+        prompt: |
+          
+          ================================================================================
+          SQL*Plus installation complete!
+          
+          To use SQL*Plus, either:
+          1. Restart your shell to load the new LD_LIBRARY_PATH, or
+          2. Run: source ~/.bashrc
+          
+          Then test with: sqlplus -version
+          
+          Connect to your database:
+          sqlplus system/YourStrongPassword123@localhost:1521/XE
+          ================================================================================

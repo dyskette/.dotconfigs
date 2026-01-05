@@ -2,10 +2,15 @@ local utils = require("config.utils")
 
 local blink_opts = {
   completion = {
+    keyword = { range = "full" },
     ghost_text = {
       enabled = true,
     },
     list = { selection = { preselect = true, auto_insert = false } },
+    documentation = {
+      auto_show = true,
+      auto_show_delay_ms = 500,
+    },
   },
   keymap = {
     preset = "default",
@@ -34,6 +39,17 @@ local blink_opts = {
   },
   sources = {
     default = { "lsp", "path", "snippets", "buffer" },
+    per_filetype = {
+      sql = { "dadbod", "buffer" },
+      mysql = { "dadbod", "buffer" },
+      plsql = { "dadbod", "buffer" },
+    },
+    providers = {
+      dadbod = {
+        name = "Dadbod",
+        module = "vim_dadbod_completion.blink",
+      },
+    },
   },
   cmdline = {
     enabled = true,
@@ -42,6 +58,9 @@ local blink_opts = {
         auto_show = true,
       },
     },
+  },
+  snippets = {
+    preset = "default",
   },
 }
 

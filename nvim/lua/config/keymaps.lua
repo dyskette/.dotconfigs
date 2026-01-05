@@ -34,6 +34,10 @@ return {
 
     -- Terminal
     vim.keymap.set("t", "<C-|>", "<C-\\><C-n>", { desc = "Exit terminal", noremap = true })
+    vim.keymap.set("t", "<C-h>", "<C-\\><C-n><C-w>h", { desc = "Move to left window from terminal" })
+    vim.keymap.set("t", "<C-j>", "<C-\\><C-n><C-w>j", { desc = "Move to bottom window from terminal" })
+    vim.keymap.set("t", "<C-k>", "<C-\\><C-n><C-w>k", { desc = "Move to top window from terminal" })
+    vim.keymap.set("t", "<C-l>", "<C-\\><C-n><C-w>l", { desc = "Move to right window from terminal" })
 
     -- Quickfix
     local function toggle_quickfix()
@@ -522,6 +526,24 @@ return {
       "<leader>xQ",
       "<cmd>Trouble qflist toggle<cr>",
       desc = "Quickfix List (Trouble)",
+    },
+  },
+
+  dadbod_ui = {
+    {
+      "<leader>db",
+      "<cmd>DBUIToggle<cr>",
+      desc = "Toggle Database UI",
+    },
+    {
+      "<leader>df",
+      "<cmd>DBUIFindBuffer<cr>",
+      desc = "Find database buffer",
+    },
+    {
+      "<leader>da",
+      "<cmd>DBUIAddConnection<cr>",
+      desc = "Add database connection",
     },
   },
 }
