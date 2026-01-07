@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Session switcher script for tmux
-for session in $(tmux list-sessions -F '#{?session_attached,,#{session_name}}' | sed '/^$/d'); do
+# Session switcher script for tmux - sorted by recency
+for session in $(tmux list-sessions -F '#{?session_attached,,#{session_activity}:#{session_name}}' | sed '/^$/d' | sort -rn | cut -d: -f2); do
     count=$(tmux list-windows -t $session | wc -l)
     echo "$session ($count windows)"
 done | \
