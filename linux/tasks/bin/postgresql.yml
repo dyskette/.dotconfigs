@@ -1,0 +1,23 @@
+---
+- name: PostgreSQL | Install client (Ubuntu)
+  ansible.builtin.package:
+    name: postgresql-client
+    state: present
+  become: true
+  when: is_ubuntu
+
+- name: PostgreSQL | Install client (Fedora)
+  ansible.builtin.package:
+    name: postgresql
+    state: present
+  become: true
+  when: is_fedora
+
+- name: PostgreSQL | Install client (Fedora Silverblue)
+  community.general.rpm_ostree_pkg:
+    state: present
+    name:
+      - postgresql
+  when: is_fedora_silverblue
+
+

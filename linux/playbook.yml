@@ -44,6 +44,9 @@
         - jetbrains-mono-nerd-font
         - nerd-fonts-symbols-only
         - sqlplus
+        - postgresql
+        - openjdk
+        - sqlcl
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -102,6 +105,12 @@
       tags: [bin, nerd-fonts-symbols-only, fonts]
     - import_tasks: tasks/bin/sqlplus.yml
       tags: [bin, sqlplus]
+    - import_tasks: tasks/bin/postgresql.yml
+      tags: [bin, postgresql]
+    - import_tasks: tasks/bin/openjdk.yml
+      tags: [bin, openjdk]
+    - import_tasks: tasks/bin/sqlcl.yml
+      tags: [bin, sqlcl]
 
     - name: Dotnet
       tags: dotnet
