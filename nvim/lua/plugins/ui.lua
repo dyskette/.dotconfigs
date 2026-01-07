@@ -169,6 +169,11 @@ local lualine_opts = function()
           symbols.get,
           cond = symbols.has,
         },
+        {
+          "searchcount",
+          maxcount = 999,
+          timeout = 500,
+        },
       },
     },
   }
