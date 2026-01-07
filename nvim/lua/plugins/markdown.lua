@@ -22,16 +22,18 @@ return {
         elseif vim.fn.executable("msedge.exe") == 1 then
           cmd = "start msedge.exe"
         else
-          -- Fallback to default browser
           cmd = "cmd.exe /c start"
         end
       elseif is_wsl then
-        -- WSL: use wslview or Windows browsers via wsl command
+        -- WSL: use wslview or Windows browsers via PowerShell
         if vim.fn.executable("wslview") == 1 then
           cmd = "wslview"
+        elseif vim.fn.executable("pwsh.exe") == 1 then
+          -- Prefer PowerShell Core (works better than cmd.exe from UNC paths)
+          cmd = "pwsh.exe -Command Start-Process"
         else
-          -- Fallback to calling Windows default browser
-          cmd = "cmd.exe /c start"
+          -- Fallback to PowerShell (works better than cmd.exe from UNC paths)
+          cmd = "powershell.exe -Command Start-Process"
         end
       else
         -- Linux: check if flatpak command is available
@@ -56,8 +58,8 @@ return {
       vim.api.nvim_exec2(
         string.gsub(
           [[
-        function MkdpBrowserFn(url)
-          execute '!#' a:url
+        function! MkdpBrowserFn(url)
+          execute '!# ' . shellescape(a:url)
         endfunction
         ]],
           "#",
