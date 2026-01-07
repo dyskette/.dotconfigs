@@ -1,0 +1,50 @@
+---
+- name: Download SQLcl zip
+  ansible.builtin.get_url:
+    url: https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip
+    dest: /tmp/sqlcl-latest.zip
+    mode: "0644"
+  register: download_status
+
+- name: Remove existing SQLcl installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/sqlcl"
+    state: absent
+  when: download_status.changed # Remove only if the zip was re-downloaded
+
+- name: Extract SQLcl files to /tmp
+  ansible.builtin.unarchive:
+    src: /tmp/sqlcl-latest.zip
+    dest: /tmp
+    remote_src: yes
+  when: download_status.changed # Extract only if the zip was re-downloaded
+
+- name: Install SQLcl files to ~/.local/opt
+  ansible.builtin.copy:
+    src: /tmp/sqlcl/
+    dest: "{{ ansible_env.HOME }}/.local/opt/sqlcl/"
+    remote_src: yes
+    mode: preserve
+  when: download_status.changed # Install only if the zip was re-downloaded
+
+- name: Make SQLcl binary executable
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/sqlcl/bin/sql"
+    mode: "0755"
+
+- name: Create symlink to binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/sqlcl/bin/sql"
+    dest: "{{ ansible_env.HOME }}/.local/bin/sqlcl"
+    state: link
+    force: yes
+
+- name: Clean up downloaded zip
+  ansible.builtin.file:
+    path: /tmp/sqlcl-latest.zip
+    state: absent
+
+- name: Clean up extracted directory
+  ansible.builtin.file:
+    path: /tmp/sqlcl
+    state: absent

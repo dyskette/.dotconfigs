@@ -1,0 +1,93 @@
+---
+- name: Retrieve latest OpenJDK release information from Adoptium API
+  ansible.builtin.uri:
+    url: https://api.adoptium.net/v3/assets/latest/21/hotspot
+    method: GET
+    return_content: true
+  register: openjdk_api_response
+
+- name: Select download url from json response
+  ansible.builtin.set_fact:
+    openjdk_download_url: "{{ openjdk_api_response.json | community.general.json_query(url_query) | first }}"
+  vars:
+    url_query: "[?binary.os=='linux' && binary.architecture=='x64' && binary.image_type=='jdk'].binary.package.link"
+
+- name: Get OpenJDK version from response
+  ansible.builtin.set_fact:
+    openjdk_version: "{{ openjdk_api_response.json | community.general.json_query(version_query) | first }}"
+  vars:
+    version_query: "[?binary.os=='linux' && binary.architecture=='x64' && binary.image_type=='jdk'].version.semver"
+
+- name: Download OpenJDK tarball
+  ansible.builtin.get_url:
+    url: "{{ openjdk_download_url }}"
+    dest: "/tmp/openjdk-{{ openjdk_version }}.tar.gz"
+    mode: "0644"
+  register: download_status
+
+- name: Remove existing OpenJDK installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/openjdk"
+    state: absent
+  when: download_status.changed # Remove only if the tarball was re-downloaded
+
+- name: Extract OpenJDK files to /tmp
+  ansible.builtin.unarchive:
+    src: "/tmp/openjdk-{{ openjdk_version }}.tar.gz"
+    dest: /tmp
+    remote_src: yes
+  when: download_status.changed # Extract only if the tarball was re-downloaded
+
+- name: Find extracted OpenJDK directory
+  ansible.builtin.find:
+    paths: /tmp
+    patterns: "jdk-*"
+    file_type: directory
+  register: openjdk_extracted_dir
+  when: download_status.changed
+
+- name: Install OpenJDK files to ~/.local/opt
+  ansible.builtin.copy:
+    src: "{{ openjdk_extracted_dir.files[0].path }}/"
+    dest: "{{ ansible_env.HOME }}/.local/opt/openjdk/"
+    remote_src: yes
+  when: download_status.changed # Install only if the tarball was re-downloaded
+
+- name: Create symlink to java binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/openjdk/bin/java"
+    dest: "{{ ansible_env.HOME }}/.local/bin/java"
+    state: link
+    force: yes
+
+- name: Create symlink to javac binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/openjdk/bin/javac"
+    dest: "{{ ansible_env.HOME }}/.local/bin/javac"
+    state: link
+    force: yes
+
+- name: Create symlink to jar binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/openjdk/bin/jar"
+    dest: "{{ ansible_env.HOME }}/.local/bin/jar"
+    state: link
+    force: yes
+
+- name: Clean up downloaded tarball
+  ansible.builtin.file:
+    path: "/tmp/openjdk-{{ openjdk_version }}.tar.gz"
+    state: absent
+
+- name: Clean up extracted directory
+  ansible.builtin.file:
+    path: "{{ openjdk_extracted_dir.files[0].path }}"
+    state: absent
+  when: download_status.changed and openjdk_extracted_dir.files | length > 0
+
+- name: Set JAVA_HOME in bashrc
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    line: "export JAVA_HOME={{ ansible_env.HOME }}/.local/opt/openjdk"
+    create: yes
+    state: present
