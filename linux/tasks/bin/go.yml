@@ -1,0 +1,56 @@
+---
+- name: Retrieve latest Go version
+  ansible.builtin.uri:
+    url: https://go.dev/VERSION?m=text
+    method: GET
+    return_content: true
+  register: go_version_response
+
+- name: Set Go version fact
+  ansible.builtin.set_fact:
+    go_version: "{{ go_version_response.content.split('\n')[0] }}"
+
+- name: Download Go tarball
+  ansible.builtin.get_url:
+    url: "https://go.dev/dl/{{ go_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/go.tar.gz"
+    mode: "0644"
+  register: download_status
+
+- name: Remove existing Go installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/go/"
+    state: absent
+  when: download_status.changed
+
+- name: Create Go directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/go"
+    state: directory
+  when: download_status.changed
+
+- name: Extract Go files
+  ansible.builtin.unarchive:
+    src: "/tmp/go.tar.gz"
+    dest: "{{ ansible_env.HOME }}/.local/opt/"
+    remote_src: yes
+  when: download_status.changed
+
+- name: Create symlink to go binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/go/bin/go"
+    dest: "{{ ansible_env.HOME }}/.local/bin/go"
+    state: link
+    force: yes
+
+- name: Create symlink to gofmt binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/go/bin/gofmt"
+    dest: "{{ ansible_env.HOME }}/.local/bin/gofmt"
+    state: link
+    force: yes
+
+- name: Clean up downloaded tarball
+  ansible.builtin.file:
+    path: "/tmp/go.tar.gz"
+    state: absent
