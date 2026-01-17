@@ -7,8 +7,6 @@ if command -v fzf &> /dev/null; then
       fc -rl 1 | \
       awk '{ cmd=$0; sub(/^[ \t]*[0-9]+[ \t]*/, "", cmd); if (!seen[cmd]++) print $0 }' | \
       fzf \
-        --tac \
-        --no-sort \
         --layout=reverse \
         --height=50% \
         --min-height=20 \
