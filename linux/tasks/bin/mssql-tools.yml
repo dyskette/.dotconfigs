@@ -1,0 +1,103 @@
+---
+# Ubuntu/Debian installation
+- name: Install MSSQL Tools on Ubuntu
+  when: is_ubuntu
+  block:
+    - name: Install required packages for MSSQL Tools
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Create apt keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      become: yes
+
+    - name: Download and install Microsoft signing key
+      ansible.builtin.shell: |
+        curl -sLS https://packages.microsoft.com/keys/microsoft.asc | \
+        gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+        chmod go+r /etc/apt/keyrings/microsoft.gpg
+      args:
+        creates: /etc/apt/keyrings/microsoft.gpg
+      become: yes
+
+    - name: Add Microsoft MSSQL Tools repository
+      ansible.builtin.shell: |
+        UBUNTU_VERSION=$(lsb_release -rs)
+        echo "Types: deb
+        URIs: https://packages.microsoft.com/ubuntu/${UBUNTU_VERSION}/prod
+        Suites: $(lsb_release -cs)
+        Components: main
+        Architectures: $(dpkg --print-architecture)
+        Signed-by: /etc/apt/keyrings/microsoft.gpg" | tee /etc/apt/sources.list.d/mssql-release.sources
+      args:
+        creates: /etc/apt/sources.list.d/mssql-release.sources
+      become: yes
+
+    - name: Install MSSQL Tools
+      ansible.builtin.shell: |
+        ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev
+      become: yes
+      args:
+        creates: /opt/mssql-tools18/bin/sqlcmd
+
+    - name: Create symlink to sqlcmd
+      ansible.builtin.file:
+        src: /opt/mssql-tools18/bin/sqlcmd
+        dest: "{{ ansible_env.HOME }}/.local/bin/sqlcmd"
+        state: link
+        force: yes
+
+    - name: Create symlink to bcp
+      ansible.builtin.file:
+        src: /opt/mssql-tools18/bin/bcp
+        dest: "{{ ansible_env.HOME }}/.local/bin/bcp"
+        state: link
+        force: yes
+
+# Fedora installation
+- name: Install MSSQL Tools on Fedora
+  when: is_fedora
+  block:
+    - name: Import Microsoft repository key
+      ansible.builtin.rpm_key:
+        key: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+      become: yes
+
+    - name: Add Microsoft MSSQL Tools repository (Fedora)
+      ansible.builtin.shell: |
+        curl -s https://packages.microsoft.com/config/rhel/9/prod.repo | tee /etc/yum.repos.d/mssql-release.repo
+      args:
+        creates: /etc/yum.repos.d/mssql-release.repo
+      become: yes
+
+    - name: Install MSSQL Tools
+      ansible.builtin.shell: |
+        ACCEPT_EULA=Y dnf install -y mssql-tools18 unixODBC-devel
+      become: yes
+      args:
+        creates: /opt/mssql-tools18/bin/sqlcmd
+
+    - name: Create symlink to sqlcmd
+      ansible.builtin.file:
+        src: /opt/mssql-tools18/bin/sqlcmd
+        dest: "{{ ansible_env.HOME }}/.local/bin/sqlcmd"
+        state: link
+        force: yes
+
+    - name: Create symlink to bcp
+      ansible.builtin.file:
+        src: /opt/mssql-tools18/bin/bcp
+        dest: "{{ ansible_env.HOME }}/.local/bin/bcp"
+        state: link
+        force: yes
