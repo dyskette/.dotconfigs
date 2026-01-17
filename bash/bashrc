@@ -35,4 +35,5 @@ if [ -d ~/.bashrc.d ]; then
 
 	unset rc
 fi
-export LD_LIBRARY_PATH=/home/eddyca/.local/opt/oracle/instantclient_23_26:$LD_LIBRARY_PATH
+
+export OPENCODE_DISABLE_DEFAULT_PLUGINS=1
