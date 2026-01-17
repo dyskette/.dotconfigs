@@ -1,0 +1,8 @@
+---
+- name: mpls | Install Markdown Preview Language Server using Go
+  ansible.builtin.shell: |
+    {{ ansible_env.HOME }}/.local/bin/go install github.com/mhersson/mpls@latest
+  environment:
+    GOPATH: "{{ ansible_env.HOME }}/.local/opt/go-packages"
+  args:
+    creates: "{{ ansible_env.HOME }}/.local/opt/go-packages/bin/mpls"

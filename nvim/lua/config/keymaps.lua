@@ -119,6 +119,13 @@ return {
     },
   },
 
+  mpls = function()
+    vim.keymap.set("n", "<leader>mp", "<cmd>MplsOpenPreview<cr>", {
+      desc = "Open markdown preview",
+      buffer = true,
+    })
+  end,
+
   dap = {
     {
       "<leader>di",
