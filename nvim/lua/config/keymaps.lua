@@ -6,6 +6,26 @@ return {
     vim.keymap.set({ "n", "x" }, "<leader>y", '"+y', { desc = "Copy to system clipboard" })
     vim.keymap.set({ "n", "x" }, "<leader>p", '"+p', { desc = "Paste from system clipboard" })
 
+    vim.keymap.set("n", "<leader>yl", function()
+      local path = vim.fn.expand("%:.")
+      local line = vim.fn.line(".")
+      local location = path .. ":" .. line
+      vim.fn.setreg("+", location)
+      vim.notify("Copied: " .. location)
+    end, { desc = "Copy file:line location to clipboard" })
+
+    vim.keymap.set("x", "<leader>yl", function()
+      local path = vim.fn.expand("%:.")
+      local start_line = vim.fn.line("v")
+      local end_line = vim.fn.line(".")
+      if start_line > end_line then
+        start_line, end_line = end_line, start_line
+      end
+      local location = path .. ":" .. start_line .. "-" .. end_line
+      vim.fn.setreg("+", location)
+      vim.notify("Copied: " .. location)
+    end, { desc = "Copy file:line range to clipboard" })
+
     vim.keymap.set("n", "<leader>a", ":keepjumps normal! ggVG<cr>", { desc = "Select all text in buffer" })
 
     vim.keymap.set("x", "K", ":m '<-2<CR>gv=gv", { desc = "Move lines up in visual mode" })
