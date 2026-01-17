@@ -20,10 +20,6 @@ vim.o.wrap = false
 -- Rulers
 vim.o.colorcolumn = "120"
 
--- Merge status line with command line
-vim.o.laststatus = 3 -- Global status line
-vim.o.cmdheight = 0 -- Hide command line when not in use
-
 -- Default indentation
 -- When guess-indent detects spaces, it will override: 'expandtab', 'tabstop', 'softtabstop', 'shiftwidth'
 -- When guess-indent detects tabs, it will use 'tabstop'
