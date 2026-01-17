@@ -118,14 +118,6 @@
         state: link
         force: yes
 
-    - name: SQL*Plus | Add LD_LIBRARY_PATH to bashrc if not present
-      ansible.builtin.lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc"
-        line: 'export LD_LIBRARY_PATH={{ oracle_home }}:$LD_LIBRARY_PATH'
-        regexp: '^export LD_LIBRARY_PATH=.*instantclient.*'
-        state: present
-        create: yes
-
     - name: SQL*Plus | Verify installation
       ansible.builtin.command:
         cmd: "{{ ansible_env.HOME }}/.local/bin/sqlplus -version"

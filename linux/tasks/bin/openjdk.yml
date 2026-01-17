@@ -84,10 +84,3 @@
     path: "{{ openjdk_extracted_dir.files[0].path }}"
     state: absent
   when: download_status.changed and openjdk_extracted_dir.files | length > 0
-
-- name: Set JAVA_HOME in bashrc
-  ansible.builtin.lineinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
-    line: "export JAVA_HOME={{ ansible_env.HOME }}/.local/opt/openjdk"
-    create: yes
-    state: present
