@@ -24,17 +24,14 @@ local treesitter_setup = function()
 
     -- Web technologies
     html = { "html" },
-    css = { "css", "scss", "sass" },
-    scss = { "scss", "css" },
-    less = { "less", "css" },
+    css = { "css", "scss" },
 
     -- Data formats
-    json = { "json", "jsonc", "json5" },
-    jsonc = { "json", "jsonc" },
+    json = { "json", "json5" },
     yaml = { "yaml" },
-    yml = { "yaml" },
     xml = { "xml" },
     toml = { "toml" },
+    http = { "http" },
 
     -- Compiled languages
     cs = { "c_sharp" },
@@ -92,6 +89,7 @@ local treesitter_init = function()
     "psm1",
     "psd1",
     "python",
+    "http",
 
     -- JavaScript/TypeScript ecosystem
     "javascript",
