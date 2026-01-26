@@ -52,6 +52,7 @@ local mason_tool_installer_opts = function()
     "prettier", -- js/html/css
     "isort", -- python imports
     "black", -- python
+    "sql-formatter", -- sql
     -- "csharpier", -- c# -- TODO: Figure out how to use "dotnet format" instead
   }
 
