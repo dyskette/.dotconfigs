@@ -142,17 +142,12 @@ local function setup_mpls_focus_tracking()
   })
 end
 
+-- Run mpls setup immediately (uses native vim.lsp API, not lspconfig)
+setup_mpls()
+setup_mpls_focus_tracking()
+setup_mpls_theme_sync()
+
 return {
-  -- Mpls configuration (no plugin required, just LSP setup)
-  {
-    "neovim/nvim-lspconfig",
-    ft = { "markdown" },
-    config = function()
-      setup_mpls()
-      setup_mpls_focus_tracking()
-      setup_mpls_theme_sync()
-    end,
-  },
   -- Paste image as a file in cwd/assets/ and get the path
   {
     "HakonHarnes/img-clip.nvim",
