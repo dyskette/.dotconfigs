@@ -573,4 +573,28 @@ return {
       desc = "Add database connection",
     },
   },
+
+  kulala = {
+    {
+      "<leader>hs",
+      function()
+        require("kulala").run()
+      end,
+      desc = "HTTP send request",
+    },
+    {
+      "<leader>ha",
+      function()
+        require("kulala").run_all()
+      end,
+      desc = "HTTP send all requests",
+    },
+    {
+      "<leader>hb",
+      function()
+        require("kulala").scratchpad()
+      end,
+      desc = "HTTP open scratchpad",
+    },
+  },
 }
