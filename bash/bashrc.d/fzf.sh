@@ -26,6 +26,6 @@ if command -v fzf &> /dev/null; then
     fi
   }
   
-  # Bind Ctrl+R to fzf history search
-  bind -x '"\C-r": __fzf_history__'
+  # Bind Ctrl+R to fzf history search (only in interactive shells)
+  [[ $- == *i* ]] && bind -x '"\C-r": __fzf_history__'
 fi
