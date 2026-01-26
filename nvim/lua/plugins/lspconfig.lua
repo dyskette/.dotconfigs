@@ -1,5 +1,14 @@
 local utils = require("config.utils")
 
+-- Remove Neovim 0.11+ default LSP keymaps that conflict with custom mappings
+-- These are global mappings, not buffer-local, so we delete them once at startup
+vim.keymap.del("n", "grn")
+vim.keymap.del("n", "gra")
+vim.keymap.del("n", "grr")
+vim.keymap.del("n", "gri")
+vim.keymap.del("n", "grt")
+vim.keymap.del("n", "gO")
+
 -- Configure global LSP settings that apply to all language servers
 local function setup_global_lsp_config()
   -- Set default configuration for all LSP clients
@@ -37,6 +46,7 @@ local function on_lsp_attach()
       -- Disable semantic tokens from LSP servers
       -- Let Treesitter handle syntax highlighting for better performance
       client.server_capabilities.semanticTokensProvider = nil
+
     end,
   })
 end
