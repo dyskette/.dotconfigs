@@ -74,21 +74,24 @@ function reset_title() {
   printf "\033]2;bash\007"
 }
 
-# Before running a command, set the title to that command.
-trap 'set_command_title' DEBUG
+# Only set up interactive shell features if running interactively
+if [[ $- == *i* ]]; then
+	# Before running a command, set the title to that command.
+	trap 'set_command_title' DEBUG
 
-# Before displaying the prompt, reset the title to "bash".
-PROMPT_COMMAND="reset_title"
+	# Before displaying the prompt, reset the title to "bash".
+	PROMPT_COMMAND="reset_title"
 
-if command -v starship &>/dev/null;  then
-	export STARSHIP_CONFIG="$HOME/.config/starship/config.toml"
-	eval "$(starship init bash)"
+	if command -v starship &>/dev/null;  then
+		export STARSHIP_CONFIG="$HOME/.config/starship/config.toml"
+		eval "$(starship init bash)"
 
-	# Before showing the prompt, set themes and reset title
-	function precmd_user_func() {
-		set_system_color_theme
-		set_custom_theme
-	}
+		# Before showing the prompt, set themes and reset title
+		function precmd_user_func() {
+			set_system_color_theme
+			set_custom_theme
+		}
 
-	starship_precmd_user_func="precmd_user_func"
+		starship_precmd_user_func="precmd_user_func"
+	fi
 fi
