@@ -16,8 +16,13 @@ local conform_opts = {
     json = { "prettier" },
     yaml = { "prettier" },
     markdown = { "prettier" },
+    sql = { "sql_formatter" },
   },
-  formatters = {},
+  formatters = {
+    sql_formatter = {
+      prepend_args = { "-l", "postgresql" },
+    },
+  },
 }
 
 local nvim_lint_config = function()
