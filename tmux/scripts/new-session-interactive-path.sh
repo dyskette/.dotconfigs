@@ -29,13 +29,15 @@ list_dirs() {
         # Extract the directory part before last /
         local dir_part="${query%/*}"
         local name_part="${query##*/}"
-        
+
         # If no /, search from root
         if [[ "$query" != */* ]]; then
             dir_part='/'
         else
             # Expand ~ to home directory
             dir_part="${dir_part/#\~/$HOME}"
+            # Handle case where query starts with / (e.g., /tmp)
+            [[ -z "$dir_part" ]] && dir_part='/'
         fi
         
         # Show directories matching the partial name
@@ -70,6 +72,7 @@ selected=$(echo "$initial_list" | fzf \
                 dir_part='/';
             else
                 dir_part=\${dir_part/#\~/$HOME};
+                [[ -z \$dir_part ]] && dir_part='/';
             fi;
             if [[ -d \$dir_part ]]; then
                 fd --type directory --max-depth 1 --exclude .git --hidden . \$dir_part 2>/dev/null | grep -i \"\$name_part\" | sort;
