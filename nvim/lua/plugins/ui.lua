@@ -1,23 +1,15 @@
 local utils = require("config.utils")
 
 local set_dark_mode = function()
-  vim.o.background = "dark"
   vim.cmd.colorscheme("gruvbox")
   vim.env.BAT_THEME = "gruvbox"
 end
 
 local set_light_mode = function()
-  vim.o.background = "light"
   vim.cmd.colorscheme("rose-pine-dawn")
   vim.env.BAT_THEME = "rose-pine-dawn"
 end
 
-local auto_dark_opts = {
-  update_interval = 1000,
-  fallback = "light",
-  set_dark_mode = set_dark_mode,
-  set_light_mode = set_light_mode,
-}
 
 local template_onlyname = function(filetype, name)
   return {
@@ -188,11 +180,6 @@ local fidget_opts = {
 return {
   -- Color scheme
   {
-    "f-person/auto-dark-mode.nvim",
-    event = utils.events.VeryLazy,
-    opts = auto_dark_opts,
-  },
-  {
     "ellisonleao/gruvbox.nvim",
     init = function()
       if vim.env.SYSTEM_COLOR_THEME == "dark" then
@@ -208,6 +195,14 @@ return {
         set_light_mode()
       end
     end,
+  },
+  -- Automatic theme switching via OSC 11 terminal responses
+  {
+    "afonsofrancof/OSC11.nvim",
+    opts = {
+      on_dark = set_dark_mode,
+      on_light = set_light_mode,
+    },
   },
   -- tab bar
   {
