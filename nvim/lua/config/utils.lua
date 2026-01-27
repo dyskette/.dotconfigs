@@ -75,6 +75,8 @@ utils.events = {
   FileType = "FileType",
   -- After loading a color scheme.
   ColorScheme = "ColorScheme",
+  -- When an option is set (use with pattern for specific option, e.g., "background")
+  OptionSet = "OptionSet",
 }
 
 -- DOCS: Sets up icons used everywhere else. These require a Nerd Font to be
