@@ -20,8 +20,8 @@
             // Pane navigation
             "ctrl-w h": "workspace::ActivatePaneLeft",
             "ctrl-w l": "workspace::ActivatePaneRight",
-            "ctrl-w j": "workspace::ActivatePaneUp",
-            "ctrl-w k": "workspace::ActivatePaneDown"
+            "ctrl-w j": "workspace::ActivatePaneDown",
+            "ctrl-w k": "workspace::ActivatePaneUp"
         }
     },
 
