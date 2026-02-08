@@ -25,11 +25,12 @@ local themes = {
   ["everforest"] = require("everforest"),
   ["rose-pine-dawn"] = require("rose-pine-dawn"),
   ["gruvbox"] = require("gruvbox"),
+  ["adwaita"] = require("adwaita"),
 }
 
 local get_theme_for_appearance = function(appearance)
   if appearance:find("Dark") then
-    return themes["gruvbox"]
+    return themes["adwaita"]
   else
     return themes["rose-pine-dawn"]
   end

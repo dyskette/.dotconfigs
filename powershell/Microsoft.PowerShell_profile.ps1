@@ -13,8 +13,8 @@ function Invoke-Starship-PreCommand {
         $env:SYSTEM_COLOR_THEME = "light"
     } else
     {
-        starship config palette gruvbox
-        $env:BAT_THEME = "gruvbox"
+        starship config palette adwaita
+        $env:BAT_THEME = "adwaita"
         $env:SYSTEM_COLOR_THEME = "dark"
     }
 }
