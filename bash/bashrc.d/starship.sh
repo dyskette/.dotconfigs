@@ -137,9 +137,9 @@ function set_system_color_theme() {
 
 function set_custom_theme {
 	if [ $SYSTEM_COLOR_THEME == 'dark' ]; then
-		_theme_debug "set_custom_theme: applying dark theme (gruvbox)"
-		starship config palette gruvbox
-		export BAT_THEME='gruvbox'
+		_theme_debug "set_custom_theme: applying dark theme (adwaita)"
+		starship config palette adwaita
+		export BAT_THEME='adwaita'
 	else
 		_theme_debug "set_custom_theme: applying light theme (rose-pine-dawn)"
 		starship config palette rose-pine-dawn

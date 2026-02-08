@@ -3,7 +3,7 @@
   "window.menuBarVisibility": "toggle",
 
   "window.autoDetectColorScheme": true,
-  "workbench.preferredDarkColorTheme": "Gruvbox Dark Medium",
+  "workbench.preferredDarkColorTheme": "Adwaita Dark",
   "workbench.preferredLightColorTheme": "Rosé Pine Dawn",
   "workbench.editor.showTabs": "single",
 
