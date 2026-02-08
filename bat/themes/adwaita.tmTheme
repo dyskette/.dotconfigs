@@ -1,0 +1,941 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>name</key>
+	<string>Adwaita Dark</string>
+	<key>author</key>
+	<string>Based on Mofiqul/adwaita.nvim</string>
+	<key>uuid</key>
+	<string>D2A4E3F1-7B9C-4A8D-B6E5-3F1C2D9A8B7E</string>
+	<key>semanticClass</key>
+	<string>theme.dark.adwaita</string>
+	<key>colorSpaceName</key>
+	<string>sRGB</string>
+	<key>gutterSettings</key>
+	<dict>
+		<key>background</key>
+		<string>#242428</string>
+		<key>divider</key>
+		<string>#2E2E32</string>
+		<key>foreground</key>
+		<string>#5E5E5E</string>
+		<key>selectionBackground</key>
+		<string>#2E2E32</string>
+		<key>selectionForeground</key>
+		<string>#DEDDDA</string>
+	</dict>
+	<key>settings</key>
+	<array>
+		<!-- Global Settings -->
+		<dict>
+			<key>name</key>
+			<string>Globals</string>
+			<key>settings</key>
+			<dict>
+				<key>background</key>
+				<string>#1D1D20</string>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+				<key>caret</key>
+				<string>#DEDDDA</string>
+				<key>lineHighlight</key>
+				<string>#242428</string>
+				<key>selection</key>
+				<string>#193D66</string>
+				<key>selectionForeground</key>
+				<string>#DEDDDA</string>
+				<key>inactiveSelection</key>
+				<string>#2E2E32</string>
+				<key>invisibles</key>
+				<string>#5E5E5E</string>
+				<key>guide</key>
+				<string>#2E2E32</string>
+				<key>activeGuide</key>
+				<string>#5E5E5E</string>
+				<key>stackGuide</key>
+				<string>#2E2E32</string>
+				<key>highlight</key>
+				<string>#F5C211</string>
+				<key>findHighlight</key>
+				<string>#F5C211</string>
+				<key>findHighlightForeground</key>
+				<string>#3D3D3D</string>
+				<key>selectionBorder</key>
+				<string>#193D66</string>
+				<key>minimapBorder</key>
+				<string>#2E2E32</string>
+				<key>accent</key>
+				<string>#62A0EA</string>
+			</dict>
+		</dict>
+
+		<!-- Comments: dark_2 #5E5E5E -->
+		<dict>
+			<key>name</key>
+			<string>Comment</string>
+			<key>scope</key>
+			<string>comment</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5E5E5E</string>
+				<key>fontStyle</key>
+				<string>italic</string>
+			</dict>
+		</dict>
+
+		<!-- Strings: teal_2 #5BC8AF -->
+		<dict>
+			<key>name</key>
+			<string>String</string>
+			<key>scope</key>
+			<string>string</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>String Punctuation</string>
+			<key>scope</key>
+			<string>string punctuation</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<!-- String escape: blue_2 #62A0EA -->
+		<dict>
+			<key>name</key>
+			<string>String Escape</string>
+			<key>scope</key>
+			<string>constant.character.escape</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#62A0EA</string>
+			</dict>
+		</dict>
+
+		<!-- String regex: purple_2 #C061CB -->
+		<dict>
+			<key>name</key>
+			<string>String Regex</string>
+			<key>scope</key>
+			<string>string.regexp</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#C061CB</string>
+			</dict>
+		</dict>
+
+		<!-- Numbers: violet_4 #4E57BA -->
+		<dict>
+			<key>name</key>
+			<string>Number</string>
+			<key>scope</key>
+			<string>constant.numeric</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#4E57BA</string>
+			</dict>
+		</dict>
+
+		<!-- Built-in Constants: violet_2 #7D8AC7 bold -->
+		<dict>
+			<key>name</key>
+			<string>Built-in Constants</string>
+			<key>scope</key>
+			<string>constant.language</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#7D8AC7</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- User-defined Constants: violet_2 #7D8AC7 -->
+		<dict>
+			<key>name</key>
+			<string>User-defined Constants</string>
+			<key>scope</key>
+			<string>constant.character, constant.other</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#7D8AC7</string>
+			</dict>
+		</dict>
+
+		<!-- Variables: light_4 #DEDDDA (blends with text) -->
+		<dict>
+			<key>name</key>
+			<string>Variable</string>
+			<key>scope</key>
+			<string>variable</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Variable builtin (self, this): orange_2 #FFA348 bold -->
+		<dict>
+			<key>name</key>
+			<string>Variable Language</string>
+			<key>scope</key>
+			<string>variable.language</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Keywords: orange_2 #FFA348 bold -->
+		<dict>
+			<key>name</key>
+			<string>Keyword</string>
+			<key>scope</key>
+			<string>keyword</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Keyword Control</string>
+			<key>scope</key>
+			<string>keyword.control</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Keyword Operator: purple_2 #C061CB -->
+		<dict>
+			<key>name</key>
+			<string>Keyword Operator</string>
+			<key>scope</key>
+			<string>keyword.operator</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#C061CB</string>
+			</dict>
+		</dict>
+
+		<!-- Storage: orange_2 #FFA348 bold -->
+		<dict>
+			<key>name</key>
+			<string>Storage</string>
+			<key>scope</key>
+			<string>storage</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Storage Type</string>
+			<key>scope</key>
+			<string>storage.type</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Functions: chameleon_3 #4E9A06 for calls, light_4 #DEDDDA for definitions -->
+		<dict>
+			<key>name</key>
+			<string>Function Name</string>
+			<key>scope</key>
+			<string>entity.name.function</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#4E9A06</string>
+			</dict>
+		</dict>
+
+		<!-- Function parameters: light_4 #DEDDDA -->
+		<dict>
+			<key>name</key>
+			<string>Function Argument</string>
+			<key>scope</key>
+			<string>variable.parameter</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Classes: light_4 #DEDDDA (Type in adwaita) -->
+		<dict>
+			<key>name</key>
+			<string>Class Name</string>
+			<key>scope</key>
+			<string>entity.name.class</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Inherited Class</string>
+			<key>scope</key>
+			<string>entity.other.inherited-class</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+				<key>fontStyle</key>
+				<string>underline</string>
+			</dict>
+		</dict>
+
+		<!-- Tags: teal_2 #5BC8AF -->
+		<dict>
+			<key>name</key>
+			<string>Tag Name</string>
+			<key>scope</key>
+			<string>entity.name.tag</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<!-- Tag Attribute: orange_2 #FFA348 -->
+		<dict>
+			<key>name</key>
+			<string>Tag Attribute</string>
+			<key>scope</key>
+			<string>entity.other.attribute-name</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+			</dict>
+		</dict>
+
+		<!-- Support Function: chameleon_3 #4E9A06 -->
+		<dict>
+			<key>name</key>
+			<string>Library Function</string>
+			<key>scope</key>
+			<string>support.function</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#4E9A06</string>
+			</dict>
+		</dict>
+
+		<!-- Support Type/Class: teal_2 #5BC8AF bold -->
+		<dict>
+			<key>name</key>
+			<string>Library Class/Type</string>
+			<key>scope</key>
+			<string>support.type, support.class</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Support Constant: violet_2 #7D8AC7 -->
+		<dict>
+			<key>name</key>
+			<string>Library Constant</string>
+			<key>scope</key>
+			<string>support.constant</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#7D8AC7</string>
+			</dict>
+		</dict>
+
+		<!-- Invalid: red_3 #E01B24 -->
+		<dict>
+			<key>name</key>
+			<string>Invalid</string>
+			<key>scope</key>
+			<string>invalid</string>
+			<key>settings</key>
+			<dict>
+				<key>background</key>
+				<string>#E01B24</string>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Invalid Deprecated</string>
+			<key>scope</key>
+			<string>invalid.deprecated</string>
+			<key>settings</key>
+			<dict>
+				<key>background</key>
+				<string>#C061CB</string>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Punctuation: light_4 #DEDDDA -->
+		<dict>
+			<key>name</key>
+			<string>Punctuation</string>
+			<key>scope</key>
+			<string>punctuation</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Operators: purple_2 #C061CB -->
+		<dict>
+			<key>name</key>
+			<string>Operators</string>
+			<key>scope</key>
+			<string>punctuation.operator</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#C061CB</string>
+			</dict>
+		</dict>
+
+		<!-- Preprocessor: orange_2 #FFA348 -->
+		<dict>
+			<key>name</key>
+			<string>Preprocessor</string>
+			<key>scope</key>
+			<string>meta.preprocessor</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Preprocessor Directive</string>
+			<key>scope</key>
+			<string>meta.preprocessor.c</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+			</dict>
+		</dict>
+
+		<!-- Markup Heading: teal_2 #5BC8AF bold -->
+		<dict>
+			<key>name</key>
+			<string>Markup Heading</string>
+			<key>scope</key>
+			<string>markup.heading</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Markup Bold: teal_2 #5BC8AF bold -->
+		<dict>
+			<key>name</key>
+			<string>Markup Bold</string>
+			<key>scope</key>
+			<string>markup.bold</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Markup Italic: teal_2 #5BC8AF italic -->
+		<dict>
+			<key>name</key>
+			<string>Markup Italic</string>
+			<key>scope</key>
+			<string>markup.italic</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+				<key>fontStyle</key>
+				<string>italic</string>
+			</dict>
+		</dict>
+
+		<!-- Markup Code: violet_2 #7D8AC7 -->
+		<dict>
+			<key>name</key>
+			<string>Markup Code</string>
+			<key>scope</key>
+			<string>markup.raw</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#7D8AC7</string>
+				<key>background</key>
+				<string>#242428</string>
+			</dict>
+		</dict>
+
+		<!-- Markup Link: blue_2 #62A0EA -->
+		<dict>
+			<key>name</key>
+			<string>Markup Link</string>
+			<key>scope</key>
+			<string>markup.underline.link</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#62A0EA</string>
+				<key>fontStyle</key>
+				<string>underline</string>
+			</dict>
+		</dict>
+
+		<!-- Markup Link Label: red_2 #ED333B -->
+		<dict>
+			<key>name</key>
+			<string>Markup Link Label</string>
+			<key>scope</key>
+			<string>meta.link, string.other.link</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#ED333B</string>
+			</dict>
+		</dict>
+
+		<!-- Markup List: orange_4 #E66100 bold -->
+		<dict>
+			<key>name</key>
+			<string>Markup List</string>
+			<key>scope</key>
+			<string>markup.list punctuation.definition.list_item</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#E66100</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Diff -->
+		<dict>
+			<key>name</key>
+			<string>Diff Header</string>
+			<key>scope</key>
+			<string>meta.diff, meta.diff.header</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5E5E5E</string>
+			</dict>
+		</dict>
+
+		<!-- Diff Deleted: red_1 #F66151 -->
+		<dict>
+			<key>name</key>
+			<string>Diff Deleted</string>
+			<key>scope</key>
+			<string>markup.deleted</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#F66151</string>
+			</dict>
+		</dict>
+
+		<!-- Diff Inserted: teal_3 #33B2A4 -->
+		<dict>
+			<key>name</key>
+			<string>Diff Inserted</string>
+			<key>scope</key>
+			<string>markup.inserted</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#33B2A4</string>
+			</dict>
+		</dict>
+
+		<!-- Diff Changed: orange_3 #FF7800 -->
+		<dict>
+			<key>name</key>
+			<string>Diff Changed</string>
+			<key>scope</key>
+			<string>markup.changed</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FF7800</string>
+			</dict>
+		</dict>
+
+		<!-- JSON Key: teal_2 #5BC8AF (like tags/structure) -->
+		<dict>
+			<key>name</key>
+			<string>JSON Key</string>
+			<key>scope</key>
+			<string>meta.structure.dictionary.json string.quoted.double.json</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>JSON Value</string>
+			<key>scope</key>
+			<string>meta.structure.dictionary.value.json string.quoted.double.json</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<!-- CSS Property: light_4 #DEDDDA (like property) -->
+		<dict>
+			<key>name</key>
+			<string>CSS Property</string>
+			<key>scope</key>
+			<string>support.type.property-name.css</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>CSS Property Value</string>
+			<key>scope</key>
+			<string>meta.property-value.css</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#7D8AC7</string>
+			</dict>
+		</dict>
+
+		<!-- CSS Selector: teal_2 #5BC8AF (like tag) -->
+		<dict>
+			<key>name</key>
+			<string>CSS Selector</string>
+			<key>scope</key>
+			<string>entity.name.tag.css</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<!-- Lua builtins: chameleon_3 #4E9A06 -->
+		<dict>
+			<key>name</key>
+			<string>Lua Require Function</string>
+			<key>scope</key>
+			<string>meta.function-call.lua support.function.builtin.lua</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#4E9A06</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Lua Require</string>
+			<key>scope</key>
+			<string>support.function.builtin.lua</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#4E9A06</string>
+			</dict>
+		</dict>
+
+		<!-- YAML Key: teal_2 #5BC8AF (like tag) -->
+		<dict>
+			<key>name</key>
+			<string>YAML Key</string>
+			<key>scope</key>
+			<string>entity.name.tag.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>YAML Property</string>
+			<key>scope</key>
+			<string>meta.mapping.key.yaml string.unquoted.plain.out.yaml</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+			</dict>
+		</dict>
+
+		<!-- XML/HTML Tag Punctuation: light_4 #DEDDDA (tag.delimiter) -->
+		<dict>
+			<key>name</key>
+			<string>XML Tag Punctuation</string>
+			<key>scope</key>
+			<string>punctuation.definition.tag</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>XML Tag Begin/End</string>
+			<key>scope</key>
+			<string>punctuation.definition.tag.begin, punctuation.definition.tag.end</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Rust Specific -->
+		<!-- Rust keywords (use, mod): orange_2 #FFA348 bold -->
+		<dict>
+			<key>name</key>
+			<string>Rust Use Keyword</string>
+			<key>scope</key>
+			<string>keyword.other.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Rust storage types (struct, impl, fn): orange_2 #FFA348 bold -->
+		<dict>
+			<key>name</key>
+			<string>Rust Struct/Impl/Fn Keywords</string>
+			<key>scope</key>
+			<string>storage.type.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Rust types: light_4 #DEDDDA -->
+		<dict>
+			<key>name</key>
+			<string>Rust Types</string>
+			<key>scope</key>
+			<string>entity.name.type.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Rust macros: chameleon_3 #4E9A06 bold -->
+		<dict>
+			<key>name</key>
+			<string>Rust Macro</string>
+			<key>scope</key>
+			<string>entity.name.function.macro.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#4E9A06</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Rust self/super: orange_2 #FFA348 bold (variable.builtin) -->
+		<dict>
+			<key>name</key>
+			<string>Rust Self/Super</string>
+			<key>scope</key>
+			<string>variable.language.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Rust lifetime: blue_2 #62A0EA (Special) -->
+		<dict>
+			<key>name</key>
+			<string>Rust Lifetime</string>
+			<key>scope</key>
+			<string>storage.modifier.lifetime.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#62A0EA</string>
+			</dict>
+		</dict>
+
+		<!-- Rust control flow: orange_2 #FFA348 bold -->
+		<dict>
+			<key>name</key>
+			<string>Rust Async/Await</string>
+			<key>scope</key>
+			<string>keyword.control.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+
+		<!-- Rust namespace separator: light_4 #DEDDDA (punctuation) -->
+		<dict>
+			<key>name</key>
+			<string>Rust Module Path Separator</string>
+			<key>scope</key>
+			<string>punctuation.separator.namespace.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>name</key>
+			<string>Rust Return Type Arrow</string>
+			<key>scope</key>
+			<string>punctuation.separator.rust</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#DEDDDA</string>
+			</dict>
+		</dict>
+
+		<!-- Annotations/Attributes: orange_4 #E66100 -->
+		<dict>
+			<key>name</key>
+			<string>Attribute</string>
+			<key>scope</key>
+			<string>meta.attribute, entity.other.attribute-name</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#E66100</string>
+			</dict>
+		</dict>
+
+		<!-- Namespace/Module: orange_2 #FFA348 -->
+		<dict>
+			<key>name</key>
+			<string>Namespace</string>
+			<key>scope</key>
+			<string>entity.name.namespace, entity.name.module</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#FFA348</string>
+			</dict>
+		</dict>
+
+		<!-- Type builtin: teal_2 #5BC8AF bold -->
+		<dict>
+			<key>name</key>
+			<string>Type Builtin</string>
+			<key>scope</key>
+			<string>support.type.builtin</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#5BC8AF</string>
+				<key>fontStyle</key>
+				<string>bold</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

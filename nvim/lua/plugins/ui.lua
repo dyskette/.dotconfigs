@@ -1,8 +1,8 @@
 local utils = require("config.utils")
 
 local set_dark_mode = function()
-  vim.cmd.colorscheme("gruvbox")
-  vim.env.BAT_THEME = "gruvbox"
+  vim.cmd.colorscheme("adwaita")
+  vim.env.BAT_THEME = "adwaita"
 end
 
 local set_light_mode = function()
@@ -31,14 +31,14 @@ local tabby_opts = function()
   local theme = {}
 
   if is_dark then
-    -- Gruvbox colors from your tmux config
+    -- Adwaita Dark colors (Mofiqul/adwaita.nvim palette)
     theme = {
-      fill = { fg = "#ebdbb2", bg = "#282828" },
-      head = { fg = "#282828", bg = "#ebdbb2", style = "bold" },
-      current_tab = { fg = "#282828", bg = "#928374", style = "bold" },
-      tab = { fg = "#ebdbb2", bg = "#3c3836" },
-      win = { fg = "#282828", bg = "#a89984" },
-      tail = { fg = "#282828", bg = "#83a598", style = "bold" },
+      fill = { fg = "#DEDDDA", bg = "#1D1D20" },
+      head = { fg = "#1D1D20", bg = "#DEDDDA", style = "bold" },
+      current_tab = { fg = "#DEDDDA", bg = "#36363A", style = "bold" },
+      tab = { fg = "#9A9996", bg = "#242428" },
+      win = { fg = "#1D1D20", bg = "#9A9996" },
+      tail = { fg = "#1D1D20", bg = "#62A0EA", style = "bold" },
     }
   else
     -- Rose Pine Dawn colors from your tmux config
@@ -180,7 +180,9 @@ local fidget_opts = {
 return {
   -- Color scheme
   {
-    "ellisonleao/gruvbox.nvim",
+    "Mofiqul/adwaita.nvim",
+    lazy = false,
+    priority = 1000,
     init = function()
       if vim.env.SYSTEM_COLOR_THEME == "dark" then
         set_dark_mode()

@@ -250,7 +250,23 @@ simplified_ui true
 // Choose the theme that is specified in the themes section.
 // Default: default
 // 
-theme "gruvbox-dark"
+theme "adwaita-dark"
+
+themes {
+    adwaita-dark {
+        fg "#DEDDDA"
+        bg "#1D1D20"
+        black "#1D1D20"
+        red "#ED333B"
+        green "#57E389"
+        yellow "#FF7800"
+        blue "#62A0EA"
+        magenta "#9141AC"
+        cyan "#5BC8AF"
+        white "#DEDDDA"
+        orange "#FFA348"
+    }
+}
  
 // Choose the base input mode of zellij.
 // Default: normal

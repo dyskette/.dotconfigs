@@ -8,7 +8,7 @@ $directory\
 $git_branch\
 \n$character\
 """
-palette = "rose-pine-dawn"
+palette = "adwaita"
 
 [palettes.gruvbox]
 background  = "#282828"
@@ -22,6 +22,19 @@ magenta     = "#B16286"
 cyan        = "#689D6A"
 white       = "#A89984"
 orange      = "#D65D0E"
+
+[palettes.adwaita]
+background  = "#1D1D20"
+foreground  = "#DEDDDA"
+black       = "#1D1D20"
+red         = "#ED333B"
+green       = "#57E389"
+yellow      = "#FF7800"
+blue        = "#62A0EA"
+magenta     = "#9141AC"
+cyan        = "#5BC8AF"
+white       = "#DEDDDA"
+orange      = "#FFA348"
 
 [palettes.kanagawa-wave]
 background  = "#1F1F28"
