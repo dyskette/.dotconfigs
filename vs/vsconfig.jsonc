@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/vsconfig.json",
+  "version": "1.0",
+  "components": [
+    // Workloads
+    "Microsoft.VisualStudio.Workload.CoreEditor",  // Base editor, IntelliSense, Git
+    "Microsoft.VisualStudio.Workload.NetWeb",      // ASP.NET, Blazor, Web API, Razor
+    "Microsoft.VisualStudio.Workload.Azure",       // Azure Functions, App Service, Storage
+
+    // .NET
+    "Microsoft.Net.Component.4.8.TargetingPack",   // .NET Framework 4.8 targeting
+    "Microsoft.NetCore.Component.Runtime.8.0",     // .NET 8 LTS runtime
+
+    // C/C++ native toolchain (also required by Rust MSVC target for linking)
+    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",    // MSVC v143 compiler/linker
+    "Microsoft.VisualStudio.Component.Windows11SDK.26100",   // Windows 11 SDK (24H2)
+    "Microsoft.VisualStudio.Component.VC.CMake.Project"      // CMake project support
+  ]
+}
