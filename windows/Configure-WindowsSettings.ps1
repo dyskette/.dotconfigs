@@ -61,15 +61,27 @@ try {
         $errors += "Failed to configure browser Alt+Tab behavior: $($_.Exception.Message)"
     }
 
-    # Refresh Windows Explorer to apply changes
-    Write-Host "Refreshing Windows Explorer to apply changes..."
+    # Notify Explorer of registry changes without restarting it
+    Write-Host "Broadcasting settings change to Explorer..."
     try {
-        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 2
-        Start-Process "explorer.exe"
-        $changesApplied += "Windows Explorer refreshed"
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32 {
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    public static extern IntPtr SendMessageTimeout(
+        IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
+        uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
+}
+"@
+        $HWND_BROADCAST = [IntPtr]0xffff
+        $WM_SETTINGCHANGE = 0x001A
+        $SMTO_ABORTIFHUNG = 0x0002
+        $result = [UIntPtr]::Zero
+        [Win32]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [UIntPtr]::Zero, "Environment", $SMTO_ABORTIFHUNG, 5000, [ref]$result) | Out-Null
+        $changesApplied += "Settings change broadcast sent"
     } catch {
-        $errors += "Failed to refresh Windows Explorer: $($_.Exception.Message)"
+        $errors += "Failed to broadcast settings change: $($_.Exception.Message)"
     }
 
     # Return results
