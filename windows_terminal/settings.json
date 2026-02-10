@@ -129,6 +129,30 @@
                 "hidden": false,
                 "name": "FedoraLinux-42",
                 "source": "Microsoft.WSL"
+            },
+            {
+                "guid": "{800b6063-9ef9-587d-86db-fe667e2fc9ce}",
+                "hidden": true,
+                "name": "Developer Command Prompt for VS 2022 (2)",
+                "source": "Windows.Terminal.VisualStudio"
+            },
+            {
+                "guid": "{72b1c6f1-4d68-5eaf-b872-632d11eb3a69}",
+                "hidden": true,
+                "name": "Developer PowerShell for VS 2022 (2)",
+                "source": "Windows.Terminal.VisualStudio"
+            },
+            {
+                "guid": "{32c1a1a2-1363-5be6-a42c-703e5a7e64ca}",
+                "hidden": true,
+                "name": "Developer Command Prompt for VS 2022",
+                "source": "Windows.Terminal.VisualStudio"
+            },
+            {
+                "guid": "{e8fba718-dc0f-5822-9c0e-eb5b9d1c0f74}",
+                "hidden": true,
+                "name": "Developer PowerShell for VS 2022",
+                "source": "Windows.Terminal.VisualStudio"
             }
         ]
     },
