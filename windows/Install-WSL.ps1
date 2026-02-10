@@ -33,6 +33,22 @@ if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 Write-Host "=== WSL Installation Script ===" -ForegroundColor Cyan
 Write-Host "Setting up Windows Subsystem for Linux with Ubuntu 24.04..." -ForegroundColor White
 
+# Helper: Write .wslgconfig for HiDPI support
+function Write-WSLgConfig {
+    $wslgConfigFile = "$env:USERPROFILE\.wslgconfig"
+    try {
+        $wslgConfig = @"
+[system-distro-env]
+WESTON_RDP_DISABLE_FRACTIONAL_HI_DPI_SCALING=true
+WESTON_RDP_FRACTIONAL_HI_DPI_SCALING=false
+"@
+        Set-Content -Path $wslgConfigFile -Value $wslgConfig -Force
+        Write-Host "Created .wslgconfig with HiDPI scaling support" -ForegroundColor Green
+    } catch {
+        Write-Warning "Failed to create .wslgconfig: $_"
+    }
+}
+
 # Enable WSL features before installing distributions
 Write-Host "Ensuring WSL features are enabled..." -ForegroundColor Yellow
 
@@ -133,6 +149,8 @@ if ($wslDistributions.Split() -contains "Ubuntu-24.04") {
         Write-Warning "Could not set Ubuntu 24.04 as default: $_"
     }
     
+    Write-WSLgConfig
+
     return @{
         status = "already_installed"
         message = "Ubuntu 24.04 is already installed and configured"
@@ -146,7 +164,7 @@ try {
     
     # Verify installation
     Start-Sleep -Seconds 3
-    if (wsl --list --quiet 2>$null | Select-String "Ubuntu-24.04") {
+    if ((wsl --list --quiet 2>&1) | Select-String "Ubuntu-24.04") {
         Write-Host "Ubuntu 24.04 installed successfully!" -ForegroundColor Green
         
         # Set as default distribution
@@ -162,6 +180,8 @@ try {
         Write-Host "Ubuntu 24.04 is ready for use (not launched automatically)." -ForegroundColor White
         Write-Host "To access Ubuntu: wsl or ubuntu2404.exe" -ForegroundColor Gray
         
+        Write-WSLgConfig
+
         return @{
             status = "installed"
             message = "Ubuntu 24.04 installed and configured successfully"

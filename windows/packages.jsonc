@@ -1,0 +1,72 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "Sources": [
+    {
+      "SourceDetails": {
+        "Name": "winget",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Type": "Microsoft.PreIndexed.Package"
+      },
+      "Packages": [
+        // Compilers and runtimes
+        { "PackageIdentifier": "LLVM.LLVM" },
+        { "PackageIdentifier": "BrechtSanders.WinLibs.POSIX.UCRT" },
+        { "PackageIdentifier": "Rustlang.Rustup" },
+        { "PackageIdentifier": "Python.Python.3.14" },
+        { "PackageIdentifier": "astral-sh.uv" },
+        { "PackageIdentifier": "Schniz.fnm" },
+        { "PackageIdentifier": "GoLang.Go" },
+        { "PackageIdentifier": "DenoLand.Deno" },
+        { "PackageIdentifier": "Microsoft.OpenJDK.21" },
+
+        // Version control and build tools
+        { "PackageIdentifier": "Git.Git" },
+        { "PackageIdentifier": "ezwinports.make" },
+
+        // Database CLIs
+        { "PackageIdentifier": "PostgreSQL.PostgreSQL.18" },
+        { "PackageIdentifier": "Microsoft.Sqlcmd" },
+        { "PackageIdentifier": "Oracle.InstantClient.Basic" },
+
+        // Data processing and network CLIs
+        { "PackageIdentifier": "ImageMagick.ImageMagick.Q16" },
+        { "PackageIdentifier": "JohnMacFarlane.Pandoc" },
+        { "PackageIdentifier": "jqlang.jq" },
+        { "PackageIdentifier": "MikeFarah.yq" },
+        { "PackageIdentifier": "JernejSimoncic.Wget" },
+        { "PackageIdentifier": "Gyan.FFmpeg" },
+
+        // File search and viewing
+        { "PackageIdentifier": "BurntSushi.ripgrep.MSVC" },
+        { "PackageIdentifier": "sharkdp.fd" },
+        { "PackageIdentifier": "sharkdp.bat" },
+        { "PackageIdentifier": "jftuga.less" },
+        { "PackageIdentifier": "eza-community.eza" },
+        { "PackageIdentifier": "junegunn.fzf" },
+
+        // Shell
+        { "PackageIdentifier": "Starship.Starship" },
+        { "PackageIdentifier": "Microsoft.PowerShell" },
+
+        // TUI apps
+        { "PackageIdentifier": "sxyazi.yazi" },
+        { "PackageIdentifier": "Neovim.Neovim" },
+
+        // Terminal emulators
+        { "PackageIdentifier": "Microsoft.WindowsTerminal" },
+        { "PackageIdentifier": "wez.wezterm" },
+
+        // GUI editors
+        { "PackageIdentifier": "Microsoft.VisualStudioCode" },
+        { "PackageIdentifier": "ZedIndustries.Zed" },
+
+        // GUI apps
+        { "PackageIdentifier": "KeePassXCTeam.KeePassXC" },
+        { "PackageIdentifier": "Obsidian.Obsidian" },
+        { "PackageIdentifier": "Mozilla.Firefox" },
+        { "PackageIdentifier": "Dropbox.Dropbox" }
+      ]
+    }
+  ]
+}
