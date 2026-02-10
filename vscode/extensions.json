@@ -1,7 +1,7 @@
 {
   "extensions": [
     "eamodio.gitlens",
-    "piousdeer.vscode-adwaita",
+    "piousdeer.adwaita-theme",
     "metaphore.kanagawa-vscode-color-theme",
     "sainnhe.everforest",
     "mvllow.rose-pine",
@@ -10,7 +10,6 @@
     "haphazarddev.oil-code",
     "esbenp.prettier-vscode",
     "ms-vscode.powershell",
-    "ms-dotnettools.csharp",
     "ms-dotnettools.csdevkit",
     "Vue.volar",
     "ms-python.python",
