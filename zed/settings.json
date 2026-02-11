@@ -84,14 +84,6 @@
         "include_warnings": true
     },
 
-    // Terminal
-    "terminal": {
-        "dock": "bottom",
-        "shell": {
-            "program": "pwsh"
-        }
-    },
-
     // File tree and project
     "project_panel": {
         "dock": "left",
