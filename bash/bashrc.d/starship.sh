@@ -3,133 +3,174 @@ function _theme_debug() {
 	[[ -n "$DEBUG_THEME" ]] && echo "[theme-debug] $*" >&2
 }
 
-# Detect terminal theme via OSC 11 escape sequence (works over SSH)
-# Result is cached in _TERMINAL_THEME_CACHE to avoid repeated queries
-# which can interfere with paste operations over SSH
+# Detect terminal background color via OSC 11 query and determine light/dark.
+# Implementation follows terminal-colorsaurus:
+#   - Sends OSC 11 + DA1 sentinel via /dev/tty
+#   - Uses BEL terminator for rxvt-unicode compatibility
+#   - If DA1 arrives first, terminal doesn't support OSC 11
+#   - Parses rgb:R/G/B, scales to 16-bit, computes CIELAB perceived lightness
+#   - Prints "dark" or "light" to stdout; returns 1 on failure
 function detect_terminal_theme() {
-	# Return cached result if available
-	if [[ -n "$_TERMINAL_THEME_CACHE" ]]; then
-		_theme_debug "detect_terminal_theme: using cached value '$_TERMINAL_THEME_CACHE'"
-		echo "$_TERMINAL_THEME_CACHE"
-		return 0
-	fi
-
-	# Skip if no controlling terminal
-	if [[ ! -e /dev/tty ]]; then
-		_theme_debug "detect_terminal_theme: no /dev/tty, skipping"
+	# If we already determined OSC 11 is unsupported, skip the query.
+	# Each shell session gets its own _OSC11_SUPPORTED variable, so
+	# this won't leak across SSH sessions or into tmux.
+	if [[ "$_OSC11_SUPPORTED" == "no" ]]; then
+		_theme_debug "detect_terminal_theme: skipping (OSC 11 unsupported, cached)"
 		return 1
 	fi
 
-	local response old_stty
-	# Use /dev/tty directly to avoid issues with command substitution
-	old_stty=$(stty -g -F /dev/tty 2>/dev/null) || {
-		_theme_debug "detect_terminal_theme: failed to save stty settings"
-		return 1
-	}
-	stty -F /dev/tty raw -echo min 0 time 1 2>/dev/null || {
-		_theme_debug "detect_terminal_theme: failed to set raw mode"
-		return 1
-	}
+	# Quirks: skip known unsupported terminals
+	case "$TERM" in
+		dumb|screen|screen.*|Eterm) return 1 ;;
+	esac
 
-	# Send query and read response via /dev/tty
-	printf '\e]11;?\a' > /dev/tty
-	read -r -t 0.1 -d $'\a' response < /dev/tty 2>/dev/null
+	[[ -e /dev/tty ]] || return 1
 
+	local old_stty fd
+	old_stty=$(stty -g -F /dev/tty 2>/dev/null) || return 1
+
+	# Open a dedicated fd to /dev/tty for reading responses
+	exec {fd}<>/dev/tty
+
+	# Raw mode: no echo, no line buffering, 1-byte reads, 1s timeout (10 deciseconds)
+	stty -F /dev/tty raw -echo min 0 time 10 2>/dev/null || { exec {fd}>&-; return 1; }
+
+	# Send OSC 11 query + DA1 sentinel.
+	# Note: this only works outside tmux. Inside tmux, OSC 11 responses are
+	# intercepted by tmux's input parser and never reach the pane.
+	printf '\033]11;?\007\033[c' >&"$fd"
+
+	# Read response via dd (bypasses bash read buffering, respects stty raw)
+	local response
+	response=$(dd bs=1 count=64 <&"$fd" 2>/dev/null)
+
+	# Restore terminal and close fd
 	stty -F /dev/tty "$old_stty" 2>/dev/null
+	exec {fd}>&-
 
-	_theme_debug "detect_terminal_theme: raw response='$response'"
+	# Debug: show hex dump of raw response
+	_theme_debug "detect_terminal_theme: raw response hex='$(printf '%s' "$response" | od -A x -t x1z -v | head -3)'"
 
-	if [[ "$response" =~ rgb:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+) ]]; then
-		local r=$((16#${BASH_REMATCH[1]:0:2}))
-		local g=$((16#${BASH_REMATCH[2]:0:2}))
-		local b=$((16#${BASH_REMATCH[3]:0:2}))
-		# Calculate perceived luminance (ITU-R BT.709)
-		local luminance=$(( (r * 299 + g * 587 + b * 114) / 1000 ))
-
-		_theme_debug "detect_terminal_theme: RGB=($r, $g, $b) luminance=$luminance"
-
-		if (( luminance > 128 )); then
-			_theme_debug "detect_terminal_theme: detected 'light' (luminance > 128)"
-			_TERMINAL_THEME_CACHE="light"
-		else
-			_theme_debug "detect_terminal_theme: detected 'dark' (luminance <= 128)"
-			_TERMINAL_THEME_CACHE="dark"
-		fi
-		echo "$_TERMINAL_THEME_CACHE"
-		return 0
+	# DA1 sentinel check: if response starts with \e[ instead of \e], terminal
+	# doesn't support OSC 11 (DA1 arrived first)
+	if [[ -z "$response" ]]; then
+		_theme_debug "detect_terminal_theme: no response, marking OSC 11 unsupported"
+		_OSC11_SUPPORTED="no"
+		return 1
 	fi
-	_theme_debug "detect_terminal_theme: failed to parse response, no rgb: pattern found"
-	return 1
-}
 
-# Clear the terminal theme cache to force re-detection
-function refresh_terminal_theme() {
-	_theme_debug "refresh_terminal_theme: clearing cache"
-	unset _TERMINAL_THEME_CACHE
-	set_system_color_theme
-	set_custom_theme
-	_theme_debug "refresh_terminal_theme: done, SYSTEM_COLOR_THEME='$SYSTEM_COLOR_THEME'"
+	if [[ "$response" == $'\033['* ]]; then
+		_theme_debug "detect_terminal_theme: DA1 arrived first, marking OSC 11 unsupported"
+		_OSC11_SUPPORTED="no"
+		return 1
+	fi
+
+	# Extract color spec from OSC 11 response: \e]11;rgb:R/G/B
+	# Strip everything from BEL or ST onward (DA1 response follows)
+	local color_spec
+	# Remove from BEL onward
+	response="${response%%$'\007'*}"
+	# Remove from ST (\e\) onward
+	response="${response%%$'\033\\'*}"
+	if [[ "$response" =~ $'\033']11\;(.*) ]]; then
+		color_spec="${BASH_REMATCH[1]}"
+	else
+		_theme_debug "detect_terminal_theme: failed to parse response"
+		return 1
+	fi
+
+	_theme_debug "detect_terminal_theme: color_spec='$color_spec'"
+
+	# Parse rgb:R/G/B or rgba:R/G/B/A format (1-4 hex digits per channel)
+	local r_hex g_hex b_hex
+	if [[ "$color_spec" =~ ^rgba?:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+) ]]; then
+		r_hex="${BASH_REMATCH[1]}"
+		g_hex="${BASH_REMATCH[2]}"
+		b_hex="${BASH_REMATCH[3]}"
+	else
+		_theme_debug "detect_terminal_theme: unrecognized color format '$color_spec'"
+		return 1
+	fi
+
+	# Scale hex channels to 16-bit (0-65535) following terminal-colorsaurus:
+	# value * 65535 / (16^len - 1)
+	_scale_channel() {
+		local hex="$1"
+		local len=${#hex}
+		local val=$((16#$hex))
+		local max=$(( (1 << (len * 4)) - 1 ))
+		echo $(( val * 65535 / max ))
+	}
+
+	local r g b
+	r=$(_scale_channel "$r_hex")
+	g=$(_scale_channel "$g_hex")
+	b=$(_scale_channel "$b_hex")
+
+	_theme_debug "detect_terminal_theme: RGB16=($r, $g, $b)"
+
+	# Compute CIELAB perceived lightness using awk for floating point.
+	# Steps (matching terminal-colorsaurus):
+	#   1. Normalize to [0,1]
+	#   2. sRGB gamma correction (linearize)
+	#   3. CIE luminance: Y = 0.2126*R + 0.7152*G + 0.0722*B
+	#   4. CIELAB L*: perceived lightness 0-100, normalized to 0-1
+	local lightness
+	lightness=$(awk -v r="$r" -v g="$g" -v b="$b" 'BEGIN {
+		# Normalize to [0,1]
+		r = r / 65535; g = g / 65535; b = b / 65535;
+
+		# sRGB gamma correction
+		if (r <= 0.04045) r = r / 12.92; else r = ((r + 0.055) / 1.055) ^ 2.4;
+		if (g <= 0.04045) g = g / 12.92; else g = ((g + 0.055) / 1.055) ^ 2.4;
+		if (b <= 0.04045) b = b / 12.92; else b = ((b + 0.055) / 1.055) ^ 2.4;
+
+		# CIE luminance
+		Y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+		# CIELAB perceived lightness (L* / 100)
+		if (Y <= 216.0 / 24389.0)
+			L = Y * (24389.0 / 27.0) / 100.0;
+		else
+			L = (Y ^ (1.0/3.0) * 116.0 - 16.0) / 100.0;
+
+		printf "%.4f", L;
+	}')
+
+	_theme_debug "detect_terminal_theme: perceived_lightness=$lightness"
+
+	# Threshold at 0.5 (perceptual midpoint)
+	local result
+	result=$(awk -v l="$lightness" 'BEGIN { print (l < 0.5) ? "dark" : "light" }')
+
+	_theme_debug "detect_terminal_theme: result=$result"
+	_OSC11_SUPPORTED="yes"
+	echo "$result"
 }
 
 function set_system_color_theme() {
 	local color_theme
 
-	_theme_debug "set_system_color_theme: starting detection"
+	_theme_debug "set_system_color_theme: starting"
 
-	# 1. Try terminal-level detection first (works over SSH)
-	color_theme=$(detect_terminal_theme)
-
-	# 2. Fall back to system-level detection
-	if [[ -z "$color_theme" ]]; then
-		_theme_debug "set_system_color_theme: terminal detection failed, trying system-level"
-		color_theme='dark'
-
-		# Check if we're in WSL
-		if command -v systemd-detect-virt &>/dev/null && [ "$(systemd-detect-virt)" == "wsl" ]; then
-			_theme_debug "set_system_color_theme: detected WSL environment"
-			use_light_theme=`reg.exe Query "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" /v AppsUseLightTheme | awk '{if (match($0, 0x)) print substr($3, 3, 1)}'`
-			_theme_debug "set_system_color_theme: WSL registry value='$use_light_theme'"
-
-			if [ "$use_light_theme" == "0" ]; then
-				color_theme='dark'
-			else
-				color_theme='light'
-			fi
-
-			unset use_light_theme
-		# Check if we're on Windows (git bash) - detect by presence of reg.exe
-		elif command -v reg.exe &>/dev/null; then
-			_theme_debug "set_system_color_theme: detected Git Bash (Windows)"
-			# Git bash requires MSYS_NO_PATHCONV to prevent path translation
-			use_light_theme=$(MSYS_NO_PATHCONV=1 reg.exe query "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v AppsUseLightTheme 2>/dev/null | awk '{if (match($0, /0x/)) print substr($3, 3, 1)}')
-			_theme_debug "set_system_color_theme: Git Bash registry value='$use_light_theme'"
-
-			if [ "$use_light_theme" == "0" ]; then
-				color_theme='dark'
-			else
-				color_theme='light'
-			fi
-
-			unset use_light_theme
-		# Check if we're on Linux with GNOME
-		elif command -v gsettings &>/dev/null; then
-			_theme_debug "set_system_color_theme: detected GNOME (gsettings available)"
-			color_scheme=`gsettings get org.gnome.desktop.interface color-scheme`
-			_theme_debug "set_system_color_theme: gsettings color-scheme='$color_scheme'"
-
-			if [ "$color_scheme" == \'prefer-dark\' ]; then
-				color_theme='dark'
-			else
-				color_theme='light'
-			fi
-
-			unset color_scheme
-		else
-			_theme_debug "set_system_color_theme: no system detection method available, using default 'dark'"
-		fi
+	if [[ -n "$TMUX" ]]; then
+		# Inside tmux: read from tmux global environment (set by theme toggle
+		# keybinding or mode 2031 hooks). OSC 11 responses are intercepted by
+		# tmux and never reach the pane, so detection cannot work here.
+		color_theme=$(tmux show-environment -g SYSTEM_COLOR_THEME 2>/dev/null | cut -d= -f2)
+		_theme_debug "set_system_color_theme: from tmux env '$color_theme'"
+	elif [[ "$TERM_PROGRAM" == "vscode" || "$TERM_PROGRAM" == "zed" ]]; then
+		# VSCode and Zed embedded terminals don't support OSC 11 queries,
+		# causing a full 1-second stty timeout on every prompt. Skip detection.
+		_theme_debug "set_system_color_theme: skipping OSC 11 (unsupported terminal: TERM_PROGRAM=$TERM_PROGRAM)"
 	else
-		_theme_debug "set_system_color_theme: terminal detection succeeded with '$color_theme'"
+		# Outside tmux: detect via OSC 11 query
+		color_theme=$(detect_terminal_theme)
+		_theme_debug "set_system_color_theme: detected '$color_theme'"
 	fi
+
+	# Default to dark if nothing worked
+	[[ -z "$color_theme" ]] && color_theme="dark"
 
 	_theme_debug "set_system_color_theme: final SYSTEM_COLOR_THEME='$color_theme'"
 	export SYSTEM_COLOR_THEME=$color_theme
@@ -147,32 +188,45 @@ function set_custom_theme {
 	fi
 }
 
+function refresh_terminal_theme() {
+	[[ $- != *i* ]] && return
+
+	_theme_debug "refresh_terminal_theme: refreshing"
+	set_system_color_theme
+	set_custom_theme
+	_theme_debug "refresh_terminal_theme: done, SYSTEM_COLOR_THEME='$SYSTEM_COLOR_THEME'"
+}
+
 # Function to set the pane title to the command being run
 function set_command_title() {
-  # Ignore commands from starship, bash-preexec, and the PROMPT_COMMAND itself.
-  # We use a case statement to match against the command string.
-  case "$BASH_COMMAND" in
-    *"starship_precmd"*)   return ;;
-    *"__bp_trap_string"*)  return ;;
-    "$PROMPT_COMMAND")     return ;;
-    "trap - DEBUG")        return ;;
-  esac
+	[[ $- != *i* ]] && return
 
-  # Extract the first word of the command.
-  local first_word=${BASH_COMMAND%% *}
+	# Ignore commands from starship, bash-preexec, and the PROMPT_COMMAND itself.
+	# We use a case statement to match against the command string.
+	case "$BASH_COMMAND" in
+		*"starship_precmd"*)   return ;;
+		*"__bp_trap_string"*)  return ;;
+		"$PROMPT_COMMAND")     return ;;
+		"trap - DEBUG")        return ;;
+	esac
 
-  # If the command wasn't ignored, set the first word as the pane title.
-  printf "\033]2;%s\007" "$first_word"
+	# Extract the first word of the command.
+	local first_word=${BASH_COMMAND%% *}
+
+	# If the command wasn't ignored, set the first word as the pane title.
+	printf "\033]2;%s\007" "$first_word" >/dev/tty
 }
 
 # Function to reset the pane title to a default value ("bash")
 function reset_title() {
-  printf "\033]2;bash\007"
+	[[ $- != *i* ]] && return
+
+	printf "\033]2;bash\007" >/dev/tty
 }
 
 # Only set up interactive shell features if running interactively
 if [[ $- == *i* ]]; then
-	# Before running a command, set the title to that command.
+	# # Before running a command, set the title to that command.
 	trap 'set_command_title' DEBUG
 
 	# Before displaying the prompt, reset the title to "bash".
@@ -184,8 +238,7 @@ if [[ $- == *i* ]]; then
 
 		# Before showing the prompt, set themes and reset title
 		function precmd_user_func() {
-			set_system_color_theme
-			set_custom_theme
+			refresh_terminal_theme
 		}
 
 		starship_precmd_user_func="precmd_user_func"
