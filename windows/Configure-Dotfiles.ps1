@@ -102,13 +102,13 @@ $links = @(
         App    = "zed"
         Source = "zed\settings.json"
         Target = "$env:APPDATA\Zed\settings.json"
-        Type   = "SymbolicLink"
+        Type   = "HardLink"
     }
     @{
         App    = "zed"
         Source = "zed\keymap.json"
         Target = "$env:APPDATA\Zed\keymap.json"
-        Type   = "SymbolicLink"
+        Type   = "HardLink"
     }
 )
 
@@ -136,6 +136,8 @@ function New-Link {
 
     if ($Type -eq "Junction") {
         New-Item -Path $Target -Value $Source -ItemType Junction | Out-Null
+    } elseif ($Type -eq "HardLink") {
+        New-Item -Path $Target -Value $Source -ItemType HardLink | Out-Null
     } else {
         New-Item -Path $Target -Target $Source -ItemType SymbolicLink | Out-Null
     }
