@@ -99,6 +99,12 @@ $links = @(
         Type   = "Directory"
     }
     @{
+        App    = "yazi"
+        Source = "yazi"
+        Target = "$env:APPDATA\yazi\config"
+        Type   = "Junction"
+    }
+    @{
         App    = "zed"
         Source = "zed\settings.json"
         Target = "$env:APPDATA\Zed\settings.json"
