@@ -15,7 +15,7 @@ if [ "$theme" = "light" ]; then
 else
 	tmux source-file ~/.dotconfigs/tmux/adwaita.conf
 	tmux set-environment -g SYSTEM_COLOR_THEME dark
-	osc11_response=$'\033]11;rgb:2828/2828/2828\033\\'
+	osc11_response=$'\033]11;rgb:1d1d/1d1d/2020\033\\'
 fi
 
 if [ -n "$client_tty" ] && [ -w "$client_tty" ]; then
