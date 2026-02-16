@@ -242,5 +242,22 @@
         "bindings": {
             "space e": "workspace::ToggleLeftDock"
         }
+    },
+    {
+        "context": "ProjectPanel && not_editing",
+        "bindings": {
+            "a": "project_panel::NewFile",
+            "shift-a": "project_panel::NewDirectory",
+            "r": "project_panel::Rename",
+            "d": "project_panel::Delete",
+            "x": "project_panel::Cut",
+            "y": "project_panel::Copy",
+            "p": "project_panel::Paste",
+            "o": "project_panel::Open",
+            "enter": "project_panel::OpenPermanent",
+            "v": "project_panel::OpenSplitVertical",
+            "s": "project_panel::OpenSplitHorizontal",
+            "-": "project_panel::SelectParent"
+        }
     }
 ]
