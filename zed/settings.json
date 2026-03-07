@@ -13,32 +13,6 @@
     "git_panel": {
         "sort_by_path": true
     },
-    "wsl_connections": [
-        {
-            "distro_name": "FedoraLinux-42",
-            "user": null,
-            "projects": [
-                {
-                    "paths": [
-                        "/home/eddyca/Projects/bitbucket-zucarmex/cac-catalog-service/./"
-                    ]
-                },
-                {
-                    "paths": [
-                        "/home/eddyca/Projects/bitbucket-zucarmex/cac-credit-service/./"
-                    ]
-                },
-                {
-                    "paths": [
-                        "/home/eddyca/Projects/fgr/has-visto-a/./"
-                    ]
-                }
-            ]
-        }
-    ],
-    "features": {
-        "edit_prediction_provider": "supermaven"
-    },
     "telemetry": {
         "diagnostics": true,
         "metrics": true
