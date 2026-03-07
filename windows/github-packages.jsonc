@@ -1,0 +1,12 @@
+{
+  // GitHub release packages installed to ~/.local/opt/ with binaries
+  // symlinked to ~/.local/bin/. Run Install-GitHubReleases.ps1 to process.
+  "packages": [
+    {
+      "repo": "dweymouth/supersonic",
+      "asset_pattern": "windows-x64\\.zip$",
+      "bin": "supersonic.exe",
+      "install_dir": "supersonic"
+    }
+  ]
+}
