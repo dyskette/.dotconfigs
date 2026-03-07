@@ -36,7 +36,10 @@ param(
     [switch]$SkipNodeSetup,
 
     [Parameter(HelpMessage="Skip Windows registry settings")]
-    [switch]$SkipWindowsSettings
+    [switch]$SkipWindowsSettings,
+
+    [Parameter(HelpMessage="Skip GitHub release package installation")]
+    [switch]$SkipGitHubPackages
 )
 
 # ── Admin elevation ─────────────────────────────────────────────────────────
@@ -221,6 +224,16 @@ if (-not $SkipPackages) {
     }
 } else {
     Write-Host "Skipping package installation." -ForegroundColor Yellow
+}
+
+# ── 2.5. GitHub release packages ──────────────────────────────────────────
+
+if (-not $SkipPackages -and -not $SkipGitHubPackages) {
+    Write-Host ""
+    Write-Host "=== GitHub Release Packages ===" -ForegroundColor Cyan
+    Invoke-Step -ScriptName "Install-GitHubReleases.ps1" -Description "Installing GitHub release packages"
+} else {
+    Write-Host "Skipping GitHub release packages." -ForegroundColor Yellow
 }
 
 # ── 3. Dotfile configuration ───────────────────────────────────────────────

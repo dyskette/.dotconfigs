@@ -65,7 +65,12 @@
         { "PackageIdentifier": "KeePassXCTeam.KeePassXC" },
         { "PackageIdentifier": "Obsidian.Obsidian" },
         { "PackageIdentifier": "Mozilla.Firefox" },
-        { "PackageIdentifier": "Dropbox.Dropbox" }
+        { "PackageIdentifier": "Dropbox.Dropbox" },
+        { "PackageIdentifier": "7zip.7zip" },
+        { "PackageIdentifier": "yt-dlp.yt-dlp" },
+        { "PackageIdentifier": "mpv.net" },
+        { "PackageIdentifier": "DuongDieuPhap.ImageGlass" },
+        { "PackageIdentifier": "SumatraPDF.SumatraPDF" }
       ]
     }
   ]
