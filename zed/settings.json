@@ -13,32 +13,6 @@
     "git_panel": {
         "sort_by_path": true
     },
-    "wsl_connections": [
-        {
-            "distro_name": "FedoraLinux-42",
-            "user": null,
-            "projects": [
-                {
-                    "paths": [
-                        "/home/eddyca/Projects/client-repos/catalog-service/./"
-                    ]
-                },
-                {
-                    "paths": [
-                        "/home/eddyca/Projects/client-repos/credit-service/./"
-                    ]
-                },
-                {
-                    "paths": [
-                        "/home/eddyca/Projects/client-b/sample-app/./"
-                    ]
-                }
-            ]
-        }
-    ],
-    "features": {
-        "edit_prediction_provider": "supermaven"
-    },
     "telemetry": {
         "diagnostics": true,
         "metrics": true
