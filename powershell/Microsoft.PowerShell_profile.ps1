@@ -17,6 +17,15 @@ function Invoke-Starship-PreCommand {
         $env:BAT_THEME = "adwaita"
         $env:SYSTEM_COLOR_THEME = "dark"
     }
+
+    # Emit OSC 9;9 so Windows Terminal can track CWD for duplicate tab/pane
+    $loc = $executionContext.SessionState.Path.CurrentLocation;
+    $prompt = "$([char]27)]9;12$([char]7)"
+    if ($loc.Provider.Name -eq "FileSystem")
+    {
+        $prompt += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]27)\"
+    }
+    $host.ui.Write($prompt)
 }
 
 if (Get-Command starship -ErrorAction SilentlyContinue)

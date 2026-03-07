@@ -63,12 +63,17 @@
                 "source": "Windows.Terminal.PowershellCore"
             },
             {
+                "commandline": "wsl.exe --distribution FedoraLinux-42",
+                "guid": "{7190bde5-14a3-564c-9d26-659cdd9e30c4}",
+                "hidden": false,
+                "name": "FedoraLinux-42"
+            },
+            {
                 "commandline": "wsl.exe --distribution Ubuntu-24.04",
                 "guid": "{505f431e-7f8d-547a-941a-7b3b1b1b2784}",
                 "hidden": false,
                 "icon": "%USERPROFILE%\\.dotconfigs\\windows_terminal\\ubuntu-icon.png",
-                "name": "Ubuntu-24.04",
-                "startingDirectory": "~"
+                "name": "Ubuntu-24.04"
             },
             {
                 "commandline": "%PROGRAMFILES%\\git\\usr\\bin\\bash.exe --login -i",
@@ -123,12 +128,6 @@
                 "hidden": false,
                 "name": "Developer PowerShell for VS 2022",
                 "source": "Windows.Terminal.VisualStudio"
-            },
-            {
-                "guid": "{7190bde5-14a3-564c-9d26-659cdd9e30c4}",
-                "hidden": false,
-                "name": "FedoraLinux-42",
-                "source": "Microsoft.WSL"
             },
             {
                 "guid": "{800b6063-9ef9-587d-86db-fe667e2fc9ce}",

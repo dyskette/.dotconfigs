@@ -243,4 +243,9 @@ if [[ $- == *i* ]]; then
 
 		starship_precmd_user_func="precmd_user_func"
 	fi
+
+	# Emit OSC 9;9 so Windows Terminal can track CWD for duplicate tab/pane
+	if [[ -n "$WT_SESSION" ]] && command -v wslpath &>/dev/null; then
+		PROMPT_COMMAND=${PROMPT_COMMAND:+"$PROMPT_COMMAND; "}'printf "\e]9;9;%s\e\\" "$(wslpath -w "$PWD")"'
+	fi
 fi
