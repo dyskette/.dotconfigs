@@ -34,6 +34,11 @@ if (Get-Command starship -ErrorAction SilentlyContinue)
     Invoke-Expression (&starship init powershell)
 }
 
+if (-not $env:SHELL)
+{
+    $env:SHELL = (Get-Command pwsh).Source
+}
+
 if (Get-Command nvim -ErrorAction SilentlyContinue)
 {
     $env:EDITOR = "nvim"

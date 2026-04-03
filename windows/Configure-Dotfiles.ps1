@@ -107,7 +107,7 @@ $links = @(
     @{
         App    = "zellij"
         Source = "zellij"
-        Target = "$env:APPDATA\zellij"
+        Target = "$env:APPDATA\zellij\config"
         Type   = "Junction"
     }
     @{
