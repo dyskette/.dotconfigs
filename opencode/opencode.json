@@ -1,6 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "anthropic/claude-sonnet-4",
   "autoupdate": true,
   "permission": {
     "edit": "allow",
@@ -9,19 +8,6 @@
   "lsp": {
     "rust": {
       "disabled": true
-    }
-  },
-  "mcp": {
-    "serena": {
-      "enabled": true,
-      "type": "local",
-      "command": [
-        "/home/eddyca/.local/bin/uvx",
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server"
-      ]
     }
   }
 }
