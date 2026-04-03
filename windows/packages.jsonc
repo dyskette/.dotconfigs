@@ -52,6 +52,7 @@
         // TUI apps
         { "PackageIdentifier": "sxyazi.yazi" },
         { "PackageIdentifier": "Neovim.Neovim" },
+        { "PackageIdentifier": "Zellij.Zellij" },
 
         // Terminal emulators
         { "PackageIdentifier": "Microsoft.WindowsTerminal" },
