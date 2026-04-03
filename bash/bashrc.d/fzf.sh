@@ -28,4 +28,31 @@ if command -v fzf &> /dev/null; then
   
   # Bind Ctrl+R to fzf history search (only in interactive shells)
   [[ $- == *i* ]] && bind -x '"\C-r": __fzf_history__'
+
+  # Zellij session manager
+  # Always uses sessions — switch-session from inside, attach --create from outside
+  # With no args: fzf pick from project directories
+  zj() {
+    local dir name
+
+    if [[ -n "$1" ]]; then
+      dir="$(realpath "$1")"
+    else
+      dir=$(fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
+        fzf --reverse --height=50% \
+            --header="select project directory" \
+            --border=none \
+            --preview-window=border-left \
+            --preview 'eza --tree --git-ignore --level 2 --colour=always --icons=always {} 2>/dev/null || ls {}')
+      [[ -z "$dir" ]] && return
+    fi
+
+    name="$(basename "$dir" | tr '.' '_')"
+
+    if [[ -n "$ZELLIJ" ]]; then
+      zellij action switch-session "$name" --cwd "$dir"
+    else
+      zellij attach --create "$name" options --default-cwd "$dir"
+    fi
+  }
 fi
