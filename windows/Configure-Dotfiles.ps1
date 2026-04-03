@@ -105,6 +105,12 @@ $links = @(
         Type   = "Junction"
     }
     @{
+        App    = "zellij"
+        Source = "zellij"
+        Target = "$env:APPDATA\zellij"
+        Type   = "Junction"
+    }
+    @{
         App    = "zed"
         Source = "zed\settings.json"
         Target = "$env:APPDATA\Zed\settings.json"
