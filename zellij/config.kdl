@@ -1,14 +1,3 @@
-// Zellij config — locked-as-home-mode approach
-// Ctrl+g toggles between Locked (home) and Normal (command entry)
-// From Normal, single keys enter sub-modes; actions return to Locked
-//
-// Frequent actions bypass Ctrl+g via Alt shortcuts (work in ALL modes):
-//   Alt h/j/k/l  — navigate panes/tabs
-//   Alt n        — new pane
-//   Alt f        — toggle floating panes
-//   Alt +/-      — resize
-//   Alt s        — session manager
-
 keybinds clear-defaults=true {
     locked {
         bind "Ctrl g" { SwitchToMode "Normal"; }
@@ -97,15 +86,23 @@ keybinds clear-defaults=true {
         bind "tab" { MovePane; }
     }
     scroll {
+        bind "Alt left" { MoveFocusOrTab "Left"; SwitchToMode "Locked"; }
+        bind "Alt down" { MoveFocus "Down"; SwitchToMode "Locked"; }
+        bind "Alt up" { MoveFocus "Up"; SwitchToMode "Locked"; }
+        bind "Alt right" { MoveFocusOrTab "Right"; SwitchToMode "Locked"; }
         bind "e" { EditScrollback; SwitchToMode "Locked"; }
         bind "f" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "Alt h" { MoveFocusOrTab "Left"; SwitchToMode "Locked"; }
+        bind "Alt j" { MoveFocus "Down"; SwitchToMode "Locked"; }
+        bind "Alt k" { MoveFocus "Up"; SwitchToMode "Locked"; }
+        bind "Alt l" { MoveFocusOrTab "Right"; SwitchToMode "Locked"; }
         bind "s" { SwitchToMode "Normal"; }
     }
     search {
         bind "c" { SearchToggleOption "CaseSensitivity"; }
-        bind "n" { Search "down"; }
+        bind "n" { Search "Down"; }
         bind "o" { SearchToggleOption "WholeWord"; }
-        bind "p" { Search "up"; }
+        bind "p" { Search "Up"; }
         bind "w" { SearchToggleOption "Wrap"; }
     }
     session {
@@ -154,8 +151,7 @@ keybinds clear-defaults=true {
             SwitchToMode "Locked"
         }
     }
-    // Frequent actions — available in ALL modes including Locked
-    shared {
+    shared_among "Normal" "Locked" {
         bind "Alt left" { MoveFocusOrTab "Left"; }
         bind "Alt down" { MoveFocus "Down"; }
         bind "Alt up" { MoveFocus "Up"; }
@@ -163,29 +159,28 @@ keybinds clear-defaults=true {
         bind "Alt +" { Resize "Increase"; }
         bind "Alt -" { Resize "Decrease"; }
         bind "Alt =" { Resize "Increase"; }
+        bind "Alt [" { PreviousSwapLayout; }
+        bind "Alt ]" { NextSwapLayout; }
         bind "Alt f" { ToggleFloatingPanes; }
         bind "Alt h" { MoveFocusOrTab "Left"; }
+        bind "Alt i" { MoveTab "Left"; }
         bind "Alt j" { MoveFocus "Down"; }
         bind "Alt k" { MoveFocus "Up"; }
         bind "Alt l" { MoveFocusOrTab "Right"; }
         bind "Alt n" { NewPane; }
+        bind "Alt o" { MoveTab "Right"; }
+        bind "Alt p" { TogglePaneInGroup; }
         bind "Alt s" {
             LaunchOrFocusPlugin "session-manager" {
                 floating true
                 move_to_focused_tab true
             }
         }
+        bind "Alt Shift p" { ToggleGroupMarking; }
     }
-    // Less frequent actions — only outside Locked
-    shared_except "Locked" {
+    shared_except "Locked" "RenameTab" "RenamePane" {
         bind "Ctrl g" { SwitchToMode "Locked"; }
         bind "Ctrl q" { Quit; }
-        bind "Alt [" { PreviousSwapLayout; }
-        bind "Alt ]" { NextSwapLayout; }
-        bind "Alt i" { MoveTab "Left"; }
-        bind "Alt o" { MoveTab "Right"; }
-        bind "Alt p" { TogglePaneInGroup; }
-        bind "Alt Shift p" { ToggleGroupMarking; }
     }
     shared_except "Locked" "EnterSearch" {
         bind "enter" { SwitchToMode "Locked"; }
@@ -202,11 +197,11 @@ keybinds clear-defaults=true {
     shared_except "Locked" "Tab" "EnterSearch" "RenameTab" "RenamePane" {
         bind "t" { SwitchToMode "Tab"; }
     }
-    shared_except "Locked" "Tab" "Scroll" "EnterSearch" "RenameTab" "RenamePane" {
-        bind "s" { SwitchToMode "Scroll"; }
-    }
     shared_among "Normal" "Resize" "Tab" "Scroll" "Prompt" "Tmux" {
         bind "p" { SwitchToMode "Pane"; }
+    }
+    shared_among "Normal" "Resize" "Search" "Move" "Prompt" "Tmux" {
+        bind "s" { SwitchToMode "Scroll"; }
     }
     shared_except "Locked" "Resize" "Pane" "Tab" "EnterSearch" "RenameTab" "RenamePane" {
         bind "r" { SwitchToMode "Resize"; }
@@ -270,6 +265,9 @@ web_client {
 }
 
 simplified_ui true
+default_mode "locked"
+show_startup_tips false
+
 theme "adwaita-dark"
 
 themes {
@@ -287,6 +285,3 @@ themes {
         orange "#FFA348"
     }
 }
-
-default_mode "locked"
-show_startup_tips false
