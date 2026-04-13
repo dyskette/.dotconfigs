@@ -39,6 +39,7 @@
             - imagemagick
             - tmux
             - libgtk-4-1
+            - socat
 
   - name: Fedora Silverblue
     when: is_fedora_silverblue
@@ -122,3 +123,4 @@
             - xz
             - dbus-tools
             - gtk4
+            - socat
