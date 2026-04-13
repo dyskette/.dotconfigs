@@ -272,18 +272,121 @@ theme "adwaita-dark"
 
 themes {
     adwaita-dark {
-        fg "#DEDDDA"
-        bg "#1D1D20"
-        black "#1D1D20"
-        red "#ED333B"
-        green "#57E389"
-        yellow "#FF7800"
-        blue "#62A0EA"
-        magenta "#9141AC"
-        cyan "#5BC8AF"
-        white "#DEDDDA"
-        orange "#FFA348"
-        text_selected_fg "#DEDDDA"
-        text_selected_bg "#3D3846"
+        text_unselected {
+            base 222 221 218
+            background 29 29 32
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        text_selected {
+            base 222 221 218
+            background 98 160 234
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        ribbon_selected {
+            base 29 29 32
+            background 87 227 137
+            emphasis_0 237 51 59
+            emphasis_1 255 163 72
+            emphasis_2 220 138 221
+            emphasis_3 98 160 234
+        }
+        ribbon_unselected {
+            base 29 29 32
+            background 222 221 218
+            emphasis_0 237 51 59
+            emphasis_1 222 221 218
+            emphasis_2 98 160 234
+            emphasis_3 220 138 221
+        }
+        table_title {
+            base 87 227 137
+            background 0
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        table_cell_selected {
+            base 222 221 218
+            background 98 160 234
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        table_cell_unselected {
+            base 222 221 218
+            background 29 29 32
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        list_selected {
+            base 222 221 218
+            background 98 160 234
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        list_unselected {
+            base 222 221 218
+            background 29 29 32
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 87 227 137
+            emphasis_3 220 138 221
+        }
+        frame_selected {
+            base 87 227 137
+            background 0
+            emphasis_0 255 163 72
+            emphasis_1 154 153 150
+            emphasis_2 220 138 221
+            emphasis_3 0
+        }
+        frame_highlight {
+            base 255 163 72
+            background 0
+            emphasis_0 220 138 221
+            emphasis_1 255 163 72
+            emphasis_2 255 163 72
+            emphasis_3 255 163 72
+        }
+        exit_code_success {
+            base 87 227 137
+            background 0
+            emphasis_0 154 153 150
+            emphasis_1 29 29 32
+            emphasis_2 220 138 221
+            emphasis_3 98 160 234
+        }
+        exit_code_error {
+            base 237 51 59
+            background 0
+            emphasis_0 255 163 72
+            emphasis_1 0
+            emphasis_2 0
+            emphasis_3 0
+        }
+        multiplayer_user_colors {
+            player_1 220 138 221
+            player_2 98 160 234
+            player_3 0
+            player_4 255 163 72
+            player_5 154 153 150
+            player_6 0
+            player_7 237 51 59
+            player_8 0
+            player_9 0
+            player_10 0
+        }
     }
 }
