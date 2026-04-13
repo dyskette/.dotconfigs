@@ -283,5 +283,7 @@ themes {
         cyan "#5BC8AF"
         white "#DEDDDA"
         orange "#FFA348"
+        text_selected_fg "#DEDDDA"
+        text_selected_bg "#3D3846"
     }
 }
