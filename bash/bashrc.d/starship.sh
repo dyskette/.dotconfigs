@@ -77,9 +77,18 @@ function reset_title() {
 	printf "\033]2;bash\007" >/dev/tty
 }
 
+# History: append to the file after every command so concurrent shells and
+# abrupt exits don't lose commands. `histappend` prevents the on-exit write
+# from clobbering entries written by other shells.
+shopt -s histappend
+HISTSIZE=100000
+HISTFILESIZE=200000
+HISTCONTROL=ignoreboth:erasedups
+HISTTIMEFORMAT='%F %T  '
+
 if [[ $- == *i* ]]; then
 	trap 'set_command_title' DEBUG
-	PROMPT_COMMAND="reset_title"
+	PROMPT_COMMAND="history -a; reset_title"
 
 	if command -v starship &>/dev/null; then
 		export STARSHIP_CONFIG="$HOME/.config/starship/config.toml"
