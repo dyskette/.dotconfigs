@@ -5,6 +5,9 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
+# Starship owns PROMPT_COMMAND; drop whatever /etc/bashrc installed.
+unset PROMPT_COMMAND
+
 # Source secrets (API keys, tokens, etc.)
 if [ -f ~/.secrets ]; then
 	. ~/.secrets
