@@ -49,6 +49,21 @@ WESTON_RDP_FRACTIONAL_HI_DPI_SCALING=false
     }
 }
 
+# Helper: Write .wslconfig with WSLg (GUI + audio + mic) enabled
+function Write-WSLConfig {
+    $wslConfigFile = "$env:USERPROFILE\.wslconfig"
+    try {
+        $wslConfig = @"
+[wsl2]
+guiApplications=true
+"@
+        Set-Content -Path $wslConfigFile -Value $wslConfig -Force
+        Write-Host "Created .wslconfig with GUI applications enabled" -ForegroundColor Green
+    } catch {
+        Write-Warning "Failed to create .wslconfig: $_"
+    }
+}
+
 # Enable WSL features before installing distributions
 Write-Host "Ensuring WSL features are enabled..." -ForegroundColor Yellow
 
@@ -149,6 +164,7 @@ if ($wslDistributions.Split() -contains "Ubuntu-24.04") {
         Write-Warning "Could not set Ubuntu 24.04 as default: $_"
     }
     
+    Write-WSLConfig
     Write-WSLgConfig
 
     return @{
@@ -180,6 +196,7 @@ try {
         Write-Host "Ubuntu 24.04 is ready for use (not launched automatically)." -ForegroundColor White
         Write-Host "To access Ubuntu: wsl or ubuntu2404.exe" -ForegroundColor Gray
         
+        Write-WSLConfig
         Write-WSLgConfig
 
         return @{
