@@ -1,17 +1,20 @@
 ---
 # Fedora installation (dnf)
-- name: Install dnf-plugins-core (Fedora)
-  ansible.builtin.dnf:
-    name: dnf-plugins-core
-    state: present
-  become: true
-  when: is_fedora
-
 - name: Add HashiCorp repository (Fedora)
-  ansible.builtin.shell: |
-    wget -O- https://rpm.releases.hashicorp.com/fedora/hashicorp.repo | sudo tee /etc/yum.repos.d/hashicorp.repo
-  args:
-    creates: /etc/yum.repos.d/hashicorp.repo
+  # HashiCorp stopped publishing to the fedora/ path; it now only carries a
+  # placeholder "crt-core-helloworld" package, so `dnf install terraform` fails
+  # with "No match for argument". The RHEL 9 repo is current and works on
+  # Fedora: terraform ships a static Go binary needing only openssl and
+  # shadow-utils. releasever is pinned because $releasever expands to the
+  # Fedora release (e.g. 42), which has no repo path.
+  ansible.builtin.yum_repository:
+    name: hashicorp
+    description: HashiCorp Stable - $basearch
+    baseurl: https://rpm.releases.hashicorp.com/RHEL/9/$basearch/stable
+    gpgcheck: true
+    gpgkey: https://rpm.releases.hashicorp.com/gpg
+    enabled: true
+  become: true
   when: is_fedora
 
 - name: Install Terraform (Fedora)
