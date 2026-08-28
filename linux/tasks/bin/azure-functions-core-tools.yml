@@ -1,0 +1,88 @@
+---
+# Microsoft ships no RPM for Core Tools: the GitHub release carries only zips
+# and Windows MSIs, and neither packages.microsoft.com/fedora nor /rhel/9
+# includes the package. The apt route in the docs is Ubuntu/Debian only, so
+# RPM distros are directed to the release zip.
+#
+# The zip is a self-contained .NET build (~600 MB) bundling every language
+# worker, so it needs no .NET SDK -- only libicu, openssl-libs, krb5-libs and
+# libz, all present on a stock Fedora.
+#
+# Version and checksum are pinned rather than tracking latest: each bump is a
+# ~600 MB download, and pinning the digest gives supply-chain verification
+# independent of the release host.
+- name: Set Azure Functions Core Tools facts
+  ansible.builtin.set_fact:
+    azure_functions_core_tools_version: "4.14.0"
+    azure_functions_core_tools_sha256: "ecce0d57e288efc85d22cce7fc37d7129e78d0918368e8f1c84e9d3d354689aa"
+    azure_functions_core_tools_dir: "{{ ansible_env.HOME }}/.local/opt/azure-functions-core-tools"
+
+- name: Check installed Azure Functions Core Tools version
+  ansible.builtin.stat:
+    path: "{{ azure_functions_core_tools_dir }}/.version-{{ azure_functions_core_tools_version }}"
+  register: azure_functions_core_tools_marker
+
+- name: Install Azure Functions Core Tools
+  # Guarded on a version-stamped marker so a re-run does not re-fetch ~600 MB.
+  when: not azure_functions_core_tools_marker.stat.exists
+  block:
+    - name: Download Azure Functions Core Tools archive
+      ansible.builtin.get_url:
+        url: "https://github.com/Azure/azure-functions-core-tools/releases/download/{{ azure_functions_core_tools_version }}/Azure.Functions.Cli.linux-x64.{{ azure_functions_core_tools_version }}.zip"
+        dest: "/tmp/azure-functions-core-tools.zip"
+        checksum: "sha256:{{ azure_functions_core_tools_sha256 }}"
+        mode: "0644"
+
+    - name: Remove existing Azure Functions Core Tools installation
+      ansible.builtin.file:
+        path: "{{ azure_functions_core_tools_dir }}"
+        state: absent
+
+    - name: Create Azure Functions Core Tools directory
+      ansible.builtin.file:
+        path: "{{ azure_functions_core_tools_dir }}"
+        state: directory
+
+    - name: Extract Azure Functions Core Tools files
+      # The archive has no top-level directory, so it extracts into its own dir.
+      ansible.builtin.unarchive:
+        src: "/tmp/azure-functions-core-tools.zip"
+        dest: "{{ azure_functions_core_tools_dir }}/"
+        remote_src: yes
+
+    - name: Make Azure Functions Core Tools binaries executable
+      # The zip stores every entry as 0644, so the executables need the bit set
+      # explicitly. Only real executables are listed: the bundled .so files are
+      # dlopen'd by the runtime, which does not require +x. The list is exact
+      # for the pinned version -- re-check it when bumping.
+      ansible.builtin.file:
+        path: "{{ azure_functions_core_tools_dir }}/{{ item }}"
+        mode: "0755"
+      loop:
+        - func
+        - createdump
+        - in-proc6/func
+        - in-proc6/gozip
+        - in-proc6/createdump
+        - in-proc8/func
+        - in-proc8/gozip
+        - in-proc8/createdump
+        - workers/powershell/7/Microsoft.Azure.Functions.PowerShellWorker
+        - in-proc8/workers/powershell/7/Microsoft.Azure.Functions.PowerShellWorker
+
+    - name: Stamp installed Azure Functions Core Tools version
+      ansible.builtin.file:
+        path: "{{ azure_functions_core_tools_dir }}/.version-{{ azure_functions_core_tools_version }}"
+        state: touch
+
+    - name: Clean up downloaded archive
+      ansible.builtin.file:
+        path: "/tmp/azure-functions-core-tools.zip"
+        state: absent
+
+- name: Create symlink to func binary
+  ansible.builtin.file:
+    src: "{{ azure_functions_core_tools_dir }}/func"
+    dest: "{{ ansible_env.HOME }}/.local/bin/func"
+    state: link
+    force: yes

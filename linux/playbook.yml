@@ -51,6 +51,7 @@
         - mssql-tools
         - go
         - mpls
+        - azure-functions-core-tools
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -123,6 +124,8 @@
       tags: [bin, go]
     - import_tasks: tasks/bin/mpls.yml
       tags: [bin, mpls]
+    - import_tasks: tasks/bin/azure-functions-core-tools.yml
+      tags: [bin, azure-functions-core-tools]
 
     - name: Dotnet
       tags: dotnet
