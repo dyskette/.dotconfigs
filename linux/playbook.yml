@@ -52,6 +52,7 @@
         - go
         - mpls
         - azure-functions-core-tools
+        - aspire
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -126,6 +127,8 @@
       tags: [bin, mpls]
     - import_tasks: tasks/bin/azure-functions-core-tools.yml
       tags: [bin, azure-functions-core-tools]
+    - import_tasks: tasks/bin/aspire.yml
+      tags: [bin, aspire]
 
     - name: Dotnet
       tags: dotnet
