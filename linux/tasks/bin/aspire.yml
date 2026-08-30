@@ -1,0 +1,68 @@
+---
+# The upstream one-liner is `curl -sSL https://aspire.dev/install.sh | bash`,
+# which installs to ~/.aspire/bin and edits shell rc files to extend PATH.
+# Both fight this repo: PATH is managed in bash/bashrc.d, and piping a remote
+# script to bash gives no pinning. The script just fetches the GitHub release
+# tarball, so fetch it directly instead and keep the ~/.local/opt + symlink
+# layout used by the other tools here.
+#
+# The archive is flat and already carries mode 0755 on the binary, so no chmod
+# step is needed. aspire resolves its sidecar .so files relative to its real
+# path, so invoking it through the symlink works.
+#
+# sha512 is the digest Microsoft publishes alongside the release, lowercased.
+# Version and digest are pinned; bumping means updating both.
+- name: Set Aspire CLI facts
+  ansible.builtin.set_fact:
+    aspire_version: "13.5.3"
+    aspire_sha512: "fb59ffee6ce8220dec42201cd712ea2aa7a7e64dac03839f84da253ca750ce062be87859c8d915899afd4fe208f4b127c22a80d5420e29a9724edffd50df71d6"
+    aspire_dir: "{{ ansible_env.HOME }}/.local/opt/aspire"
+
+- name: Check installed Aspire CLI version
+  ansible.builtin.stat:
+    path: "{{ aspire_dir }}/.version-{{ aspire_version }}"
+  register: aspire_marker
+
+- name: Install Aspire CLI
+  # Guarded on a version-stamped marker so a re-run does not re-fetch ~127 MB.
+  when: not aspire_marker.stat.exists
+  block:
+    - name: Download Aspire CLI tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/microsoft/aspire/releases/download/v{{ aspire_version }}/aspire-cli-linux-x64-{{ aspire_version }}.tar.gz"
+        dest: "/tmp/aspire-cli.tar.gz"
+        checksum: "sha512:{{ aspire_sha512 }}"
+        mode: "0644"
+
+    - name: Remove existing Aspire CLI installation
+      ansible.builtin.file:
+        path: "{{ aspire_dir }}"
+        state: absent
+
+    - name: Create Aspire CLI directory
+      ansible.builtin.file:
+        path: "{{ aspire_dir }}"
+        state: directory
+
+    - name: Extract Aspire CLI files
+      ansible.builtin.unarchive:
+        src: "/tmp/aspire-cli.tar.gz"
+        dest: "{{ aspire_dir }}/"
+        remote_src: yes
+
+    - name: Stamp installed Aspire CLI version
+      ansible.builtin.file:
+        path: "{{ aspire_dir }}/.version-{{ aspire_version }}"
+        state: touch
+
+    - name: Clean up downloaded tarball
+      ansible.builtin.file:
+        path: "/tmp/aspire-cli.tar.gz"
+        state: absent
+
+- name: Create symlink to aspire binary
+  ansible.builtin.file:
+    src: "{{ aspire_dir }}/aspire"
+    dest: "{{ ansible_env.HOME }}/.local/bin/aspire"
+    state: link
+    force: yes
