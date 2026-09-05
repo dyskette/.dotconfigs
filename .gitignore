@@ -1,5 +1,8 @@
 .claude/
 nul
 
-# yazi packages are restored from yazi/package.toml via `ya pkg install`
-yazi/plugins/
+# Third-party yazi packages are restored from yazi/package.toml via
+# `ya pkg install`. First-party plugins in this repo are tracked; the glob
+# (rather than a bare directory) is what lets the negation below apply.
+yazi/plugins/*
+!yazi/plugins/nvim-diag.yazi/

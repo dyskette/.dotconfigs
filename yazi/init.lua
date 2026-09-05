@@ -8,3 +8,9 @@ require("session"):setup({
 require("git"):setup({
   order = 1500,
 })
+
+-- Diagnostic counts pushed in from Neovim over DDS. Renders to the right of
+-- the git sign, so `order` sits above git.yazi's 1500.
+require("nvim-diag"):setup({
+  order = 1600,
+})
