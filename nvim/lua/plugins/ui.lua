@@ -1,11 +1,15 @@
 local utils = require("config.utils")
 
 local set_dark_mode = function()
-  vim.cmd.colorscheme("adwaita")
-  vim.env.BAT_THEME = "adwaita"
+  -- gruvbox.nvim picks its variant from vim.o.background, so that has to be
+  -- set before the colorscheme rather than left to whatever nvim inferred.
+  vim.o.background = "dark"
+  vim.cmd.colorscheme("gruvbox")
+  vim.env.BAT_THEME = "gruvbox"
 end
 
 local set_light_mode = function()
+  vim.o.background = "light"
   vim.cmd.colorscheme("rose-pine-dawn")
   vim.env.BAT_THEME = "rose-pine-dawn"
 end
@@ -31,14 +35,15 @@ local tabby_opts = function()
   local theme = {}
 
   if is_dark then
-    -- Adwaita Dark colors (Mofiqul/adwaita.nvim palette)
+    -- Gruvbox dark medium, matching tmux/gruvbox.conf so the tab line and
+    -- the tmux status line read as one bar.
     theme = {
-      fill = { fg = "#DEDDDA", bg = "#1D1D20" },
-      head = { fg = "#1D1D20", bg = "#DEDDDA", style = "bold" },
-      current_tab = { fg = "#DEDDDA", bg = "#36363A", style = "bold" },
-      tab = { fg = "#9A9996", bg = "#242428" },
-      win = { fg = "#1D1D20", bg = "#9A9996" },
-      tail = { fg = "#1D1D20", bg = "#62A0EA", style = "bold" },
+      fill = { fg = "#EBDBB2", bg = "#282828" },
+      head = { fg = "#282828", bg = "#EBDBB2", style = "bold" },
+      current_tab = { fg = "#282828", bg = "#928374", style = "bold" },
+      tab = { fg = "#EBDBB2", bg = "#3C3836" },
+      win = { fg = "#282828", bg = "#A89984" },
+      tail = { fg = "#282828", bg = "#83A598", style = "bold" },
     }
   else
     -- Rose Pine Dawn colors from your tmux config
@@ -180,10 +185,14 @@ local fidget_opts = {
 return {
   -- Color scheme
   {
-    "Mofiqul/adwaita.nvim",
+    "ellisonleao/gruvbox.nvim",
     lazy = false,
     priority = 1000,
-    init = function()
+    -- setup() has to run before the colorscheme command for opts to apply,
+    -- so the theme is only applied once the plugin is configured.
+    opts = {},
+    config = function(_, opts)
+      require("gruvbox").setup(opts)
       if vim.env.SYSTEM_COLOR_THEME == "dark" then
         set_dark_mode()
       end

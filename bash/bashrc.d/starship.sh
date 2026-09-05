@@ -50,8 +50,8 @@ function apply_theme() {
 		starship config palette rose-pine-dawn
 		export BAT_THEME='rose-pine-dawn'
 	else
-		starship config palette adwaita
-		export BAT_THEME='adwaita'
+		starship config palette gruvbox
+		export BAT_THEME='gruvbox'
 	fi
 	export SYSTEM_COLOR_THEME="$theme"
 }

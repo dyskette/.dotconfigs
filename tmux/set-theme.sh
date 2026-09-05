@@ -13,9 +13,9 @@ if [ "$theme" = "light" ]; then
 	tmux set-environment -g SYSTEM_COLOR_THEME light
 	osc11_response=$'\033]11;rgb:fafa/f4f4/eded\033\\'
 else
-	tmux source-file ~/.dotconfigs/tmux/adwaita.conf
+	tmux source-file ~/.dotconfigs/tmux/gruvbox.conf
 	tmux set-environment -g SYSTEM_COLOR_THEME dark
-	osc11_response=$'\033]11;rgb:1d1d/1d1d/2020\033\\'
+	osc11_response=$'\033]11;rgb:2828/2828/2828\033\\'
 fi
 
 if [ -n "$client_tty" ] && [ -w "$client_tty" ]; then
