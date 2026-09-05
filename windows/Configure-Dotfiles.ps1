@@ -103,6 +103,7 @@ $links = @(
         Source = "yazi"
         Target = "$env:APPDATA\yazi\config"
         Type   = "Junction"
+        PostHook = { ya pkg install 2>&1 | Out-Null }
     }
     @{
         App    = "zellij"
