@@ -163,3 +163,37 @@ function tmux-pwsh {
     $command = "tmux -L pwsh -f `$HOME/.dotconfigs/tmux/pwsh.conf $args"
     wsl --distribution Ubuntu-24.04 --exec bash -c $command
 }
+
+function zj {
+    param(
+        [Parameter(Position = 0)]
+        [string]$Directory
+    )
+
+    if ($Directory)
+    {
+        $dir = (Resolve-Path -LiteralPath $Directory).Path
+    } else
+    {
+        $dir = fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . $HOME |
+            fzf --reverse --height=50% `
+                --header="select project directory" `
+                --border=none `
+                --preview-window=border-left `
+                --preview "eza --tree --git-ignore --level 2 --colour=always --icons=always {}"
+        if (-not $dir)
+        {
+            return
+        }
+    }
+
+    $name = (Split-Path -Leaf $dir) -replace '\.', '_'
+
+    if ($env:ZELLIJ)
+    {
+        zellij action switch-session $name --cwd $dir
+    } else
+    {
+        zellij attach --create $name options --default-cwd $dir
+    }
+}
