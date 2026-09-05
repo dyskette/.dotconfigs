@@ -91,6 +91,26 @@
       "commands": ["gitlens.diffWithPrevious"]
     },
     {
+      "before": ["<C-w>", "h"],
+      "commands": ["workbench.action.focusLeftGroup"]
+    },
+    {
+      "before": ["<C-w>", "j"],
+      "commands": ["workbench.action.focusBelowGroup"]
+    },
+    {
+      "before": ["<C-w>", "k"],
+      "commands": ["workbench.action.focusAboveGroup"]
+    },
+    {
+      "before": ["<C-w>", "l"],
+      "commands": ["workbench.action.focusRightGroup"]
+    },
+    {
+      "before": ["<C-w>", "p"],
+      "commands": ["workbench.action.focusNextGroup"]
+    },
+    {
       "before": ["u"],
       "after": [],
       "commands": [
