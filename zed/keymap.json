@@ -31,6 +31,8 @@
     {
         "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
         "bindings": {
+            "space s s": ["projects::OpenRecent", { "create_new_window": false }],
+
             // File search (matching fzf keymaps)
             "space s f": "file_finder::Toggle",         // Search files
             "space s i": "file_finder::Toggle",         // Search git files (fallback)
@@ -99,7 +101,8 @@
             "space g u": "git::UnstageAndNext",         // Unstage hunk
             "space g x": "git::Restore",                // Restore hunk
             "space g b": "git::Blame",                  // Git blame
-            "space g d": "git::Diff"                    // Git diff
+            "space g d": "git::Diff",                   // Git diff
+            "space g h": "git::FileHistory"             // Git file history
         }
     },
 
@@ -191,12 +194,11 @@
     // EDITOR - NORMAL + VISUAL MODE
     // ============================================================================
     {
-        "context": "Editor && vim_mode == normal || Editor && vim_mode == visual",
-        "bindings": {
-            // System clipboard
-            "space y": "editor::Copy",
-            "space p": "editor::Paste"
-        }
+      "context": "VimControl && !VimWaiting && !menu",
+      "bindings": {
+        "space y": ["workspace::SendKeystrokes", "\" + y"],
+        "space p": ["workspace::SendKeystrokes", "\" + p"]
+      }
     },
 
     // ============================================================================
