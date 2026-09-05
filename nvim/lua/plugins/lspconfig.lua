@@ -4,6 +4,8 @@ local utils = require("config.utils")
 -- These are global mappings, not buffer-local, so we delete them once at startup
 vim.keymap.del("n", "grn")
 vim.keymap.del("n", "gra")
+vim.keymap.del("x", "gra")
+vim.keymap.del("n", "grx")
 vim.keymap.del("n", "grr")
 vim.keymap.del("n", "gri")
 vim.keymap.del("n", "grt")
