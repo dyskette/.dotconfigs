@@ -33,7 +33,7 @@ $line_break\
 $character\
 """
 
-palette = "adwaita"
+palette = "gruvbox"
 
 [palettes.gruvbox]
 background  = "#282828"

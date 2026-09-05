@@ -30,7 +30,7 @@ local themes = {
 
 local get_theme_for_appearance = function(appearance)
   if appearance:find("Dark") then
-    return themes["adwaita"]
+    return themes["gruvbox"]
   else
     return themes["rose-pine-dawn"]
   end

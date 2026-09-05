@@ -7,9 +7,6 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
-    "auto_install_extensions": {
-        "adwaita": true
-    },
     "git_panel": {
         "sort_by_path": true
     },
@@ -22,7 +19,7 @@
     "theme": {
         "mode": "system",
         "light": "Rosé Pine Dawn",
-        "dark": "Adwaita Dark"
+        "dark": "Gruvbox Dark"
     },
 
     // Vim mode configuration
