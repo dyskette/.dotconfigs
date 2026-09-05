@@ -1,0 +1,19 @@
+# Yazi behaviour. Colors live in theme.toml and flavors/.
+
+[mgr]
+# Metadata column beside each entry.
+# Built-ins: none | size | btime | mtime | permissions | owner
+linemode = "size"
+
+# git.yazi - per-file VCS status in the file list.
+# Two rules are needed because `*` does not match directories; `group` makes
+# both share a single fetch per directory instead of running git twice.
+[[plugin.prepend_fetchers]]
+url = "*"
+run = "git"
+group = "git"
+
+[[plugin.prepend_fetchers]]
+url = "*/"
+run = "git"
+group = "git"

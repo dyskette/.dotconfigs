@@ -46,6 +46,13 @@
     - { src: "opencode", dest: "{{ config_dir }}/opencode" }
   tags: dotfiles
 
+- name: Dotfiles | Install yazi packages
+  # Restores yazi/package.toml at the revisions it locks; the plugin sources
+  # themselves are gitignored, mirroring how lazy-lock.json works for nvim.
+  ansible.builtin.command:
+    cmd: $HOME/.local/bin/ya pkg install
+  tags: dotfiles
+
 - name: Dotfiles | Run bat cache
   ansible.builtin.command:
     cmd: $HOME/.local/opt/bat/bat cache --build
