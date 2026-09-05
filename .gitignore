@@ -1,2 +1,5 @@
 .claude/
 nul
+
+# yazi packages are restored from yazi/package.toml via `ya pkg install`
+yazi/plugins/
