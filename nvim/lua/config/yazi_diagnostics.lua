@@ -58,8 +58,17 @@ function M.payload()
 end
 
 --- Send the current diagnostics to the attached yazi, if there is one.
+---
+--- Safe to call from a fast event context: yazi.nvim's on_yazi_ready hook runs
+--- inside a vim.system stdout handler, where the buffer API is off limits, so
+--- the work is deferred to the main loop when called from there.
 function M.push()
   if not yazi_id then
+    return
+  end
+
+  if vim.in_fast_event() then
+    vim.schedule(M.push)
     return
   end
 
