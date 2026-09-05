@@ -33,25 +33,70 @@
     "command": "workbench.action.compareEditor.focusOtherSide",
     "when": "textCompareEditorActive"
   },
+  // Pane navigation is layered on purpose: navigate* crosses workbench parts
+  // (sidebar / panel / terminal) but does not hop between editor groups;
+  // focus*Group does the opposite and is a no-op at the edge of the grid.
+  // VS Code applies the LAST keybinding whose `when` matches, so navigate* is
+  // the base and focus*Group overrides it only while the editor has focus and
+  // a group really exists in that direction.
   {
-    "key": "ctrl+w k",
-    "command": "workbench.action.navigateUp",
-    "when": "!editorTextFocus"
-  },
-  {
-    "key": "ctrl+w j",
-    "command": "workbench.action.navigateDown",
-    "when": "!editorTextFocus"
+    "key": "ctrl+w h",
+    "command": "workbench.action.navigateLeft"
   },
   {
     "key": "ctrl+w h",
-    "command": "workbench.action.navigateLeft",
-    "when": "!editorTextFocus"
+    "command": "workbench.action.focusLeftGroup",
+    "when": "editorFocus && multipleEditorGroups && activeEditorGroupIndex != 1"
   },
   {
     "key": "ctrl+w l",
-    "command": "workbench.action.navigateRight",
-    "when": "!editorTextFocus"
+    "command": "workbench.action.navigateRight"
+  },
+  {
+    "key": "ctrl+w l",
+    "command": "workbench.action.focusRightGroup",
+    "when": "editorFocus && multipleEditorGroups && !activeEditorGroupLast"
+  },
+  // No context key marks the top/bottom row of the grid, so vertical movement
+  // stays on navigate* (group below -> panel -> terminal); ctrl+w ctrl+<hjkl>
+  // stays pinned to editor groups for when that guesses wrong.
+  {
+    "key": "ctrl+w k",
+    "command": "workbench.action.navigateUp"
+  },
+  {
+    "key": "ctrl+w j",
+    "command": "workbench.action.navigateDown"
+  },
+  {
+    "key": "ctrl+w ctrl+k",
+    "command": "workbench.action.focusAboveGroup"
+  },
+  {
+    "key": "ctrl+w ctrl+j",
+    "command": "workbench.action.focusBelowGroup"
+  },
+  {
+    "key": "ctrl+w ctrl+h",
+    "command": "workbench.action.focusLeftGroup"
+  },
+  {
+    "key": "ctrl+w ctrl+l",
+    "command": "workbench.action.focusRightGroup"
+  },
+  // VSCodeVim's own <C-w> v/s/q never fire: the ctrl+w chords above put VS Code
+  // into chord mode, so the key never reaches the extension. Rebound here.
+  {
+    "key": "ctrl+w v",
+    "command": "workbench.action.splitEditorRight"
+  },
+  {
+    "key": "ctrl+w s",
+    "command": "workbench.action.splitEditorDown"
+  },
+  {
+    "key": "ctrl+w q",
+    "command": "workbench.action.closeActiveEditor"
   },
   {
     "key": "q",
