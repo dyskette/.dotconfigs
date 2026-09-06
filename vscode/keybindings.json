@@ -57,6 +57,19 @@
     "command": "workbench.action.focusRightGroup",
     "when": "editorFocus && multipleEditorGroups && !activeEditorGroupLast"
   },
+  // A side-by-side diff is one editor group, so neither layer above reaches it:
+  // focus*Group needs multipleEditorGroups and navigate* crosses workbench parts.
+  // Listed last because VS Code applies the last matching keybinding.
+  {
+    "key": "ctrl+w h",
+    "command": "workbench.action.compareEditor.focusSecondarySide",
+    "when": "textCompareEditorActive"
+  },
+  {
+    "key": "ctrl+w l",
+    "command": "workbench.action.compareEditor.focusPrimarySide",
+    "when": "textCompareEditorActive"
+  },
   // No context key marks the top/bottom row of the grid, so vertical movement
   // stays on navigate* (group below -> panel -> terminal); ctrl+w ctrl+<hjkl>
   // stays pinned to editor groups for when that guesses wrong.
