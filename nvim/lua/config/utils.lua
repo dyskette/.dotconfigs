@@ -77,6 +77,12 @@ utils.events = {
   ColorScheme = "ColorScheme",
   -- When an option is set (use with pattern for specific option, e.g., "background")
   OptionSet = "OptionSet",
+  -- After the terminal replies to a query (OSC/DEC responses, see `:h TermResponse`)
+  TermResponse = "TermResponse",
+  -- When Nvim gains focus (requires a terminal that reports focus events)
+  FocusGained = "FocusGained",
+  -- Before exiting, while it is still possible to interact with the editor
+  VimLeavePre = "VimLeavePre",
 }
 
 -- DOCS: Sets up icons used everywhere else. These require a Nerd Font to be
