@@ -1,19 +1,112 @@
 local utils = require("config.utils")
 
-local set_dark_mode = function()
-  -- gruvbox.nvim picks its variant from vim.o.background, so that has to be
-  -- set before the colorscheme rather than left to whatever nvim inferred.
-  vim.o.background = "dark"
-  vim.cmd.colorscheme("gruvbox")
-  vim.env.BAT_THEME = "gruvbox"
+-- Terminal theme tracking.
+--
+-- Neovim only finds out about a terminal theme change when the terminal
+-- advertises DEC mode 2031 and pushes a notification. Windows Terminal has no
+-- 2031, so the mode is never enabled and nothing is ever pushed -- but it does
+-- answer OSC 11 queries. So we ask on a timer rather than wait to be told.
+-- Terminals that do implement 2031 keep working: whatever they push arrives on
+-- the same TermResponse event, and the poll then finds nothing new to do.
+local THEME_POLL_MS = 2000
+
+local themes = {
+  dark = { colorscheme = "gruvbox", bat_theme = "gruvbox" },
+  light = { colorscheme = "rose-pine-dawn", bat_theme = "rose-pine-dawn" },
+}
+
+-- Last theme handed to apply_theme(), so repeated polls don't reload the
+-- colorscheme (which would clear highlights and re-run every ColorScheme hook)
+-- a few times a second.
+local current_theme = nil
+
+--- Switch to the colorscheme for `name`, unless it is already active.
+---@param name string "dark" or "light"
+local apply_theme = function(name)
+  local theme = themes[name]
+  if not theme or name == current_theme then
+    return
+  end
+  current_theme = name
+
+  -- gruvbox.nvim picks its variant from vim.o.background, so that has to be set
+  -- before the colorscheme rather than left to whatever nvim inferred.
+  vim.o.background = name
+  vim.cmd.colorscheme(theme.colorscheme)
+  vim.env.BAT_THEME = theme.bat_theme
 end
 
-local set_light_mode = function()
-  vim.o.background = "light"
-  vim.cmd.colorscheme("rose-pine-dawn")
-  vim.env.BAT_THEME = "rose-pine-dawn"
+--- Classify an OSC 11 background colour response as "dark" or "light".
+---
+--- Matched loosely on purpose: the reply may be rgb: or rgba:, and each
+--- component may carry one to four hex digits depending on the terminal.
+---@param sequence string Raw terminal response
+---@return string|nil name "dark", "light", or nil when this is not an OSC 11 reply
+local parse_osc11 = function(sequence)
+  local r, g, b = sequence:match("\27%]11;rgba?:(%x+)/(%x+)/(%x+)")
+  if not (r and g and b) then
+    return nil
+  end
+
+  --- Scale a component to [0,1]: its value over the maximum for its width.
+  local channel = function(component)
+    return tonumber(component, 16) / (16 ^ #component - 1)
+  end
+
+  -- Same luminance weights nvim uses for its own background detection.
+  local luminance = (0.299 * channel(r)) + (0.587 * channel(g)) + (0.114 * channel(b))
+  return luminance < 0.5 and "dark" or "light"
 end
 
+--- Ask the terminal for its background colour. The reply arrives asynchronously
+--- as a TermResponse event.
+local query_terminal_theme = function()
+  vim.api.nvim_ui_send("\27]11;?\7")
+end
+
+local theme_config = function()
+  -- nvim queries OSC 11 during startup and waits for the answer before sourcing
+  -- user config, so 'background' is already correct by the time we get here.
+  apply_theme(vim.o.background)
+
+  local group = vim.api.nvim_create_augroup("dyskette_theme", { clear = true })
+
+  vim.api.nvim_create_autocmd(utils.events.TermResponse, {
+    desc = "Follow the terminal background colour reported over OSC 11",
+    group = group,
+    -- Without this, switching the colorscheme from inside this callback fires
+    -- no ColorScheme event, and everything hanging off it (the tabby theme
+    -- below, for one) would keep the colours of the previous theme.
+    nested = true,
+    callback = function(event)
+      local name = parse_osc11(event.data and event.data.sequence or "")
+      if name then
+        apply_theme(name)
+      end
+    end,
+  })
+
+  -- Polling covers an unattended nvim; this catches the common case of toggling
+  -- the system theme and coming straight back, without waiting out the interval.
+  vim.api.nvim_create_autocmd(utils.events.FocusGained, {
+    desc = "Check the terminal theme when returning to nvim",
+    group = group,
+    callback = query_terminal_theme,
+  })
+
+  local timer = vim.uv.new_timer()
+  timer:start(THEME_POLL_MS, THEME_POLL_MS, vim.schedule_wrap(query_terminal_theme))
+
+  vim.api.nvim_create_autocmd(utils.events.VimLeavePre, {
+    desc = "Stop polling the terminal for theme changes",
+    group = group,
+    callback = function()
+      if not timer:is_closing() then
+        timer:close()
+      end
+    end,
+  })
+end
 
 local template_onlyname = function(filetype, name)
   return {
@@ -183,7 +276,8 @@ local fidget_opts = {
 }
 
 return {
-  -- Color scheme
+  -- Color schemes. Which one is active follows the terminal background colour;
+  -- see the theme tracking at the top of this file.
   {
     "ellisonleao/gruvbox.nvim",
     lazy = false,
@@ -193,27 +287,13 @@ return {
     opts = {},
     config = function(_, opts)
       require("gruvbox").setup(opts)
-      if vim.env.SYSTEM_COLOR_THEME == "dark" then
-        set_dark_mode()
-      end
+      theme_config()
     end,
   },
   {
     "rose-pine/neovim",
     name = "rose-pine",
-    init = function()
-      if vim.env.SYSTEM_COLOR_THEME == "light" then
-        set_light_mode()
-      end
-    end,
-  },
-  -- Automatic theme switching via OSC 11 terminal responses
-  {
-    "afonsofrancof/OSC11.nvim",
-    opts = {
-      on_dark = set_dark_mode,
-      on_light = set_light_mode,
-    },
+    -- Loaded on demand by lazy.nvim when apply_theme() picks rose-pine-dawn.
   },
   -- tab bar
   {
