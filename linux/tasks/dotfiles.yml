@@ -11,6 +11,13 @@
     mode: "0755"
   tags: dotfiles
 
+- name: Dotfiles | Ensure Claude Code directory exists in the user's home
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.claude"
+    state: directory
+    mode: "0700"
+  tags: dotfiles
+
 - name: Dotfiles | Create vs code directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -30,6 +37,7 @@
     - { src: "bash/bashrc", dest: "{{ ansible_env.HOME }}/.bashrc" }
     - { src: "bash/bashrc.d", dest: "{{ ansible_env.HOME }}/.bashrc.d" }
     - { src: "bat", dest: "{{ config_dir }}/bat" }
+    - { src: "claude/settings.json", dest: "{{ ansible_env.HOME }}/.claude/settings.json" }
     - { src: "ghostty", dest: "{{ config_dir }}/ghostty" }
     - { src: "jetbrains/ideavimrc", dest: "{{ ansible_env.HOME }}/.ideavimrc" }
     - { src: "starship", dest: "{{ config_dir }}/starship" }
