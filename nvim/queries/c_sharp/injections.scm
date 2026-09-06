@@ -9,7 +9,10 @@
   ; string as a global declaration
   ; var query = "select * from table";
   ; string query = "select * from table";
-  (global_statement
+  ; Wildcard rather than (global_statement): queries/razor/injections.scm
+  ; inherits c_sharp, and the razor grammar has no global_statement node, so
+  ; naming it here fails to compile the whole inherited query for razor.
+  (_
     (local_declaration_statement
       (variable_declaration
         type: (implicit_type)?
