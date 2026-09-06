@@ -323,7 +323,7 @@ local roslyn_config = function(_, opts)
       "roslyn",
       "--stdio",
       "--logLevel=Information",
-      "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.get_log_path()),
+      "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
     },
     filetypes = { "cs", "razor" },
     root_markers = { "*.sln", "*.csproj", "omnisharp.json" },
