@@ -156,6 +156,41 @@
     "command": "explorer.newFile",
     "when": "filesExplorerFocus && !inputFocus"
   },
+  // Explorer tree verbs, mirroring the zed project panel.
+  {
+    "key": "shift+a",
+    "command": "explorer.newFolder",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "o",
+    "command": "filesExplorer.openFilePreserveFocus",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  // openFilePreserveFocus filters out directories, so folders need the tree
+  // toggle instead; layered after, since VS Code applies the last match.
+  {
+    "key": "o",
+    "command": "list.toggleExpand",
+    "when": "filesExplorerFocus && !inputFocus && explorerResourceIsFolder"
+  },
+  // o previews and keeps focus in the tree; enter pins and jumps to the editor.
+  {
+    "key": "enter",
+    "command": "list.select",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "s",
+    "command": "runCommands",
+    "args": { "commands": ["explorer.openAndPassFocus", "workbench.action.moveEditorToBelowGroup"] },
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "-",
+    "command": "list.focusParent",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
   {
     "key": "ctrl+i",
     "command": "composerMode.agent"
