@@ -209,5 +209,33 @@
   {
     "key": "ctrl+u x",
     "command": "-magit.reset-hard"
+  },
+  // Scoped to oil buffers rather than living in vim.normalModeKeyBindings,
+  // which has no `when` and would claim these keys in every buffer.
+  {
+    "key": "enter",
+    "command": "oil-code.select",
+    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
+  },
+  {
+    "key": "ctrl+l",
+    "command": "oil-code.refresh",
+    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
+  },
+  {
+    "key": "`",
+    "command": "oil-code.cd",
+    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
+  },
+  {
+    "key": "g d",
+    "command": "oil-code.toggleDetails",
+    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
+  },
+  // Reclaims gg, which the g chord above would otherwise swallow in oil buffers.
+  {
+    "key": "g g",
+    "command": "cursorTop",
+    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
   }
 ]

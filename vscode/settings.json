@@ -42,6 +42,7 @@
 
   "gitlens.currentLine.enabled": false,
   "oil-code.hasNerdFont": true,
+  "oil-code.disableVimKeymaps": true,
   "magit.display-buffer-function": "same-column",
 
   "vim.hlsearch": true,
@@ -57,14 +58,6 @@
       "commands": [
         {
           "command": "oil-code.open"
-        }
-      ]
-    },
-    {
-      "before": ["<CR>"],
-      "commands": [
-        {
-          "command": "oil-code.select"
         }
       ]
     },
@@ -258,22 +251,6 @@
       "before": ["<leader>", "f", "f"],
       "commands": ["editor.action.formatDocument"],
       "silent": false
-    },
-    {
-      "before": ["<c-l>"],
-      "commands": [
-        {
-          "command": "oil-code.refresh"
-        }
-      ]
-    },
-    {
-      "before": ["`"],
-      "commands": [
-        {
-          "command": "oil-code.cd"
-        }
-      ]
     }
   ],
   "vim.normalModeKeyBindingsNonRecursive": [],
