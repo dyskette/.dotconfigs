@@ -155,7 +155,7 @@
             "space a": "editor::SelectAll",
 
             // Focus mode - hide all panels
-            "space space": "workspace::ToggleZoom"
+            "space space": "workspace::ToggleAllDocks"
         }
     },
 
@@ -234,24 +234,12 @@
     // PROJECT PANEL
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
-        "bindings": {
-            "space e": "project_panel::ToggleFocus"
-        }
-    },
-    {
-        "context": "ProjectPanel",
-        "bindings": {
-            "space e": "workspace::ToggleLeftDock"
-        }
-    },
-    {
         "context": "ProjectPanel && not_editing",
         "bindings": {
             "a": "project_panel::NewFile",
             "shift-a": "project_panel::NewDirectory",
             "r": "project_panel::Rename",
-            "d": "project_panel::Delete",
+            "d": "project_panel::Trash",
             "x": "project_panel::Cut",
             "y": "project_panel::Copy",
             "p": "project_panel::Paste",
@@ -259,7 +247,8 @@
             "enter": "project_panel::OpenPermanent",
             "v": "project_panel::OpenSplitVertical",
             "s": "project_panel::OpenSplitHorizontal",
-            "-": "project_panel::SelectParent"
+            "-": "project_panel::SelectParent",
+            "q": "workspace::ToggleLeftDock"
         }
     }
 ]
