@@ -1,24 +1,15 @@
 {
   "extensions": [
-    "eamodio.gitlens",
     "jdinhlife.gruvbox",
-    "metaphore.kanagawa-vscode-color-theme",
-    "sainnhe.everforest",
     "mvllow.rose-pine",
     "vscodevim.vim",
     "kahole.magit",
-    "haphazarddev.oil-code",
-    "esbenp.prettier-vscode",
-    "ms-vscode.powershell",
-    "ms-dotnettools.csdevkit",
-    "Vue.volar",
-    "ms-python.python",
-    "redhat.vscode-yaml",
-    "redhat.vscode-xml",
-    "ms-vscode-remote.remote-containers",
-    "ms-vscode-remote.remote-wsl",
-    "ms-python.black-formatter",
-    "ms-python.isort",
-    "rust-lang.rust-analyzer"
+    "haphazarddev.oil-code"
+  ],
+  "windows": [
+    "ms-vscode-remote.remote-wsl"
+  ],
+  "linux": [
+    "ms-vscode-remote.remote-containers"
   ]
 }

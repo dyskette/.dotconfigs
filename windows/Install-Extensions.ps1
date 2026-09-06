@@ -42,7 +42,7 @@ if (Test-Path $extensionsJsonPath) {
     try {
         Write-Host "Loading extensions from: $extensionsJsonPath" -ForegroundColor Gray
         $extensionsJson = Get-Content $extensionsJsonPath -Raw | ConvertFrom-Json
-        $defaultExtensions = $extensionsJson.extensions
+        $defaultExtensions = @($extensionsJson.extensions) + @($extensionsJson.windows)
         Write-Host "Loaded $($defaultExtensions.Count) extensions" -ForegroundColor Green
     } catch {
         Write-Warning "Failed to load extensions.json: $_"

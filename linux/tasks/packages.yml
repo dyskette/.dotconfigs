@@ -100,7 +100,7 @@
 
           - name: VS Code extensions | Install
             ansible.builtin.command: "flatpak run com.visualstudio.code --install-extension {{ item }}"
-            loop: "{{ extensions.extensions }}"
+            loop: "{{ extensions.extensions + extensions.linux }}"
             register: extension_install_results
             ignore_errors: true  # Continue if one extension fails
             changed_when: "'already installed' not in extension_install_results.stderr"
