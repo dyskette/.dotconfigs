@@ -75,6 +75,12 @@ $links = @(
         Type   = "Junction"
     }
     @{
+        App    = "claude"
+        Source = "claude\settings.json"
+        Target = "$env:USERPROFILE\.claude\settings.json"
+        Type   = "SymbolicLink"
+    }
+    @{
         App    = "vscode"
         Source = "vscode\settings.json"
         Target = "$env:APPDATA\Code\User\settings.json"
