@@ -5,6 +5,14 @@
     "pr": "",
     "sessionUrl": false
   },
+  "permissions": {
+    "defaultMode": "default"
+  },
+  "dialogExpiry": "5m",
+  "tui": "fullscreen",
+  "timeFormat": "24-hour",
   "autoMemoryEnabled": false,
-  "tui": "fullscreen"
+  "theme": "auto",
+  "autoConnectIde": false,
+  "autoInstallIdeExtension": false
 }
