@@ -177,6 +177,7 @@ keybinds clear-defaults=true {
             }
         }
         bind "Alt Shift p" { ToggleGroupMarking; }
+        bind "Alt Shift t" { ToggleTheme; }
     }
     shared_except "Locked" "RenameTab" "RenamePane" {
         bind "Alt g" { SwitchToMode "Locked"; }
@@ -268,4 +269,143 @@ simplified_ui true
 default_mode "locked"
 show_startup_tips false
 
-theme "gruvbox-dark"
+themes {
+    // Rose Pine Dawn, matching wezterm/rose-pine-dawn.lua and
+    // tmux/rose-pine-dawn.conf. Zellij ships no rose-pine theme, and the short
+    // 16-colour palette form is not enough here: Zellij derives the UI
+    // components from it and gives selected and unselected rows the same
+    // background, so selections disappear. Spelled out per component, the way
+    // Zellij's own light themes (gruvbox-light, catppuccin-latte) are.
+    //
+    // base    #faf4ed 250 244 237    text   #575279 87 82 121
+    // hl med  #dfdad9 223 218 217    subtle #797593 121 117 147
+    // muted   #9893a5 152 147 165
+    // love    #b4637a 180 99 122     gold   #ea9d34 234 157 52
+    // rose    #d7827e 215 130 126    pine   #286983 40 105 131
+    // foam    #56949f 86 148 159     iris   #907aa9 144 122 169
+    rose-pine-dawn {
+        text_unselected {
+            base 87 82 121
+            background 250 244 237
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        text_selected {
+            base 87 82 121
+            background 223 218 217
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        ribbon_selected {
+            base 250 244 237
+            background 144 122 169
+            emphasis_0 180 99 122
+            emphasis_1 215 130 126
+            emphasis_2 234 157 52
+            emphasis_3 40 105 131
+        }
+        ribbon_unselected {
+            base 250 244 237
+            background 121 117 147
+            emphasis_0 215 130 126
+            emphasis_1 87 82 121
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        table_title {
+            base 144 122 169
+            background 0
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        table_cell_selected {
+            base 87 82 121
+            background 223 218 217
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        table_cell_unselected {
+            base 87 82 121
+            background 250 244 237
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        list_selected {
+            base 87 82 121
+            background 223 218 217
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        list_unselected {
+            base 87 82 121
+            background 250 244 237
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 40 105 131
+            emphasis_3 144 122 169
+        }
+        frame_selected {
+            base 144 122 169
+            background 0
+            emphasis_0 215 130 126
+            emphasis_1 86 148 159
+            emphasis_2 144 122 169
+            emphasis_3 0
+        }
+        frame_highlight {
+            base 234 157 52
+            background 0
+            emphasis_0 180 99 122
+            emphasis_1 144 122 169
+            emphasis_2 234 157 52
+            emphasis_3 234 157 52
+        }
+        exit_code_success {
+            base 40 105 131
+            background 0
+            emphasis_0 86 148 159
+            emphasis_1 250 244 237
+            emphasis_2 144 122 169
+            emphasis_3 40 105 131
+        }
+        exit_code_error {
+            base 180 99 122
+            background 0
+            emphasis_0 234 157 52
+            emphasis_1 0
+            emphasis_2 0
+            emphasis_3 0
+        }
+        multiplayer_user_colors {
+            player_1 144 122 169
+            player_2 86 148 159
+            player_3 40 105 131
+            player_4 234 157 52
+            player_5 215 130 126
+            player_6 180 99 122
+            player_7 121 117 147
+            player_8 152 147 165
+            player_9 144 122 169
+            player_10 86 148 159
+        }
+    }
+}
+
+// Which of these is active follows the color scheme the host terminal reports
+// over DEC mode 2031. Terminals that don't implement it (Windows Terminal)
+// never report, and Zellij then stays on theme_dark -- the shell relays the
+// theme to it instead, see sync_zellij_theme in bash/bashrc.d/starship.sh.
+theme_dark "gruvbox-dark"
+theme_light "rose-pine-dawn"
