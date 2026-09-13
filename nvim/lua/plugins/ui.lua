@@ -10,6 +10,10 @@ local utils = require("config.utils")
 -- the same TermResponse event, and the poll then finds nothing new to do.
 local THEME_POLL_MS = 2000
 
+-- How long to wait for an OSC 11 answer before believing the terminal will
+-- never send one. Only terminals that stay silent reach the fallback below.
+local THEME_RESPONSE_GRACE_MS = 300
+
 local themes = {
   dark = { colorscheme = "gruvbox", bat_theme = "gruvbox" },
   light = { colorscheme = "rose-pine-dawn", bat_theme = "rose-pine-dawn" },
@@ -64,12 +68,37 @@ local query_terminal_theme = function()
   vim.api.nvim_ui_send("\27]11;?\7")
 end
 
+--- The theme the terminal emulator published out of band, or nil.
+---
+--- WezTerm implements OSC 11 only for *setting* the background and never
+--- answers a query, so nvim's startup detection leaves 'background' at its
+--- default of dark there. It exports WEZTERM_THEME instead.
+---
+--- This is a fallback, never an override: it is read only after a query has
+--- gone unanswered, so a terminal that does reply always wins. That matters
+--- because the variable is inherited -- opening another terminal from a
+--- WezTerm pane would otherwise carry a stale answer into a session whose
+--- terminal can answer for itself.
+local published_theme = function()
+  local name = vim.env.WEZTERM_THEME
+  if name == "dark" or name == "light" then
+    return name
+  end
+  return nil
+end
+
 local theme_config = function()
   -- nvim queries OSC 11 during startup and waits for the answer before sourcing
-  -- user config, so 'background' is already correct by the time we get here.
+  -- user config, so on a terminal that answers, 'background' is already correct
+  -- by the time we get here.
   apply_theme(vim.o.background)
 
   local group = vim.api.nvim_create_augroup("dyskette_theme", { clear = true })
+
+  -- Set by the first OSC 11 reply of the session. Until one arrives we cannot
+  -- tell a genuine "dark" from a terminal that never answered, because both
+  -- leave 'background' at nvim's default.
+  local terminal_answered = false
 
   vim.api.nvim_create_autocmd(utils.events.TermResponse, {
     desc = "Follow the terminal background colour reported over OSC 11",
@@ -81,10 +110,25 @@ local theme_config = function()
     callback = function(event)
       local name = parse_osc11(event.data and event.data.sequence or "")
       if name then
+        terminal_answered = true
         apply_theme(name)
       end
     end,
   })
+
+  -- Ask once at startup, and if nothing comes back, take the terminal's word
+  -- from the environment. Done once rather than on every poll, so a manual
+  -- `:set background=...` is not undone two seconds later.
+  query_terminal_theme()
+  vim.defer_fn(function()
+    if terminal_answered then
+      return
+    end
+    local name = published_theme()
+    if name then
+      apply_theme(name)
+    end
+  end, THEME_RESPONSE_GRACE_MS)
 
   -- Polling covers an unattended nvim; this catches the common case of toggling
   -- the system theme and coming straight back, without waiting out the interval.
