@@ -64,7 +64,8 @@
 
     - name: SQL*Plus | Install libaio package (Debian/Ubuntu)
       ansible.builtin.package:
-        name: libaio1
+        # Ubuntu 24.04 renamed libaio1 to libaio1t64 in the 64-bit time_t transition
+        name: "{{ 'libaio1t64' if ansible_facts['distribution_major_version'] | int >= 24 else 'libaio1' }}"
         state: present
       become: true
       when: is_ubuntu
