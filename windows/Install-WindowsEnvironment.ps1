@@ -82,7 +82,85 @@ if ($windowsVersion.Build -lt 19041) {
 }
 Write-Host "Windows version check passed: Build $($windowsVersion.Build)" -ForegroundColor Green
 
-# ── Helper ──────────────────────────────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────────────────────────────
+
+# Non-fatal failures collected across the run so the final summary can report
+# them instead of the script claiming success over a broken environment.
+$script:Failures = [System.Collections.Generic.List[string]]::new()
+
+<#
+.SYNOPSIS
+    Records a non-fatal step failure and warns immediately.
+
+.PARAMETER Step
+    Short name of the failing step, used as the summary label.
+
+.PARAMETER Detail
+    Diagnostic text: exit code, log path, or remediation hint.
+#>
+function Add-Failure {
+    param(
+        [Parameter(Mandatory)][string]$Step,
+        [Parameter(Mandatory)][string]$Detail
+    )
+
+    $script:Failures.Add("${Step}: $Detail")
+    Write-Warning "${Step}: $Detail"
+}
+
+<#
+.SYNOPSIS
+    Invokes winget, retrying while Windows Installer is busy.
+
+.DESCRIPTION
+    Windows Installer serializes MSI transactions machine-wide through the
+    _MSIExecute mutex. When winget misreads an installer exit code it can start
+    the next package before the previous MSI released that mutex, which surfaces
+    as exit code 1618 (ERROR_INSTALL_ALREADY_RUNNING) and skips the package.
+    Re-running is safe: packages already present are detected and skipped.
+
+.PARAMETER Arguments
+    Argument list forwarded verbatim to winget.
+
+.PARAMETER MaxAttempts
+    Total number of invocations before giving up.
+
+.PARAMETER DelaySeconds
+    Pause between attempts, to let a pending MSI transaction drain.
+
+.OUTPUTS
+    System.Int32. Exit code of the last winget invocation.
+#>
+function Invoke-WingetWithRetry {
+    param(
+        [Parameter(Mandatory)][string[]]$Arguments,
+        [int]$MaxAttempts = 3,
+        [int]$DelaySeconds = 20
+    )
+
+    # Start-Process joins -ArgumentList with spaces without quoting, so any argument
+    # holding a path with spaces has to be quoted before it is handed over.
+    $quotedArgs = $Arguments | ForEach-Object {
+        if ($_ -match '\s' -and $_ -notmatch '^".*"$') { "`"$_`"" } else { $_ }
+    }
+
+    $exitCode = 0
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        # Start-Process rather than a direct call: the child inherits the console,
+        # so winget keeps its progress rendering and its output stays out of this
+        # function's success stream, which must carry only the exit code.
+        $process = Start-Process -FilePath "winget" -ArgumentList $quotedArgs -NoNewWindow -Wait -PassThru
+        $exitCode = $process.ExitCode
+        if ($exitCode -eq 0) { return 0 }
+
+        if ($attempt -lt $MaxAttempts) {
+            Write-Host "winget exited with $exitCode. Retrying in ${DelaySeconds}s (attempt $($attempt + 1) of $MaxAttempts)..." -ForegroundColor Yellow
+            Start-Sleep -Seconds $DelaySeconds
+        }
+    }
+
+    return $exitCode
+}
 
 function Invoke-Step {
     param(
@@ -93,21 +171,23 @@ function Invoke-Step {
 
     $scriptPath = Join-Path $PSScriptRoot $ScriptName
     if (-not (Test-Path $scriptPath)) {
-        Write-Warning "Script not found: $ScriptName"
+        Add-Failure -Step $Description -Detail "Script not found: $ScriptName"
         return @{ status = "error"; message = "Script not found" }
     }
 
     try {
         Write-Host "$Description..." -ForegroundColor Yellow
         $result = & $scriptPath @Parameters
-        if ($result -and $result.status) {
+        if ($result -and $result.status -eq "error") {
+            Add-Failure -Step $Description -Detail $result.message
+        } elseif ($result -and $result.status) {
             Write-Host "$Description completed: $($result.message)" -ForegroundColor Green
         } else {
             Write-Host "$Description completed." -ForegroundColor Green
         }
         return $result
     } catch {
-        Write-Error "$Description failed: $_"
+        Add-Failure -Step $Description -Detail $_.Exception.Message
         return @{ status = "error"; message = $_.Exception.Message }
     }
 }
@@ -147,18 +227,103 @@ if (-not $SkipPackages) {
     $packagesJson = Join-Path $PSScriptRoot "packages.jsonc"
     if (Test-Path $packagesJson) {
         Write-Host "Installing packages via winget import..." -ForegroundColor Yellow
-        winget import -i $packagesJson --accept-package-agreements --accept-source-agreements --ignore-unavailable
-        Write-Host "Winget import completed." -ForegroundColor Green
+        $importExit = Invoke-WingetWithRetry -Arguments @(
+            "import", "-i", $packagesJson,
+            "--accept-package-agreements", "--accept-source-agreements", "--ignore-unavailable"
+        )
+        if ($importExit -eq 0) {
+            Write-Host "Winget import completed." -ForegroundColor Green
+        } else {
+            $diagDir = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir"
+            Add-Failure -Step "winget import" -Detail "One or more packages failed (exit $importExit). Installer logs: $diagDir"
+        }
     } else {
         Write-Warning "packages.jsonc not found at: $packagesJson"
     }
 
-    # Install Visual Studio 2022 Enterprise with workloads from vsconfig
+    # Install or amend Visual Studio 2022 Enterprise with the workloads in vsconfig.
+    #
+    # The bootstrapper's `install` verb refuses with exit code 1 when the product is
+    # already present ("Visual Studio Enterprise 2022 ya se ha instalado") and bails
+    # *before* reading --config, silently leaving the declared workloads uninstalled.
+    # An existing installation must therefore be amended with the VS Installer's
+    # `modify` verb, which is idempotent and adds only the missing components.
     $vsconfig = Join-Path (Split-Path $PSScriptRoot -Parent) "vs\vsconfig.jsonc"
     if (Test-Path $vsconfig) {
-        Write-Host "Installing Visual Studio 2022 Enterprise..." -ForegroundColor Yellow
-        winget install --exact --id Microsoft.VisualStudio.2022.Enterprise --silent --accept-package-agreements --accept-source-agreements --override "--wait --passive --norestart --config `"$vsconfig`""
-        Write-Host "Visual Studio installation completed." -ForegroundColor Green
+        $vsInstallerDir = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
+        $vswhere = Join-Path $vsInstallerDir "vswhere.exe"
+
+        $vsPath = $null
+        if (Test-Path $vswhere) {
+            $vsPath = & $vswhere -latest -products Microsoft.VisualStudio.Product.Enterprise -property installationPath |
+                Select-Object -First 1
+        }
+
+        # The installer parses --config as strict JSON, so the commented .jsonc is
+        # normalized to a plain .vsconfig before being handed over.
+        $vsComponents = @()
+        try {
+            $vsComponents = (Get-Content $vsconfig -Raw | ConvertFrom-Json -ErrorAction Stop).components
+        } catch {
+            Write-Warning "Could not parse $vsconfig : $($_.Exception.Message). Passing it to the installer as-is."
+        }
+
+        $vsConfigArg = $vsconfig
+        if ($vsComponents) {
+            $vsConfigArg = Join-Path ([System.IO.Path]::GetTempPath()) "dotconfigs.vsconfig"
+            [ordered]@{ version = "1.0"; components = @($vsComponents) } |
+                ConvertTo-Json -Depth 3 | Set-Content $vsConfigArg -Encoding utf8
+        }
+
+        # Skip the installer entirely when every declared component is already
+        # present: vswhere -requires matches only installations that have all of them.
+        $vsSkip = $false
+        if ($vsPath -and $vsComponents) {
+            $satisfied = & $vswhere -latest -products Microsoft.VisualStudio.Product.Enterprise `
+                -requires @($vsComponents) -property installationPath | Select-Object -First 1
+            if ($satisfied) {
+                Write-Host "Visual Studio already has all components from vsconfig. Skipping." -ForegroundColor Green
+                $vsSkip = $true
+            }
+        }
+
+        if ($vsSkip) {
+            $vsExit = 0
+        } elseif ($vsPath) {
+            Write-Host "Applying vsconfig to existing Visual Studio 2022 Enterprise at $vsPath..." -ForegroundColor Yellow
+            Write-Host "This downloads several GB and can take a while; the installer shows its own progress window." -ForegroundColor Yellow
+
+            # setup.exe is a Windows-subsystem binary, so the call operator does not
+            # block on it and would leave $LASTEXITCODE holding the previous command's
+            # value. Start-Process -Wait is required to serialize against the cargo
+            # step below, which needs the MSVC toolset this installs. Note that the
+            # `modify` verb rejects --wait (that flag belongs to the bootstrapper).
+            # Start-Process joins -ArgumentList with spaces without quoting, so paths
+            # containing spaces ("C:\Program Files\...") must carry their own quotes
+            # or the installer receives them as several arguments.
+            $vsArgs = @(
+                "modify",
+                "--installPath", "`"$vsPath`"",
+                "--config", "`"$vsConfigArg`"",
+                "--passive", "--norestart"
+            )
+            $vsProcess = Start-Process -FilePath (Join-Path $vsInstallerDir "setup.exe") `
+                -ArgumentList $vsArgs -Wait -PassThru
+            $vsExit = $vsProcess.ExitCode
+        } else {
+            Write-Host "Installing Visual Studio 2022 Enterprise..." -ForegroundColor Yellow
+            winget install --exact --id Microsoft.VisualStudio.2022.Enterprise --silent --accept-package-agreements --accept-source-agreements --override "--wait --passive --norestart --config `"$vsConfigArg`""
+            $vsExit = $LASTEXITCODE
+        }
+
+        if ($vsExit -eq 0) {
+            Write-Host "Visual Studio installation completed." -ForegroundColor Green
+        } elseif ($vsExit -eq 3010) {
+            # 3010 = ERROR_SUCCESS_REBOOT_REQUIRED: components applied, reboot pending.
+            Write-Host "Visual Studio installation completed; a restart is required to finish." -ForegroundColor Yellow
+        } else {
+            Add-Failure -Step "Visual Studio" -Detail "Setup exited with $vsExit. Installer logs: $env:TEMP\dd_installer_*.log"
+        }
     } else {
         Write-Warning "vsconfig.jsonc not found at: $vsconfig"
     }
@@ -169,7 +334,11 @@ if (-not $SkipPackages) {
     if (Get-Command uv -ErrorAction SilentlyContinue) {
         Write-Host "Installing uv-based tools..." -ForegroundColor Yellow
         uv tool install poetry
-        Write-Host "uv-based tools installed." -ForegroundColor Green
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "uv-based tools installed." -ForegroundColor Green
+        } else {
+            Add-Failure -Step "uv tool install poetry" -Detail "uv exited with $LASTEXITCODE."
+        }
     } else {
         Write-Warning "uv not found in PATH. Skipping uv-based tool installation."
     }
@@ -186,14 +355,24 @@ if (-not $SkipPackages) {
             $env:Path = "$llvmBin;$env:Path"
         }
 
-        # Set INCLUDE for clang to find MSVC and Windows SDK headers
+        # Set INCLUDE for clang to find MSVC and Windows SDK headers.
+        # vswhere reports the VS installation path even when the C++ workload is
+        # absent, so the toolset directory itself has to be probed: without it
+        # there is no link.exe either and every msvc-target build will fail.
         if (-not $env:INCLUDE) {
             $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
             if (Test-Path $vswhere) {
-                $vsPath = & $vswhere -latest -property installationPath
-                $msvcDir = Get-ChildItem "$vsPath\VC\Tools\MSVC" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+                $vsPath = & $vswhere -latest -property installationPath | Select-Object -First 1
+                $msvcRoot = if ($vsPath) { Join-Path $vsPath "VC\Tools\MSVC" }
+                $msvcDir = $null
+                if ($msvcRoot -and (Test-Path $msvcRoot)) {
+                    $msvcDir = Get-ChildItem $msvcRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+                } else {
+                    Write-Warning "MSVC toolset not found at '$msvcRoot'. The Rust msvc target needs the VC.Tools.x86.x64 component; link.exe will be missing and native builds will fail."
+                }
                 $sdkVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots" -Name KitsRoot10 -ErrorAction SilentlyContinue).KitsRoot10
-                if ($sdkVersion) {
+                $sdkInc = $null
+                if ($sdkVersion -and (Test-Path "${sdkVersion}Include")) {
                     $sdkInc = Get-ChildItem "${sdkVersion}Include" -Directory | Sort-Object Name -Descending | Select-Object -First 1
                 }
                 $includePaths = @()
@@ -210,7 +389,11 @@ if (-not $SkipPackages) {
         }
 
         cargo install --locked tree-sitter-cli
-        Write-Host "Cargo-based tools installed." -ForegroundColor Green
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Cargo-based tools installed." -ForegroundColor Green
+        } else {
+            Add-Failure -Step "cargo install tree-sitter-cli" -Detail "cargo exited with $LASTEXITCODE. A 'linker link.exe not found' error means the Visual Studio C++ workload is missing."
+        }
     } else {
         Write-Warning "Cargo not found in PATH. Skipping Cargo-based tool installation."
     }
@@ -218,7 +401,11 @@ if (-not $SkipPackages) {
     if (Get-Command go -ErrorAction SilentlyContinue) {
         Write-Host "Installing Go-based tools..." -ForegroundColor Yellow
         go install github.com/mhersson/mpls@latest
-        Write-Host "Go-based tools installed." -ForegroundColor Green
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Go-based tools installed." -ForegroundColor Green
+        } else {
+            Add-Failure -Step "go install mpls" -Detail "go exited with $LASTEXITCODE."
+        }
     } else {
         Write-Warning "Go not found in PATH. Skipping Go-based tool installation."
     }
@@ -285,6 +472,16 @@ if (-not $SkipNodeSetup) {
 # ── Done ────────────────────────────────────────────────────────────────────
 
 Write-Host ""
+if ($script:Failures.Count -gt 0) {
+    Write-Host "=== INSTALLATION COMPLETED WITH ERRORS ===" -ForegroundColor Red
+    Write-Host "$($script:Failures.Count) step(s) failed:" -ForegroundColor Red
+    foreach ($failure in $script:Failures) {
+        Write-Host "  - $failure" -ForegroundColor Red
+    }
+    Write-Host "Everything else was configured. Re-run this script after resolving the above." -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "=== INSTALLATION COMPLETE ===" -ForegroundColor Green
 Write-Host "Your Windows development environment has been configured." -ForegroundColor White
 Write-Host "You may need to restart your shell to use newly installed tools." -ForegroundColor Yellow
