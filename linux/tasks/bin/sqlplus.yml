@@ -40,6 +40,24 @@
       become: true
       when: is_fedora or is_fedora_silverblue
 
+    # Ubuntu 24.04's libaio1t64 bumped the soname to libaio.so.1t64, but Oracle's
+    # prebuilt binaries still link against libaio.so.1. On amd64 the t64 rebuild is
+    # ABI-identical (time_t was already 64-bit there), so a compat symlink is safe.
+    - name: SQL*Plus | Link libaio.so.1 to the t64 build (Debian/Ubuntu)
+      ansible.builtin.file:
+        src: "/usr/lib/{{ ansible_facts['architecture'] }}-linux-gnu/libaio.so.1t64"
+        dest: "/usr/lib/{{ ansible_facts['architecture'] }}-linux-gnu/libaio.so.1"
+        state: link
+      become: true
+      register: libaio_compat_link
+      when: is_ubuntu and ansible_facts['distribution_major_version'] | int >= 24
+
+    - name: SQL*Plus | Refresh dynamic linker cache
+      ansible.builtin.command:
+        cmd: ldconfig
+      become: true
+      when: libaio_compat_link.changed
+
     # Oracle serves these without an OTN login; the unversioned filename always
     # resolves to the current Instant Client release.
     - name: SQL*Plus | Download Instant Client Basic package
