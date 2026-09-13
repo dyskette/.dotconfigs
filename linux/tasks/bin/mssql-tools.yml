@@ -44,11 +44,16 @@
       become: yes
 
     - name: Install MSSQL Tools
-      ansible.builtin.shell: |
-        ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev
+      ansible.builtin.apt:
+        name:
+          - mssql-tools18
+          - unixodbc-dev
+        state: present
+        # The Microsoft repository was just added, so apt has no index for it yet
+        update_cache: yes
+      environment:
+        ACCEPT_EULA: "Y"
       become: yes
-      args:
-        creates: /opt/mssql-tools18/bin/sqlcmd
 
     - name: Create symlink to sqlcmd
       ansible.builtin.file:
