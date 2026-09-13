@@ -100,6 +100,16 @@ if [[ $- == *i* ]]; then
 		else
 			_theme=$(detect_terminal_theme)
 		fi
+
+		# WezTerm implements OSC 11 only for setting the background and never
+		# answers a query, so detect_terminal_theme comes back empty there and
+		# the prompt would fall back to dark on a light background. It exports
+		# WEZTERM_THEME instead. Consulted only when the query went unanswered,
+		# so a terminal that does reply always wins -- the variable is
+		# inherited, and would otherwise leak a stale answer into a terminal
+		# that can answer for itself.
+		_theme="${_theme:-$WEZTERM_THEME}"
+
 		apply_theme "${_theme:-dark}"
 		unset _theme
 	fi
