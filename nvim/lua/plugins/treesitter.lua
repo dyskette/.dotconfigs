@@ -43,6 +43,13 @@ local function ensure_essential_parsers()
 end
 
 local function treesitter_init()
+  -- lazy.nvim runs `init` even for specs its `cond` disabled, so this has to
+  -- bail out itself: inside VS Code the host does the highlighting, and turning
+  -- syntax off here would only strip what the extension renders.
+  if vim.g.vscode then
+    return
+  end
+
   vim.cmd.syntax("off")
 
   vim.schedule(ensure_essential_parsers)
@@ -67,6 +74,7 @@ end
 
 return {
   "nvim-treesitter/nvim-treesitter",
+  cond = not vim.g.vscode,
   lazy = false,
   branch = "main",
   build = ":TSUpdate",

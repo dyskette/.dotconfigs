@@ -6,6 +6,7 @@
   "workbench.editor.showTabs": "single",
 
   // ── Theme (auto light/dark) ───────────────────────────────────────────────────
+  // Same pair the nvim config switches between when the terminal background changes.
   "window.autoDetectColorScheme": true,
   "workbench.preferredDarkColorTheme": "Gruvbox Dark Medium",
   "workbench.preferredLightColorTheme": "Rosé Pine Dawn",
@@ -15,17 +16,55 @@
   "editor.fontWeight": "400",
   "editor.fontFamily": "'JetBrainsMonoNL Nerd Font', Consolas, 'Courier New', monospace",
   "editor.fontLigatures": false,
-  "editor.lineNumbers": "relative",
   "editor.minimap.enabled": false,
   "editor.stickyScroll.enabled": true,
   "editor.smoothScrolling": true,
   "editor.cursorSmoothCaretAnimation": "on",
-  "editor.cursorSurroundingLines": 5,
   "editor.semanticHighlighting.enabled": true,
   "diffEditor.ignoreTrimWhitespace": false,
 
+  // vscode-neovim force-sets 'number', 'wrap', 'list', 'colorcolumn' and
+  // 'scrolloff' on every BufEnter, so the nvim options that used to draw this
+  // are skipped inside VS Code (see lua/config/set.lua) and these own it instead.
+  // 'number' + 'relativenumber'
+  "editor.lineNumbers": "relative",
+  // 'wrap' = false
+  "editor.wordWrap": "off",
+  // 'colorcolumn' = "120"
+  "editor.rulers": [120],
+  // 'list' = true -- the closest VS Code gets: tabs, trailing and leading spaces
+  "editor.renderWhitespace": "boundary",
+  // 'scrolloff' = 999, i.e. the cursor line stays centred. Turn this down first
+  // if scrolling ever feels like it is fighting the extension.
+  "editor.cursorSurroundingLines": 999,
+  "editor.cursorSurroundingLinesStyle": "all",
+
+  // 'expandtab' / 'tabstop' / 'shiftwidth', with detection standing in for
+  // guess-indent.nvim. The extension syncs whatever is detected back into nvim,
+  // so `>>` and `==` indent by the same amount the buffer actually uses.
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+
+  // Completion, matched to the blink.cmp preset used outside VS Code: the first
+  // entry is preselected, but only <C-y> accepts it -- Enter inserts a newline.
+  "editor.acceptSuggestionOnEnter": "off",
+  "editor.suggestSelection": "first",
+
+  // ── Neovim ────────────────────────────────────────────────────────────────────
+  // The extension reads the same config as the terminal nvim, which branches on
+  // `vim.g.vscode`; there is no separate init to point at. `nvim` is resolved
+  // from PATH -- set vscode-neovim.neovimExecutablePaths.<platform> if that fails.
+  "extensions.experimental.affinity": {
+    "asvetliakov.vscode-neovim": 1
+  },
+
   // ── Explorer ──────────────────────────────────────────────────────────────────
   "explorer.confirmDelete": false,
+  // The extension binds bare letters in trees (r, d, y, x, p, a, v, o). Without
+  // this, typing one would start the list's type-ahead filter instead; `/` opens
+  // it deliberately.
+  "workbench.list.typeNavigationMode": "trigger",
 
   // ── Terminal ──────────────────────────────────────────────────────────────────
   "terminal.integrated.minimumContrastRatio": 1,
@@ -41,476 +80,12 @@
   },
   "terminal.integrated.commandsToSkipShell": ["-workbench.action.quickOpen"],
 
-  // ── Vim ───────────────────────────────────────────────────────────────────────
-  "vim.leader": "<space>",
-  "vim.hlsearch": true,
-  "vim.highlightedyank.enable": true,
-  "vim.smartRelativeLine": true,
-  "vim.surround": true,
-  "vim.handleKeys": {
-    "<C-a>": false,
-    "<C-f>": false
-  },
-  "extensions.experimental.affinity": {
-    "vscodevim.vim": 1
-  },
-  "vim.insertModeKeyBindings": [],
-  "vim.insertModeKeyBindingsNonRecursive": [],
-  "vim.normalModeKeyBindings": [
-    {
-      "before": [
-        "-"
-      ],
-      "commands": [
-        {
-          "command": "oil-code.open"
-        }
-      ]
-    },
-    {
-      "before": [
-        "<leader>",
-        "e"
-      ],
-      "commands": [
-        "workbench.files.action.focusFilesExplorer"
-      ]
-    },
-    {
-      "before": [
-        "<leader>",
-        "<leader>"
-      ],
-      "commands": [
-        "workbench.action.closeSidebar",
-        "workbench.action.closePanel"
-      ]
-    },
-    {
-      "before": [
-        "leader",
-        "g",
-        "g"
-      ],
-      "commands": [
-        "magit.status"
-      ]
-    },
-    {
-      "before": [
-        "<Leader>",
-        "g",
-        "d"
-      ],
-      "commands": [
-        "git.openChange"
-      ]
-    },
-    {
-      "before": [
-        "<C-w>",
-        "h"
-      ],
-      "commands": [
-        "workbench.action.focusLeftGroup"
-      ]
-    },
-    {
-      "before": [
-        "<C-w>",
-        "j"
-      ],
-      "commands": [
-        "workbench.action.focusBelowGroup"
-      ]
-    },
-    {
-      "before": [
-        "<C-w>",
-        "k"
-      ],
-      "commands": [
-        "workbench.action.focusAboveGroup"
-      ]
-    },
-    {
-      "before": [
-        "<C-w>",
-        "l"
-      ],
-      "commands": [
-        "workbench.action.focusRightGroup"
-      ]
-    },
-    {
-      "before": [
-        "<C-w>",
-        "p"
-      ],
-      "commands": [
-        "workbench.action.focusNextGroup"
-      ]
-    },
-    {
-      "before": [
-        "u"
-      ],
-      "after": [],
-      "commands": [
-        {
-          "command": "undo",
-          "args": []
-        }
-      ]
-    },
-    {
-      "before": [
-        "<C-r>"
-      ],
-      "after": [],
-      "commands": [
-        {
-          "command": "redo",
-          "args": []
-        }
-      ]
-    },
-    {
-      "before": [
-        "<leader>",
-        "y"
-      ],
-      "after": [
-        "\"",
-        "+",
-        "y"
-      ]
-    },
-    {
-      "before": [
-        "<leader>",
-        "p"
-      ],
-      "after": [
-        "\"",
-        "+",
-        "p"
-      ]
-    },
-    {
-      "before": [
-        "<leader>",
-        "a"
-      ],
-      "after": [
-        "g",
-        "g",
-        "V",
-        "G"
-      ]
-    },
-    {
-      "before": [
-        "<C-o>"
-      ],
-      "commands": [
-        "workbench.action.navigateBack"
-      ]
-    },
-    {
-      "before": [
-        "<C-i>"
-      ],
-      "commands": [
-        "workbench.action.navigateForward"
-      ]
-    },
-    {
-      "before": [
-        "g",
-        "d"
-      ],
-      "commands": [
-        "editor.action.revealDefinition"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "g",
-        "D"
-      ],
-      "commands": [
-        "editor.action.revealDeclaration"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "g",
-        "i"
-      ],
-      "commands": [
-        "editor.action.goToImplementation"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "g",
-        "o"
-      ],
-      "commands": [
-        "editor.action.goToTypeDefinition"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "g",
-        "r"
-      ],
-      "commands": [
-        "editor.action.goToReferences"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "s",
-        "f"
-      ],
-      "commands": [
-        "workbench.action.quickOpen"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "s",
-        "r"
-      ],
-      "commands": [
-        "workbench.action.quickOpenPreviousEditor"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "s",
-        "w"
-      ],
-      "commands": [
-        "editor.action.addSelectionToNextFindMatch",
-        "workbench.action.findInFiles"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "s",
-        "g"
-      ],
-      "commands": [
-        "workbench.action.findInFiles"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "s",
-        "o"
-      ],
-      "commands": [
-        "workbench.action.gotoSymbol"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "s",
-        "b"
-      ],
-      "commands": [
-        "workbench.action.showAllEditorsByMostRecentlyUsed"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "v",
-        "a"
-      ],
-      "commands": [
-        "editor.action.quickFix"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "r",
-        "n"
-      ],
-      "commands": [
-        "editor.action.rename"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "r",
-        "m"
-      ],
-      "commands": [
-        {
-          "command": "editor.action.codeAction",
-          "args": {
-            "kind": "refactor.extract.function"
-          }
-        }
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "g",
-        "b"
-      ],
-      "commands": [
-        "git.blame.toggleEditorDecoration"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "K"
-      ],
-      "commands": [
-        "editor.action.showHover"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "d",
-        "k"
-      ],
-      "commands": [
-        "editor.action.marker.prevInFiles"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "d",
-        "j"
-      ],
-      "commands": [
-        "editor.action.marker.nextInFiles"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "<leader>"
-      ],
-      "commands": [
-        "workbench.action.closeSidebar",
-        "workbench.action.closePanel",
-        "workbench.action.closeAuxiliaryBar"
-      ],
-      "silent": true
-    },
-    {
-      "before": [
-        "<leader>",
-        "f",
-        "f"
-      ],
-      "commands": [
-        "editor.action.formatDocument"
-      ],
-      "silent": false
-    }
-  ],
-  "vim.normalModeKeyBindingsNonRecursive": [],
-  "vim.visualModeKeyBindings": [
-    {
-      "before": ["<leader>", "y"],
-      "after": ["\"", "+", "y"]
-    },
-    {
-      "before": ["<leader>", "p"],
-      "after": ["\"", "+", "p"]
-    },
-    {
-      "before": ["<"],
-      "after": ["<", "g", "v"]
-    },
-    {
-      "before": [">"],
-      "after": [">", "g", "v"]
-    },
-    {
-      "before": ["J"],
-      "commands": ["editor.action.moveLinesDownAction"],
-      "silent": true
-    },
-    {
-      "before": ["<leader>", "v", "a"],
-      "commands": ["editor.action.quickFix"],
-      "silent": true
-    },
-    {
-      "before": ["<leader>", "r", "m"],
-      "commands": [
-        {
-          "command": "editor.action.codeAction",
-          "args": {
-            "kind": "refactor.extract.function"
-          }
-        }
-      ],
-      "silent": true
-    },
-    {
-      "before": ["K"],
-      "commands": ["editor.action.moveLinesUpAction"],
-      "silent": true
-    },
-    {
-      "before": ["<leader>", "s", "w"],
-      "commands": [
-        "editor.action.addSelectionToNextFindMatch",
-        "workbench.action.findInFiles"
-      ],
-      "silent": true
-    },
-    {
-      "commands": ["editor.action.commentLine"],
-      "before": ["<leader>", "c"],
-      "when": "editorTextFocus && !editorReadonly"
-    }
-  ],
-  "vim.visualModeKeyBindingsNonRecursive": [],
-
   // ── File explorer & git UI ────────────────────────────────────────────────────
+  // oil.code's own keymaps are gated behind a VSCodeVim `when` clause that never
+  // matches here; disabling them hands the keys to nvim, which binds them in
+  // lua/config/vscode.lua.
   "oil-code.hasNerdFont": true,
   "oil-code.disableVimKeymaps": true,
-  "magit.display-buffer-function": "same-column",
   "git.blame.editorDecoration.enabled": false,
 
   // ── Languages ─────────────────────────────────────────────────────────────────
@@ -531,10 +106,24 @@
   },
 
   // ── Remote & containers ───────────────────────────────────────────────────────
+  // Install these into WSL, dev containers and SSH hosts whenever they are
+  // present locally, so a remote window comes up with the same editor.
   "remote.defaultExtensionsIfInstalledLocally": [
-    "kahole.magit",
+    "asvetliakov.vscode-neovim",
     "haphazarddev.oil-code"
   ],
+  // Installing it there is not enough on its own: vscode-neovim declares
+  // `extensionKind: ["ui", "workspace"]`, and "ui" wins by default, so it would
+  // keep running on the local extension host and driving the Windows nvim
+  // against remote files. Pinning it to "workspace" moves it onto the remote,
+  // where it picks up that machine's nvim, its ~/.config/nvim and its mason
+  // tools -- which is the whole point inside WSL or a container.
+  //
+  // The cost is a hard requirement: every remote must have nvim >= 0.10 on PATH,
+  // dev container images included, or the extension fails to start there.
+  "remote.extensionKind": {
+    "asvetliakov.vscode-neovim": ["workspace"]
+  },
   "remote.autoForwardPortsSource": "hybrid",
   "dev.containers.dockerPath": "podman",
   "containers.containerClient": "com.microsoft.visualstudio.containers.podman",

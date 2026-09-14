@@ -46,11 +46,11 @@ if (Test-Path $extensionsJsonPath) {
         Write-Host "Loaded $($defaultExtensions.Count) extensions" -ForegroundColor Green
     } catch {
         Write-Warning "Failed to load extensions.json: $_"
-        $defaultExtensions = @("eamodio.gitlens", "vscodevim.vim", "ms-vscode.powershell")
+        $defaultExtensions = @("eamodio.gitlens", "asvetliakov.vscode-neovim", "ms-vscode.powershell")
     }
 } else {
     Write-Warning "extensions.json not found at: $extensionsJsonPath"
-    $defaultExtensions = @("eamodio.gitlens", "vscodevim.vim", "ms-vscode.powershell")
+    $defaultExtensions = @("eamodio.gitlens", "asvetliakov.vscode-neovim", "ms-vscode.powershell")
 }
 
 # Build extension list

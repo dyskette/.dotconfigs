@@ -2,6 +2,7 @@ local utils = require("config.utils")
 
 return {
   "ibhagwan/fzf-lua",
+  cond = not vim.g.vscode,
   dependencies = { "nvim-tree/nvim-web-devicons", "folke/trouble.nvim" },
   cmd = { "FzfLua" },
   event = { utils.events.VeryLazy },

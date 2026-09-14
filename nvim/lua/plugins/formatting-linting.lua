@@ -50,11 +50,13 @@ end
 return {
   {
     "mfussenegger/nvim-lint",
+    cond = not vim.g.vscode,
     event = { utils.events.BufReadPre, utils.events.BufNewFile },
     config = nvim_lint_config,
   },
   {
     "stevearc/conform.nvim",
+    cond = not vim.g.vscode,
     opts = conform_opts,
     keys = require("config.keymaps").conform,
   },

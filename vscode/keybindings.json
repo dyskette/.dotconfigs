@@ -1,167 +1,87 @@
+// Keybindings for vscode-neovim.
+//
+// The rule here is the opposite of a VSCodeVim setup: keep this file small.
+// Neovim holds the keys, so anything that can be a Lua keymap lives in
+// nvim/lua/config/vscode.lua instead, and the extension already ships a vim
+// layer for trees, lists, hovers, peek widgets and the whole <C-w> family.
+//
+// What the extension covers, verified against its package.json and runtime/
+// (296 keybindings, ~150 Neovim-side mappings) -- do not restate any of it here:
+//   <C-w> h/j/k/l           focus across editor groups AND workbench parts
+//   <C-w> <C-h/j/k/l>       move the editor to that group
+//   <C-w> <S-h/j/k/l>       move the group itself
+//   <C-w> w/W/p/t/b         cycle / first / last group
+//   <C-w> s/v/n/q/c/o       split, new, close, join all
+//   <C-w> =/_/>/</+/-       resize
+//   <C-o> <C-i> <C-t> Tab   jumplist          gt / gT   editor tabs
+//   zz zt zb z. z- z<CR>    reveal            H / M / L viewport moves
+//   gd gD gf gF gH gO gh K  code navigation   z=        quick fix
+//   g0 g$ gj gk             screen-line motion
+//   mi ma mI mA             multi-cursor from visual
+//   trees: j k h l enter gg G o z-folds / ctrl+d ctrl+u ctrl+n ctrl+p
+//   files: r d y x p v a A R
+//   quick open + code action menu: ctrl+n / ctrl+p
+//
+// Note nothing may be bound to `ctrl+w` here. `w` is forwarded to Neovim, so a
+// `ctrl+w <key>` chord in this file would put VS Code into chord mode and the
+// key would never arrive -- taking every <C-w> command above with it. Same for
+// `tab` and `ctrl+i`, which are the jumplist.
 [
   {
     "key": "ctrl+z",
     "command": "workbench.action.terminal.toggleTerminal"
   },
+
+  // ── Completion, matched to the blink.cmp keymap used outside VS Code ─────────
+  // ctrl+n / ctrl+p are already bound by the extension for the suggest widget.
   {
     "key": "ctrl+y",
     "command": "acceptSelectedSuggestion",
     "when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible"
   },
   {
-    "key": "Ctrl+n",
-    "command": "workbench.action.quickOpenSelectNext",
-    "when": "inQuickOpen"
+    "key": "ctrl+e",
+    "command": "hideSuggestWidget",
+    "when": "suggestWidgetVisible && textInputFocus"
+  },
+
+  // ── Terminal ────────────────────────────────────────────────────────────────
+  // Every <C-w> binding the extension ships is gated on !terminalFocus, and its
+  // only way out of a terminal is ctrl+Escape. These four restore the same
+  // ctrl+hjkl that smart-splits gives the terminal buffers in plain nvim -- and
+  // that WezTerm already takes over in a non-nvim pane, so readline loses
+  // ctrl+h/k/l here exactly as it does there.
+  // All four commands are in VS Code's default commandsToSkipShell.
+  {
+    "key": "ctrl+h",
+    "command": "workbench.action.navigateLeft",
+    "when": "terminalFocus"
   },
   {
-    "key": "Ctrl+p",
-    "command": "workbench.action.quickOpenSelectPrevious",
-    "when": "inQuickOpen"
+    "key": "ctrl+j",
+    "command": "workbench.action.navigateDown",
+    "when": "terminalFocus"
   },
   {
-    "key": "ctrl+n",
-    "command": "selectNextCodeAction",
-    "when": "codeActionMenuVisible"
+    "key": "ctrl+k",
+    "command": "workbench.action.navigateUp",
+    "when": "terminalFocus"
   },
   {
-    "key": "ctrl+p",
-    "command": "selectPrevCodeAction",
-    "when": "codeActionMenuVisible"
+    "key": "ctrl+l",
+    "command": "workbench.action.navigateRight",
+    "when": "terminalFocus"
   },
-  {
-    "key": "ctrl+w d",
-    "command": "workbench.action.compareEditor.focusOtherSide",
-    "when": "textCompareEditorActive"
-  },
-  // Pane navigation is layered on purpose: navigate* crosses workbench parts
-  // (sidebar / panel / terminal) but does not hop between editor groups;
-  // focus*Group does the opposite and is a no-op at the edge of the grid.
-  // VS Code applies the LAST keybinding whose `when` matches, so navigate* is
-  // the base and focus*Group overrides it only while the editor has focus and
-  // a group really exists in that direction.
-  {
-    "key": "ctrl+w h",
-    "command": "workbench.action.navigateLeft"
-  },
-  {
-    "key": "ctrl+w h",
-    "command": "workbench.action.focusLeftGroup",
-    "when": "editorFocus && multipleEditorGroups && activeEditorGroupIndex != 1"
-  },
-  {
-    "key": "ctrl+w l",
-    "command": "workbench.action.navigateRight"
-  },
-  {
-    "key": "ctrl+w l",
-    "command": "workbench.action.focusRightGroup",
-    "when": "editorFocus && multipleEditorGroups && !activeEditorGroupLast"
-  },
-  // A side-by-side diff is one editor group, so neither layer above reaches it:
-  // focus*Group needs multipleEditorGroups and navigate* crosses workbench parts.
-  // Listed last because VS Code applies the last matching keybinding.
-  {
-    "key": "ctrl+w h",
-    "command": "workbench.action.compareEditor.focusSecondarySide",
-    "when": "textCompareEditorActive"
-  },
-  {
-    "key": "ctrl+w l",
-    "command": "workbench.action.compareEditor.focusPrimarySide",
-    "when": "textCompareEditorActive"
-  },
-  // No context key marks the top/bottom row of the grid, so vertical movement
-  // stays on navigate* (group below -> panel -> terminal); ctrl+w ctrl+<hjkl>
-  // stays pinned to editor groups for when that guesses wrong.
-  {
-    "key": "ctrl+w k",
-    "command": "workbench.action.navigateUp"
-  },
-  {
-    "key": "ctrl+w j",
-    "command": "workbench.action.navigateDown"
-  },
-  {
-    "key": "ctrl+w ctrl+k",
-    "command": "workbench.action.focusAboveGroup"
-  },
-  {
-    "key": "ctrl+w ctrl+j",
-    "command": "workbench.action.focusBelowGroup"
-  },
-  {
-    "key": "ctrl+w ctrl+h",
-    "command": "workbench.action.focusLeftGroup"
-  },
-  {
-    "key": "ctrl+w ctrl+l",
-    "command": "workbench.action.focusRightGroup"
-  },
-  // VSCodeVim's own <C-w> v/s/q never fire: the ctrl+w chords above put VS Code
-  // into chord mode, so the key never reaches the extension. Rebound here.
-  {
-    "key": "ctrl+w v",
-    "command": "workbench.action.splitEditorRight"
-  },
-  {
-    "key": "ctrl+w s",
-    "command": "workbench.action.splitEditorDown"
-  },
-  {
-    "key": "ctrl+w q",
-    "command": "workbench.action.closeActiveEditor"
-  },
+
+  // ── File tree ───────────────────────────────────────────────────────────────
+  // Only what the extension leaves out.
   {
     "key": "q",
     "command": "workbench.action.toggleSidebarVisibility",
     "when": "explorerViewletFocus && !inputFocus"
   },
-  {
-    "key": "enter",
-    "command": "list.closeFind",
-    "when": "listFocus && treeFindOpen && inputFocus"
-  },
-  {
-    "key": "r",
-    "command": "renameFile",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus"
-  },
-  {
-    "key": "d",
-    "command": "moveFileToTrash",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
-  },
-  {
-    "key": "y",
-    "command": "filesExplorer.copy",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !inputFocus"
-  },
-  {
-    "key": "x",
-    "command": "filesExplorer.cut",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot && !inputFocus"
-  },
-  {
-    "key": "p",
-    "command": "filesExplorer.paste",
-    "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceReadonly && !inputFocus"
-  },
-  {
-    "key": "v",
-    "command": "explorer.openToSide",
-    "when": "explorerViewletFocus && explorerViewletVisible && !inputFocus"
-  },
-  {
-    "key": "a",
-    "command": "explorer.newFile",
-    "when": "filesExplorerFocus && !inputFocus"
-  },
-  // Explorer tree verbs, mirroring the zed project panel.
-  {
-    "key": "shift+a",
-    "command": "explorer.newFolder",
-    "when": "filesExplorerFocus && !inputFocus"
-  },
+  // o previews and keeps focus in the tree; enter (from the extension) pins the
+  // file and jumps to the editor.
   {
     "key": "o",
     "command": "filesExplorer.openFilePreserveFocus",
@@ -174,12 +94,6 @@
     "command": "list.toggleExpand",
     "when": "filesExplorerFocus && !inputFocus && explorerResourceIsFolder"
   },
-  // o previews and keeps focus in the tree; enter pins and jumps to the editor.
-  {
-    "key": "enter",
-    "command": "list.select",
-    "when": "filesExplorerFocus && !inputFocus"
-  },
   {
     "key": "s",
     "command": "runCommands",
@@ -191,99 +105,83 @@
     "command": "list.focusParent",
     "when": "filesExplorerFocus && !inputFocus"
   },
+
+  // ── Source Control ──────────────────────────────────────────────────────────
+  // This is the neogit stand-in, reached with <leader>gg. The extension already
+  // makes the tree vim-navigable (j/k/h/l, enter to open the diff, gg/G, `/`,
+  // o to fold, ctrl+d/ctrl+u), so only the verbs are missing -- laid out the way
+  // neogit lays them out. `focusedView` rather than `activeViewlet` so this keeps
+  // working if the view is moved to the panel or the secondary sidebar.
+  // s and u go through runCommands rather than calling git.stage directly.
+  // A keybinding passes no arguments, and only menu and toolbar invocations get
+  // the tree selection handed to them, so a bare `git.stage` would fall back to
+  // `window.activeTextEditor` and stage whatever file happened to be open
+  // behind the view. `list.select` opens the focused row first -- runCommands
+  // awaits each step and stops on error -- so the fallback then resolves to the
+  // row the cursor is actually on.
+  //
+  // Discard is deliberately absent for the same reason: getting it wrong throws
+  // work away, and composing it speculatively is not worth that. It lives on
+  // <leader>gX in the editor, where the target is whatever you are looking at.
   {
-    "key": "ctrl+i",
-    "command": "composerMode.agent"
+    "key": "s",
+    "command": "runCommands",
+    "args": { "commands": ["list.select", "git.stage"] },
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
   },
   {
-    "key": "g g",
-    "command": "cursorTop",
-    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+    "key": "u",
+    "command": "runCommands",
+    "args": { "commands": ["list.select", "git.unstage"] },
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "shift+s",
+    "command": "git.stageAll",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "shift+u",
+    "command": "git.unstageAll",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "c",
+    "command": "git.commit",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "b",
+    "command": "git.checkout",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "shift+p",
+    "command": "git.push",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "shift+f",
+    "command": "git.pull",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
+  },
+  {
+    "key": "z",
+    "command": "git.stash",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
   },
   {
     "key": "g r",
-    "command": "magit.refresh",
-    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
+    "command": "git.refresh",
+    "when": "focusedView == 'workbench.scm' && !inputFocus"
   },
+
+  // ── oil.code ────────────────────────────────────────────────────────────────
+  // The rest of the oil keymap is bound in nvim. ctrl+s is here because `s` is
+  // not in vscode-neovim.ctrlKeysForNormalMode, so ctrl+s never reaches nvim.
   {
-    "key": "tab",
-    "command": "extension.vim_tab",
-    "when": "editorTextFocus && vim.active && !inDebugRepl && vim.mode != 'Insert' && !inlineEditIsVisible && editorLangId != 'magit'"
-  },
-  {
-    "key": "tab",
-    "command": "-extension.vim_tab"
-  },
-  {
-    "key": "x",
-    "command": "magit.discard-at-point",
-    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
-  },
-  {
-    "key": "k",
-    "command": "-magit.discard-at-point"
-  },
-  {
-    "key": "-",
-    "command": "magit.reverse-at-point",
-    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
-  },
-  {
-    "key": "v",
-    "command": "-magit.reverse-at-point"
-  },
-  {
-    "key": "shift+-",
-    "command": "magit.reverting",
-    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
-  },
-  {
-    "key": "shift+v",
-    "command": "-magit.reverting"
-  },
-  {
-    "key": "shift+o",
-    "command": "magit.resetting",
-    "when": "editorTextFocus && editorLangId == 'magit' && vim.mode =~ /^(?!SearchInProgressMode|CommandlineInProgress).*$/"
-  },
-  {
-    "key": "shift+x",
-    "command": "-magit.resetting"
-  },
-  {
-    "key": "x",
-    "command": "-magit.reset-mixed"
-  },
-  {
-    "key": "ctrl+u x",
-    "command": "-magit.reset-hard"
-  },
-  // Scoped to oil buffers rather than living in vim.normalModeKeyBindings,
-  // which has no `when` and would claim these keys in every buffer.
-  {
-    "key": "enter",
-    "command": "oil-code.select",
-    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
-  },
-  {
-    "key": "ctrl+l",
-    "command": "oil-code.refresh",
-    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
-  },
-  {
-    "key": "`",
-    "command": "oil-code.cd",
-    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
-  },
-  {
-    "key": "g d",
-    "command": "oil-code.toggleDetails",
-    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
-  },
-  // Reclaims gg, which the g chord above would otherwise swallow in oil buffers.
-  {
-    "key": "g g",
-    "command": "cursorTop",
-    "when": "editorTextFocus && editorLangId == 'oil' && vim.mode == 'Normal'"
+    "key": "ctrl+s",
+    "command": "oil-code.selectVertical",
+    "when": "editorTextFocus && editorLangId == 'oil' && neovim.mode == 'normal'"
   }
 ]

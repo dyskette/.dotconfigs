@@ -72,11 +72,13 @@ end
 return {
   {
     "williamboman/mason.nvim",
+    cond = not vim.g.vscode,
     event = utils.events.VeryLazy,
     opts = mason_opts,
   },
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
+    cond = not vim.g.vscode,
     cmd = {
       "MasonToolsInstall",
       "MasonToolsInstallSync",

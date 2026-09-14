@@ -324,6 +324,7 @@ return {
   -- see the theme tracking at the top of this file.
   {
     "ellisonleao/gruvbox.nvim",
+    cond = not vim.g.vscode,
     lazy = false,
     priority = 1000,
     -- setup() has to run before the colorscheme command for opts to apply,
@@ -336,12 +337,14 @@ return {
   },
   {
     "rose-pine/neovim",
+    cond = not vim.g.vscode,
     name = "rose-pine",
     -- Loaded on demand by lazy.nvim when apply_theme() picks rose-pine-dawn.
   },
   -- tab bar
   {
     "nanozuki/tabby.nvim",
+    cond = not vim.g.vscode,
     event = utils.events.VeryLazy,
     config = tabby_config,
     dependencies = {
@@ -351,6 +354,7 @@ return {
   -- Status bar
   {
     "nvim-lualine/lualine.nvim",
+    cond = not vim.g.vscode,
     opts = lualine_opts,
     dependencies = {
       "nvim-tree/nvim-web-devicons",
@@ -360,11 +364,13 @@ return {
   -- LSP progress/vim.notify
   {
     "j-hui/fidget.nvim",
+    cond = not vim.g.vscode,
     event = utils.events.VeryLazy,
     opts = fidget_opts,
   },
   {
     "folke/which-key.nvim",
+    cond = not vim.g.vscode,
     event = utils.events.VeryLazy,
     opts = {
       -- your configuration comes here

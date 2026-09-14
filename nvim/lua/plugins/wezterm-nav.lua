@@ -20,6 +20,7 @@ return {
   -- Neovim yields at its split edges and focus leaves the editor.
   {
     "mrjones2014/smart-splits.nvim",
+    cond = not vim.g.vscode,
     lazy = false,
     opts = smart_splits_opts,
     config = function(_, opts)

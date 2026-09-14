@@ -1,5 +1,35 @@
 local utils = require("config.utils")
 
+-- Default indentation
+-- When guess-indent detects spaces, it will override: 'expandtab', 'tabstop', 'softtabstop', 'shiftwidth'
+-- When guess-indent detects tabs, it will use 'tabstop'
+-- Inside VS Code the extension syncs these from the editor's own detection
+-- instead, so what is set here is only the starting point.
+vim.o.expandtab = true
+vim.o.tabstop = 4
+vim.o.softtabstop = 4
+vim.o.shiftwidth = 4
+vim.o.smartindent = true
+
+-- Highlight the copied text
+local group = vim.api.nvim_create_augroup("dyskette_text_yank_highlight", { clear = true })
+vim.api.nvim_create_autocmd(utils.events.TextYankPost, {
+  desc = "Highlight yanked text",
+  group = group,
+  callback = function()
+    vim.hl.on_yank({ higroup = "IncSearch", timeout = 200 })
+  end,
+})
+
+-- Everything below draws the terminal UI, and none of it survives inside VS
+-- Code: the editor owns line numbers, scrolloff, rulers and wrapping through
+-- its own settings, diagnostics come from the extension host rather than from a
+-- language server nvim ever talks to, and vscode-neovim force-sets 'list',
+-- 'wrap', 'winborder' and 'colorcolumn' on every BufEnter regardless.
+if vim.g.vscode then
+  return
+end
+
 -- Pretty colors
 vim.o.termguicolors = true
 vim.o.winborder = "single"
@@ -20,15 +50,6 @@ vim.o.wrap = false
 -- Rulers
 vim.o.colorcolumn = "120"
 
--- Default indentation
--- When guess-indent detects spaces, it will override: 'expandtab', 'tabstop', 'softtabstop', 'shiftwidth'
--- When guess-indent detects tabs, it will use 'tabstop'
-vim.o.expandtab = true
-vim.o.tabstop = 4
-vim.o.softtabstop = 4
-vim.o.shiftwidth = 4
-vim.o.smartindent = true
-
 -- Diagnostic
 vim.diagnostic.config({
   severity_sort = true,
@@ -45,16 +66,6 @@ vim.diagnostic.config({
     },
   },
   float = { border = "single", title = " Diagnostic " },
-})
-
--- Highlight the copied text
-local group = vim.api.nvim_create_augroup("dyskette_text_yank_highlight", { clear = true })
-vim.api.nvim_create_autocmd(utils.events.TextYankPost, {
-  desc = "Highlight yanked text",
-  group = group,
-  callback = function()
-    vim.hl.on_yank({ higroup = "IncSearch", timeout = 200 })
-  end,
 })
 
 -- Relative numbers in normal mode, absolute in insert mode

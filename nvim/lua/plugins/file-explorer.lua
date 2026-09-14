@@ -22,12 +22,14 @@ local yazi_opts = {
 return {
   {
     "stevearc/oil.nvim",
+    cond = not vim.g.vscode,
     opts = oil_opts,
     keys = require("config.keymaps").oil,
   },
   ---@type LazySpec
   {
     "mikavilpas/yazi.nvim",
+    cond = not vim.g.vscode,
     version = "*",
     event = "VeryLazy",
     dependencies = {
@@ -38,6 +40,14 @@ return {
     opts = yazi_opts,
     -- 👇 if you use `open_for_directories=true`, this is recommended
     init = function()
+      -- lazy.nvim runs `init` even for specs its `cond` disabled. There is no
+      -- yazi to push to inside VS Code, and no language server attached to nvim
+      -- to collect diagnostics from, so the hook would only burn a debounce
+      -- timer on every DiagnosticChanged.
+      if vim.g.vscode then
+        return
+      end
+
       -- mark netrw as loaded so it's not loaded at all.
       --
       -- More details: https://github.com/mikavilpas/yazi.nvim/issues/802

@@ -18,12 +18,14 @@ local neogit_opts = {
 return {
   {
     "lewis6991/gitsigns.nvim",
+    cond = not vim.g.vscode,
     event = { utils.events.BufReadPre, utils.events.BufNewFile },
     keys = require("config.keymaps").gitsigns,
     opts = gitsigns_opts,
   },
   {
     "NeogitOrg/neogit",
+    cond = not vim.g.vscode,
     keys = require("config.keymaps").neogit,
     opts = neogit_opts,
     dependencies = {
