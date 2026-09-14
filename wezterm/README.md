@@ -39,8 +39,8 @@ glob, so a subdirectory would silently not be linked.
 
 1. **Link the new files.** `windows\Configure-Dotfiles.ps1` (or the full
    installer). The glob picks up the new `wf_*.lua` automatically.
-2. **Set your repo roots** in `wf_settings.lua` — `repo_roots` currently guesses
-   `~/code`, `~/work`, `~/dev`. Nothing works until these are right.
+2. **Set your repo roots** in `wf_settings.lua` — `repo_roots` (inside WSL) and
+   `repo_roots_windows` (on the drive). Nothing works until these are right.
 3. **Neovim**: `nvim/lua/plugins/wezterm-nav.lua` adds `smart-splits.nvim` and
    publishes `IS_NVIM` so `Ctrl+hjkl` crosses the editor/terminal boundary.
    Note the leader shadows `<C-b>` inside Neovim (page-up, and blink's
@@ -69,6 +69,12 @@ platform until you ask otherwise. Edit `shells_windows` / `shells_unix` in
 `wf_settings.lua` to change the list, or set `startup_shell_picker = false` to
 go straight to the default.
 
+Adding a WSL distribution is two entries in `wf_settings.lua`: one in
+`wsl_distros`, which creates the `WSL:<distro>` domain *and* adds the distro to
+the project scan, and one in `shells_windows` pointing at that domain so the
+picker offers it. `distro` must match `wsl.exe -l -v` exactly. Ubuntu-24.04 and
+FedoraLinux-42 are wired up this way.
+
 Helper tabs follow the pane they were invoked from: `LEADER ?` and `LEADER Y`
 open in the current pane's domain, so pressing them in a PowerShell pane uses
 Windows `nvim` and never starts the WSL VM just to display a file.
@@ -77,9 +83,59 @@ WezTerm's own launcher (`LEADER Shift+Enter`) lists the same entries plus every
 registered domain — useful for confirming a domain name if a shell reports one
 as unknown.
 
-**Known gap:** the project system (`LEADER f`) is WSL-only. Its roots are WSL
-paths and the scan runs through WSL, so a Windows-native client repo will not
-appear. Windows-side projects currently mean `LEADER Enter` plus a manual `cd`.
+## Projects: one environment at a time
+
+`LEADER f` lists the repositories of **the pane's own domain**, and nothing
+else. In a Fedora pane you get Fedora repos; in a PowerShell pane, Windows
+repos. The picker title says which (`Projects · fedora`).
+
+That is the whole point of the domains: a project opens its entire workspace —
+tabs, splits, editor, notes — in the environment it was found in, so a list
+that mixed them would be offering you repositories you cannot actually work in
+from where you are. A domain with no roots of its own (SSH, mux) gets a toast
+rather than somebody else's list.
+
+Two root lists, because they are two places: `~/Projects` on the C: drive has
+nothing to do with `~/Projects` inside a distribution. Write the Windows ones
+with forward slashes (`~/Projects`, `C:/src`) — they go to Git Bash as-is and
+come back as the project's working directory, valid in both.
+
+Each environment is cached separately in `~/.cache/wezterm-projects.json` and
+scanned only when its own list is wanted, so `LEADER F` in a PowerShell pane
+refreshes the Windows list without starting a stopped distro's VM. Within a
+list, ordering is by mtime — what you touched most recently.
+
+### Workspace names
+
+Repos in the default distro keep bare names (`billing-api`), so nothing
+about the everyday case changed. A repo in a *secondary* distro is tagged with
+that distro's `short` (`billing-api@ubuntu`), because the same repo
+cloned into two distros is two projects: same code, different toolchain, and
+one workspace would put the Ubuntu build in a Fedora pane. The picker shows the
+tagged name, so which one you are opening is visible before Enter.
+
+Windows projects are **bare** by default — a Windows repo is usually distinct
+work rather than a second copy, and a suffix on a name with no twin is noise.
+When the two sides do overlap, the shared name is one workspace and whichever
+opens first wins. Set `windows_short = "win"` in `wf_settings.lua` to tag them
+the same way a secondary distro is tagged.
+
+### Windows specifics
+
+- Discovery runs through `windows_bash` (Git Bash), so one `find` pipeline
+  serves every environment. It is a full path on purpose: `bash.exe` from PATH
+  is `C:\Windows\System32\bash.exe`, the WSL launcher, which would scan a
+  distribution instead of the drive.
+- Panes run `windows_shell` (pwsh), not Git Bash — Git Bash is a detail of
+  discovery only.
+- The notes template has a PowerShell spelling alongside the bash one, since
+  `mkdir -p` and `printf` are not available to a pwsh pane.
+- Without Git installed, the Windows roots simply yield nothing; WSL projects
+  are unaffected. Setting `repo_roots_windows = {}` skips the Windows side
+  entirely.
+
+**Known gap:** `LEADER f` finds repositories, not remotes — a bare clone or a
+worktree whose `.git` is a file rather than a directory is not matched.
 
 ## Latin American ISO layout
 

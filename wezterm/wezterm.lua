@@ -14,6 +14,7 @@ local config = wezterm.config_builder()
 local keys = require("wf_keys")
 local settings = require("wf_settings")
 local theme = require("wf_theme")
+local util = require("wf_util")
 
 -- Registers the update-status and format-tab-title handlers.
 require("wf_status")
@@ -28,15 +29,20 @@ config.automatically_reload_config = true
 -- panes in a repository.
 
 if wezterm.target_triple == "x86_64-pc-windows-msvc" then
-  config.wsl_domains = {
-    {
-      name = "WSL:" .. settings.wsl_distro,
-      distribution = settings.wsl_distro,
+  -- One domain per distribution in settings.wsl_distros, so a second distro is
+  -- a settings change rather than an edit here. WezTerm's own auto-discovered
+  -- WSL domains are replaced by this list, which is why every distro that
+  -- should be reachable has to be named there.
+  config.wsl_domains = {}
+  for _, entry in ipairs(settings.wsl_distros) do
+    table.insert(config.wsl_domains, {
+      name = util.wsl_domain_name(entry.distro),
+      distribution = entry.distro,
       default_cwd = "~",
-    },
-  }
+    })
+  end
   -- WSL is what a window starts in, and what Escape at the shell picker keeps.
-  config.default_domain = "WSL:" .. settings.wsl_distro
+  config.default_domain = util.domain_for(util.default_distro().distro)
   -- ...while the local domain runs PowerShell, so a tab opened from a native
   -- Windows pane stays PowerShell instead of falling back to cmd.
   config.default_prog = { "pwsh.exe", "-NoLogo" }

@@ -5,12 +5,60 @@
 
 local M = {}
 
---- WSL distribution hosting the development environment on Windows.
-M.wsl_distro = "Ubuntu-24.04"
+--- WSL distributions hosting development environments on Windows.
+---
+--- Each entry becomes a `WSL:<distro>` domain and is scanned for repositories,
+--- so a distro listed here is reachable everywhere: the shell picker, the
+--- project picker, and the tabs a project opens.
+---
+--- `distro` must match `wsl.exe -l -v` exactly. `short` tags the workspaces of
+--- a non-default distro, so the same repo name in two distros stays two
+--- projects. `default = true` marks the one that backs config.default_domain,
+--- keeps unqualified workspace names, and hosts the notes and scratch
+--- workspaces; exactly one entry should have it.
+---
+--- Scanning a stopped distro starts its VM, so the list is "distros I work
+--- in", not "distros installed". Discovery is cached, so that cost is paid
+--- once per session rather than on every LEADER f.
+M.wsl_distros = {
+  { distro = "Ubuntu-24.04", short = "ubuntu" },
+  { distro = "FedoraLinux-42", short = "fedora", default = true },
+}
 
 --- Roots scanned for git repositories, in WSL/Linux path terms.
---- Paths that do not exist are skipped silently.
-M.repo_roots = { "~/code", "~/work", "~/dev" }
+--- Scanned in every distro above; paths that do not exist are skipped
+--- silently, so roots specific to one distro cost nothing in the others.
+M.repo_roots = { "~/Projects", "~/code", "~/work", "~/dev" }
+
+--- Roots scanned for git repositories on the Windows side, in Windows terms.
+---
+--- Write them with forward slashes: they are handed to Git Bash as-is and come
+--- back as the project's working directory, and a path that is valid in both
+--- places needs no translation in between. Set to {} to stop scanning Windows.
+M.repo_roots_windows = { "~/Projects", "~/source/repos" }
+
+--- Git Bash, used only to run the repository scan over the Windows roots.
+---
+--- Specifically *not* `bash.exe` from PATH: on a machine with WSL that name
+--- resolves to C:\Windows\System32\bash.exe, the WSL launcher, which would
+--- quietly scan a distribution again instead of the Windows drive.
+---
+--- Nothing else needs it — Windows projects open in `windows_shell` — so if
+--- Git is not installed the Windows roots simply yield nothing.
+M.windows_bash = "C:/Program Files/Git/bin/bash.exe"
+
+--- Shell left running in the panes of a Windows-side project.
+M.windows_shell = "pwsh.exe"
+
+--- Tag for the workspace names of Windows projects, as `<repo>@<tag>`, the
+--- way a secondary distro is tagged. nil keeps them bare.
+---
+--- Bare by default because a Windows project is usually distinct work rather
+--- than a second copy of a repo that also lives in WSL, and a suffix on a name
+--- with no twin is noise. Worth setting when the two sides do overlap: a name
+--- shared with a repo in the default distro is one workspace, and whichever is
+--- opened first wins — the second silently reuses the first one's panes.
+M.windows_short = nil
 
 --- Maximum directory depth of the repository scan.
 M.scan_depth = 4
@@ -86,7 +134,8 @@ M.template_splits = {
 --- `default = true` marks the shell the window already runs, so choosing it at
 --- startup costs nothing.
 M.shells_windows = {
-  { label = "WSL · Ubuntu-24.04", short = "wsl", domain = "WSL:Ubuntu-24.04", default = true },
+  { label = "WSL · Ubuntu-24.04", short = "wsl", domain = "WSL:Ubuntu-24.04" },
+  { label = "WSL · Fedora 42", short = "fedora", domain = "WSL:FedoraLinux-42", default = true },
   { label = "PowerShell 7", short = "pwsh", domain = "local", args = { "pwsh.exe", "-NoLogo" } },
   { label = "Windows PowerShell", short = "posh", domain = "local", args = { "powershell.exe", "-NoLogo" } },
   { label = "Command Prompt", short = "cmd", domain = "local", args = { "cmd.exe" } },

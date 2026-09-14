@@ -6,23 +6,136 @@ local settings = require("wf_settings")
 local M = {}
 
 --- True when the config is being evaluated by a WezTerm running on Windows,
---- where the work environment lives behind wsl.exe rather than in-process.
+--- where work is split between the drive and one or more WSL distributions
+--- and reaching a distribution means crossing through wsl.exe.
 M.is_windows = wezterm.target_triple:find("windows") ~= nil
 
---- Runs a shell command inside the work environment and captures its output.
+-- ── Work environments ──────────────────────────────────────────────────────
+--
+-- A "work environment" is somewhere repositories live and panes can run. On
+-- Windows that is each WSL distribution plus the Windows drive itself;
+-- everywhere else there is exactly one. The helpers below express that as a
+-- list either way, so callers iterate rather than branch on platform, and
+-- `distro = nil` consistently means "this platform's native environment" —
+-- the Windows side on Windows, the machine itself anywhere else.
+
+--- The native environment. On a Unix machine it is the only one, so it is
+--- marked default and the lookups that pick a default distro still work; on
+--- Windows the default is a distribution and this sits alongside it, tagging
+--- its workspaces only if settings.windows_short asks for it.
+local native_env = { default = not M.is_windows, short = settings.windows_short }
+
+--- Every work environment, as configured entries.
 ---
---- On Windows the config runs as a native process while the repositories,
---- notes and tools live inside WSL, so every command has to cross that
---- boundary explicitly.
+--- The native entry comes last so that scan results, which are merged by
+--- recency anyway, are not led by whichever list happens to be first.
+function M.distros()
+  if not M.is_windows then
+    return { native_env }
+  end
+
+  local list = {}
+  for _, entry in ipairs(settings.wsl_distros) do
+    list[#list + 1] = entry
+  end
+
+  -- Skipped entirely when there are no Windows roots, so a machine that keeps
+  -- everything in WSL pays nothing for the Windows side existing.
+  if #settings.repo_roots_windows > 0 then
+    list[#list + 1] = native_env
+  end
+  return list
+end
+
+--- The environment new windows and the notes workspace belong to: the entry
+--- marked `default`, or the first one if none is.
+function M.default_distro()
+  local list = M.distros()
+  for _, entry in ipairs(list) do
+    if entry.default then
+      return entry
+    end
+  end
+  -- The list is empty only if every distro and every Windows root was
+  -- configured away; the native environment is still somewhere to stand.
+  return list[1] or native_env
+end
+
+--- The configured entry for a distribution name, or nil when it is not one of
+--- ours — a cached project whose distro has since left wsl_distros.
+function M.distro_entry(distro)
+  for _, entry in ipairs(M.distros()) do
+    if entry.distro == distro then
+      return entry
+    end
+  end
+  return nil
+end
+
+--- The WezTerm domain hosting a distribution. Written once here because
+--- wezterm.lua registers the domains under these names and everything else
+--- resolves them by name; the two must not drift.
+function M.wsl_domain_name(distro)
+  return "WSL:" .. distro
+end
+
+--- The WezTerm domain a work environment's panes belong to. The native
+--- environment is WezTerm's built-in "local" domain on every platform.
+---
+--- Always a name, never nil: this is both what panes are spawned into and what
+--- a pane's own domain is matched against to decide which environment it is
+--- in, and a nil on either side of that comparison would quietly match the
+--- wrong thing.
+function M.domain_for(distro)
+  if distro then
+    return M.wsl_domain_name(distro)
+  end
+  return "local"
+end
+
+--- The work environment a domain belongs to, or nil when the domain is not
+--- one of ours — an SSH or mux domain has no repository roots and no business
+--- being offered a project list built for somewhere else.
+function M.env_of_domain(domain)
+  for _, entry in ipairs(M.distros()) do
+    if M.domain_for(entry.distro) == domain then
+      return entry
+    end
+  end
+  return nil
+end
+
+--- Short human name for a work environment, for picker titles.
+function M.env_label(entry)
+  if entry.distro then
+    return entry.short or entry.distro
+  end
+  return M.is_windows and "windows" or "local"
+end
+
+--- Runs a shell command inside a work environment and captures its output.
+---
+--- On Windows the config runs as a native process while most repositories,
+--- notes and tools live inside WSL, so a command aimed at a distribution has
+--- to cross that boundary explicitly.
+---
+--- The Windows side is reached through Git Bash rather than PowerShell so that
+--- one pipeline serves every environment: the scan is find/sed/stat either
+--- way, and only the interpreter that runs it changes. This is a detail of
+--- discovery alone — Windows projects open in settings.windows_shell.
 ---
 --- @param cmd string Shell command, interpreted by bash.
+--- @param distro string|nil Distribution to run in. nil means the native
+---   environment: the Windows drive on Windows, the machine itself elsewhere.
 --- @return boolean ok, string stdout
-function M.exec(cmd)
+function M.exec(cmd, distro)
   local argv
-  if M.is_windows then
-    argv = { "wsl.exe", "-d", settings.wsl_distro, "--", "bash", "-lc", cmd }
-  else
+  if not M.is_windows then
     argv = { "bash", "-lc", cmd }
+  elseif distro then
+    argv = { "wsl.exe", "-d", distro, "--", "bash", "-lc", cmd }
+  else
+    argv = { settings.windows_bash, "-lc", cmd }
   end
 
   local ok, stdout = wezterm.run_child_process(argv)
@@ -34,29 +147,59 @@ function M.chomp(s)
   return (s:gsub("%s+$", ""))
 end
 
-local home_cache
+--- Keyed by distro, because two distributions need not agree on $HOME and
+--- resolving one to the other's home would send the scan somewhere empty.
+local home_cache = {}
 
---- Home directory *inside the work environment*, which on Windows is the WSL
---- home and not wezterm.home_dir. Resolved once per config load.
-function M.home()
-  if not home_cache then
-    local ok, out = M.exec('printf %s "$HOME"')
-    home_cache = ok and M.chomp(out) or "~"
+--- Home directory *inside a work environment*, which on Windows is a WSL home
+--- and not wezterm.home_dir. Resolved once per distro per config load.
+---
+--- @param distro string|nil Defaults to the default distribution.
+--- The answer is fenced by a sentinel rather than taken as the whole output,
+--- because `bash -l` runs the user's rc files first and one of them printing
+--- to stdout — a title escape, a greeting, a version notice — would otherwise
+--- be prepended to the home directory. Every path built from it then fails
+--- its `[ -d ]` test and the scan silently finds nothing, which is a long way
+--- to debug from the symptom.
+local home_pattern = "WF_HOME=([^\r\n]*)"
+
+function M.home(distro)
+  local key = distro or ""
+
+  if not home_cache[key] then
+    if M.is_windows and not distro then
+      -- Known without asking, and spelled with forward slashes so the one
+      -- string works both as a Git Bash argument and as a Windows working
+      -- directory.
+      home_cache[key] = (wezterm.home_dir:gsub("\\", "/"))
+    else
+      local ok, out = M.exec('printf "WF_HOME=%s\\n" "$HOME"', distro)
+      local home = ok and out:match(home_pattern)
+      home_cache[key] = (home and home ~= "") and home or "~"
+    end
   end
-  return home_cache
+  return home_cache[key]
 end
 
---- Expands a leading ~ against the work environment's home directory.
-function M.expand(path)
+--- Expands a leading ~ against a work environment's home directory.
+---
+--- @param distro string|nil Defaults to the default distribution.
+function M.expand(path, distro)
   if path:sub(1, 1) ~= "~" then
     return path
   end
-  return M.home() .. path:sub(2)
+  return M.home(distro) .. path:sub(2)
 end
 
 --- Quotes a string for safe interpolation into a bash command.
 function M.shquote(s)
   return "'" .. s:gsub("'", "'\\''") .. "'"
+end
+
+--- Quotes a string as a PowerShell single-quoted literal, where the only
+--- escape is a doubled quote and nothing else expands.
+function M.psquote(s)
+  return "'" .. s:gsub("'", "''") .. "'"
 end
 
 --- Splits an absolute path into its components.
@@ -252,11 +395,40 @@ end
 --- for free, that quitting the editor or agent leaves a usable shell rather
 --- than closing the pane.
 ---
+--- The directory is entered by the command itself rather than left to the
+--- spawn's `cwd`, because a WSL pane that carries its own program does not
+--- reliably get one: the Linux path reaches wsl.exe as a *Windows* working
+--- directory, fails, and the pane starts in the Windows home instead — which
+--- from inside the distribution reads as /mnt/c/Users/<user>. Panes with no
+--- program of their own are unaffected, which is why the editor, agent and
+--- notes tabs drifted while the plain shells and every split stayed put.
+---
 --- @param cmd string|nil Shell command; omitted for a plain shell.
+--- @param distro string|nil The environment the pane runs in. nil on Windows
+---   means the Windows side, whose command is PowerShell, not bash.
+--- @param cwd string|nil Directory to enter before running `cmd`. Ignored
+---   without a command, where the spawn's own cwd is honoured.
 --- @return table argv
-function M.shell_args(cmd)
+function M.shell_args(cmd, distro, cwd)
+  if M.is_windows and not distro then
+    if not cmd or cmd == "" then
+      return { settings.windows_shell, "-NoLogo" }
+    end
+    if cwd then
+      cmd = "Set-Location -LiteralPath " .. M.psquote(cwd) .. "; " .. cmd
+    end
+    -- -NoExit is the PowerShell spelling of the trailing `exec bash` below:
+    -- the pane outlives the command instead of closing with it.
+    return { settings.windows_shell, "-NoLogo", "-NoExit", "-Command", cmd }
+  end
+
   if not cmd or cmd == "" then
     return { "bash", "-l" }
+  end
+  if cwd then
+    -- && so a directory that has gone missing does not run the command
+    -- somewhere arbitrary; the shell that follows still opens for the repair.
+    cmd = "cd " .. M.shquote(cwd) .. " && " .. cmd
   end
   return { "bash", "-lc", cmd .. "; exec bash" }
 end
