@@ -60,6 +60,12 @@ local function on_lsp_attach()
       -- Let Treesitter handle syntax highlighting for better performance
       client.server_capabilities.semanticTokensProvider = nil
 
+      -- Ruff and basedpyright both attach to python buffers. Ruff has nothing
+      -- to say on hover that the type checker does not say better, and two
+      -- providers means two popups, so it yields.
+      if client.name == "ruff" then
+        client.server_capabilities.hoverProvider = false
+      end
     end,
   })
 end
@@ -113,11 +119,43 @@ local function setup_language_servers()
     },
   }
 
-  -- Python Language Server
-  vim.lsp.config.pyright = {
-    cmd = { "pyright-langserver", "--stdio" },
+  -- Python Language Servers
+  --
+  -- basedpyright rather than pyright because it resolves a `.venv` at the
+  -- project root by itself. No shell activation, no pythonPath wiring, and the
+  -- result is the same whether Neovim was started from an activated shell or
+  -- not -- which plain pyright is not, since it falls back to whatever python
+  -- is on PATH. That only holds if the root it picks is the repository, hence
+  -- the marker list ending in .git.
+  --
+  -- typeCheckingMode is pinned to "standard" to match what pyright reported.
+  -- basedpyright's own default is "recommended", which is considerably
+  -- stricter and would light up existing code on day one. Raise it when you
+  -- want to, per project or here.
+  vim.lsp.config.basedpyright = {
+    cmd = { "basedpyright-langserver", "--stdio" },
     filetypes = { "python" },
-    root_markers = { "pyproject.toml", "setup.py", "requirements.txt" },
+    root_markers = { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", ".venv", ".git" },
+    settings = {
+      basedpyright = {
+        analysis = {
+          typeCheckingMode = "standard",
+        },
+      },
+    },
+  }
+
+  -- Ruff supplies the diagnostics pylint used to, and the formatting isort and
+  -- black used to. It matters here that it is a single static binary: pylint
+  -- had to be installed into each project's virtual environment to be found on
+  -- PATH, which is why linting only worked in a shell that had activated one.
+  --
+  -- Both servers attach to python buffers. on_lsp_attach drops ruff's hover so
+  -- the type checker answers it alone.
+  vim.lsp.config.ruff = {
+    cmd = { "ruff", "server" },
+    filetypes = { "python" },
+    root_markers = { "pyproject.toml", "ruff.toml", ".ruff.toml", ".git" },
   }
 
   -- JavaScript/TypeScript
@@ -260,7 +298,7 @@ local function enable_language_servers()
         sh = "bashls",
         bash = "bashls",
         ps1 = "powershell_es",
-        python = "pyright",
+        python = { "basedpyright", "ruff" },
         javascript = "vtsls",
         typescript = "vtsls",
         javascriptreact = "vtsls",

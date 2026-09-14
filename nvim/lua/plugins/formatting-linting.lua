@@ -4,7 +4,7 @@ local conform_opts = {
   formatters_by_ft = {
     lua = { "stylua" },
     sh = { "beautysh" },
-    python = { "isort", "black" },
+    python = { "ruff_organize_imports", "ruff_format" },
     javascript = { "prettier" },
     typescript = { "prettier" },
     javascriptreact = { "prettier" },
@@ -28,8 +28,11 @@ local conform_opts = {
 local nvim_lint_config = function()
   local lint = require("lint")
 
+  -- Python is absent on purpose: ruff runs as a language server (see
+  -- lspconfig.lua) and publishes its diagnostics live, rather than only on
+  -- read and write the way nvim-lint fires. pylint used to live here, and had
+  -- to be installed into each project's virtual environment to be found.
   lint.linters_by_ft = {
-    python = { "pylint" },
     -- javascript = { "eslint_d" },
     -- typescript = { "eslint_d" },
     -- javascriptreact = { "eslint_d" },

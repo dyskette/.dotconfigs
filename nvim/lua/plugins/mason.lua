@@ -13,7 +13,8 @@ local mason_tool_installer_opts = function()
     "lua-language-server",
     "bash-language-server",
     "powershell-editor-services",
-    "pyright", -- python
+    "basedpyright", -- python (resolves the project .venv itself)
+    "ruff", -- python linter + formatter (replaces pylint, isort, black)
 
     -- javascript and typescript
     "vtsls", -- typescript/vue
@@ -43,15 +44,13 @@ local mason_tool_installer_opts = function()
 
   local linters = {
     -- "eslint", -- js linter -- I'll use the LSP version instead
-    -- "pylint", -- python linter -- Install pylint in the virtual environment instead
+    -- "pylint", -- python linter -- replaced by ruff, which needs no venv to be found
   }
 
   local formatters = {
     "stylua", -- lua
     "beautysh", -- sh/bash
     "prettier", -- js/html/css
-    "isort", -- python imports
-    "black", -- python
     "sql-formatter", -- sql
     -- "csharpier", -- c# -- TODO: Figure out how to use "dotnet format" instead
   }
