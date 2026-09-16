@@ -264,6 +264,29 @@ local function project_opts(project, cmd)
   return opts
 end
 
+--- Spawn options for dividing a project pane.
+---
+--- The domain is named here too, rather than left to `pane:split`'s default of
+--- "CurrentPaneDomain". That name is misleading: it resolves against the
+--- window's *active* pane, not the pane the method was called on, and while a
+--- workspace is being built the active pane is still whichever one the picker
+--- was invoked from. So a Windows project got its splits from the default WSL
+--- domain -- bash in the bottom of `run` and the right of `agent`, while every
+--- unsplit pane in the same workspace was correctly PowerShell.
+---
+--- @param project table A scanned project.
+--- @param split table An entry from settings.template_splits.
+local function split_opts(project, split)
+  local opts = project_opts(project)
+
+  opts.direction = split.direction
+  -- `size` is the fraction handed to the new pane, so it is the remainder of
+  -- what the primary one keeps.
+  opts.size = 1 - split.primary
+
+  return opts
+end
+
 --- Command that opens a project's note file, creating it from a small
 --- template on first use.
 ---
@@ -311,8 +334,8 @@ end
 --- Commands go in the pane's argv rather than being typed in with send_text,
 --- which races the shell's startup; util.shell_args keeps a shell alive after
 --- the command exits, so quitting the editor does not close the pane.
---- Splits inherit the domain of the pane they divide, which is already the
---- project's, so only the directory has to be restated.
+--- Splits are given their domain explicitly by split_opts; nothing here may
+--- rely on a new pane inheriting one.
 M.tabs = {
   edit = function(mux_window, project)
     local tab = mux_window:spawn_tab(project_opts(project, settings.editor))
@@ -323,18 +346,15 @@ M.tabs = {
   run = function(mux_window, project)
     local tab, pane = mux_window:spawn_tab(project_opts(project))
     tab:set_title("run")
-    -- Long-running output below, interactive shell above. `size` is the
-    -- fraction handed to the new pane, so it is the remainder of primary.
-    local split = settings.template_splits.run
-    pane:split({ direction = split.direction, size = 1 - split.primary, cwd = project.path })
+    -- Long-running output below, interactive shell above.
+    pane:split(split_opts(project, settings.template_splits.run))
     return tab
   end,
 
   agent = function(mux_window, project)
-    local split = settings.template_splits.agent
     local tab, pane = mux_window:spawn_tab(project_opts(project, settings.agent_cmd))
     tab:set_title("agent")
-    pane:split({ direction = split.direction, size = 1 - split.primary, cwd = project.path })
+    pane:split(split_opts(project, settings.template_splits.agent))
     return tab
   end,
 
