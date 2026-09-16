@@ -12,17 +12,20 @@ local M = {}
 --- project picker, and the tabs a project opens.
 ---
 --- `distro` must match `wsl.exe -l -v` exactly. `short` tags the workspaces of
---- a non-default distro, so the same repo name in two distros stays two
---- projects. `default = true` marks the one that backs config.default_domain,
---- keeps unqualified workspace names, and hosts the notes and scratch
---- workspaces; exactly one entry should have it.
+--- a distro that does not hold the default role, so the same repo name in two
+--- environments stays two projects.
+---
+--- `default = true` hands a distro that role: config.default_domain, the notes
+--- and scratch workspaces, and the unqualified workspace names. At most one
+--- entry should claim it. With no entry marked -- as here -- the role stays on
+--- the Windows side, so a new window opens in PowerShell.
 ---
 --- Scanning a stopped distro starts its VM, so the list is "distros I work
 --- in", not "distros installed". Discovery is cached, so that cost is paid
 --- once per session rather than on every LEADER f.
 M.wsl_distros = {
   { distro = "Ubuntu-24.04", short = "ubuntu" },
-  { distro = "FedoraLinux-42", short = "fedora", default = true },
+  { distro = "FedoraLinux-42", short = "fedora" },
 }
 
 --- Roots scanned for git repositories, in WSL/Linux path terms.
@@ -53,16 +56,13 @@ M.windows_bash = "C:/Program Files/Git/bin/bash.exe"
 --- Shell left running in the panes of a Windows-side project.
 M.windows_shell = "pwsh.exe"
 
---- Tag for the workspace names of Windows projects, as `<repo>@<tag>`, the
---- way a secondary distro is tagged. nil keeps them bare.
+--- Tag for the workspace names of Windows projects, as `<repo>@<tag>`.
 ---
---- Set, because the two sides do overlap here: ~/.dotconfigs exists in every
---- environment by design, and a repository cloned on both the Windows side and
---- in the default distro is not unusual. A workspace name is global to the
---- mux, so a name shared between two environments *is* one workspace --
---- opening the second finds the first already there, skips building it, and
---- silently switches to it instead. Back to nil if the suffix ever costs more
---- than the collisions do.
+--- Only consulted while a distribution holds the default role, since whichever
+--- environment holds it gets bare names regardless. Kept set so that moving the
+--- role back into a distro does not silently reintroduce collisions: a name
+--- shared between two environments *is* one workspace -- opening the second
+--- finds the first already there, skips building it, and switches to it.
 M.windows_short = "win"
 
 --- Maximum directory depth of the repository scan.
@@ -140,8 +140,8 @@ M.template_splits = {
 --- startup costs nothing.
 M.shells_windows = {
   { label = "WSL · Ubuntu-24.04", short = "wsl", domain = "WSL:Ubuntu-24.04" },
-  { label = "WSL · Fedora 42", short = "fedora", domain = "WSL:FedoraLinux-42", default = true },
-  { label = "PowerShell 7", short = "pwsh", domain = "local", args = { "pwsh.exe", "-NoLogo" } },
+  { label = "WSL · Fedora 42", short = "fedora", domain = "WSL:FedoraLinux-42" },
+  { label = "PowerShell 7", short = "pwsh", domain = "local", args = { "pwsh.exe", "-NoLogo" }, default = true },
   { label = "Windows PowerShell", short = "posh", domain = "local", args = { "powershell.exe", "-NoLogo" } },
   { label = "Command Prompt", short = "cmd", domain = "local", args = { "cmd.exe" } },
   { label = "Git Bash", short = "git-bash", domain = "local", args = { "C:\\Program Files\\Git\\bin\\bash.exe", "-i", "-l" } },

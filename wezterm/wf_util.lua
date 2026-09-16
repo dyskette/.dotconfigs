@@ -19,11 +19,30 @@ M.is_windows = wezterm.target_triple:find("windows") ~= nil
 -- `distro = nil` consistently means "this platform's native environment" —
 -- the Windows side on Windows, the machine itself anywhere else.
 
---- The native environment. On a Unix machine it is the only one, so it is
---- marked default and the lookups that pick a default distro still work; on
---- Windows the default is a distribution and this sits alongside it, tagging
---- its workspaces only if settings.windows_short asks for it.
-local native_env = { default = not M.is_windows, short = settings.windows_short }
+--- True when a distribution has claimed the default role. Off Windows there
+--- are no distributions to claim it.
+local function wsl_claims_default()
+  if not M.is_windows then
+    return false
+  end
+  for _, entry in ipairs(settings.wsl_distros) do
+    if entry.default then
+      return true
+    end
+  end
+  return false
+end
+
+--- The native environment: the Windows side on Windows, the machine itself
+--- anywhere else.
+---
+--- It holds the default role unless a distribution takes it, which is the one
+--- switch that decides where a new window opens. Off Windows nothing can take
+--- it. On Windows, marking a wsl_distros entry `default` moves new windows,
+--- the notes and scratch workspaces, and the unqualified workspace names into
+--- that distribution; leaving every entry unmarked keeps them here, in
+--- PowerShell.
+local native_env = { default = not wsl_claims_default(), short = settings.windows_short }
 
 --- Every work environment, as configured entries.
 ---

@@ -87,6 +87,13 @@ project scan *and* puts it in step 1; and one in `shells_windows` pointing at
 that domain so step 2 has a shell to offer. `distro` must match `wsl.exe -l -v`
 exactly. Ubuntu-24.04 and FedoraLinux-42 are wired up this way.
 
+**Which environment is the default** — where a new window opens, where `@notes`
+and `@scratch` live, and which environment's workspaces keep unqualified names
+— is decided by `default = true` on a `wsl_distros` entry. With no entry marked,
+as shipped, the role stays on the Windows side and a new window is PowerShell.
+Keep the `default` flag in `shells_windows` on the shell that actually matches,
+or `Escape` at startup will no-op against the wrong one.
+
 Helper tabs follow the pane they were invoked from: `LEADER ?` and `LEADER Y`
 open in the current pane's domain, so pressing them in a PowerShell pane uses
 Windows `nvim` and never starts the WSL VM just to display a file.
@@ -119,18 +126,21 @@ list, ordering is by mtime — what you touched most recently.
 
 ### Workspace names
 
-Repos in the default distro keep bare names (`billing-api`), so nothing about
-the everyday case changed. A repo in a *secondary* distro is tagged with that
-distro's `short` (`billing-api@ubuntu`), because the same repo cloned into two
-distros is two projects: same code, different toolchain, and one workspace
-would put the Ubuntu build in a Fedora pane. The picker shows the tagged name,
-so which one you are opening is visible before Enter.
+Whichever environment holds the default role keeps **bare** names
+(`billing-api`); every other environment is tagged with its `short`
+(`billing-api@fedora`, `billing-api@ubuntu`). As shipped the role is on the
+Windows side, so Windows repos are the bare ones.
 
-Windows projects are tagged the same way, via `windows_short` — `billing-api@win`.
-They can be left bare by setting it to `nil`, which reads better when the two
-sides hold different work; set it whenever they overlap, because a name shared
-between two environments *is* one workspace and opening the second silently
-switches to the first.
+The tagging is not cosmetic. A workspace name is global to the mux, so the same
+name in two environments *is* one workspace: opening the second finds the first
+already there, skips building it, and silently switches to it — while the
+picker marks it as already open, because that marker is keyed on the same name.
+`~/.dotconfigs` is scanned in every environment by design, so this would bite
+immediately without it. The picker shows the tagged name, so which copy you are
+opening is visible before Enter.
+
+`windows_short` supplies the Windows tag for when a distro takes the default
+role back.
 
 ### Windows specifics
 

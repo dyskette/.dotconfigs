@@ -23,10 +23,11 @@ config.automatically_reload_config = true
 
 -- ── Where shells run ───────────────────────────────────────────────────────
 --
--- On Windows the work happens inside WSL. Declaring it as a domain rather than
--- a default_prog means spawned tabs and splits inherit a working directory
--- that WezTerm understands, which is what lets the project template place
--- panes in a repository.
+-- On Windows the work is split between the drive and one or more WSL
+-- distributions. Each distribution is declared as a domain rather than as a
+-- default_prog, because a domain carries a working directory WezTerm
+-- understands, which is what lets the project template place panes inside a
+-- repository. Which of them a new window opens in is settings.wsl_distros.
 
 if wezterm.target_triple == "x86_64-pc-windows-msvc" then
   -- One domain per distribution in settings.wsl_distros, so a second distro is
@@ -41,11 +42,13 @@ if wezterm.target_triple == "x86_64-pc-windows-msvc" then
       default_cwd = "~",
     })
   end
-  -- WSL is what a window starts in, and what Escape at the shell picker keeps.
+  -- Where a window starts, and what Escape at the picker keeps. Follows
+  -- whichever environment holds the default role: the Windows side unless a
+  -- wsl_distros entry claims it.
   config.default_domain = util.domain_for(util.default_distro().distro)
-  -- ...while the local domain runs PowerShell, so a tab opened from a native
-  -- Windows pane stays PowerShell instead of falling back to cmd.
-  config.default_prog = { "pwsh.exe", "-NoLogo" }
+  -- The local domain's program, so a native Windows pane is PowerShell rather
+  -- than cmd -- whether it is the default domain or just a tab spawned into it.
+  config.default_prog = { settings.windows_shell, "-NoLogo" }
 else
   config.default_prog = { "toolbox", "enter" }
 end
