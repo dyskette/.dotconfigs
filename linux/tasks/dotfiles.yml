@@ -26,6 +26,13 @@
     - { path: "{{ ansible_env.HOME }}/.config/Code/User/" }
     - { path: "{{ ansible_env.HOME }}/.var/app/com.visualstudio.code/config/Code/User" }
 
+- name: Dotfiles | Create zed directory
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+  loop:
+    - { path: "{{ ansible_env.HOME }}/.config/zed/" }
+
 - name: Dotfiles | Create symbolic links
   ansible.builtin.file:
     src: "{{ repository_dir }}/{{ item.src }}"
