@@ -23,6 +23,19 @@ local cache_file = wezterm.home_dir .. "/.cache/wezterm-projects.json"
 --- map would offer Windows repositories to a WSL pane.
 local cache_version = 3
 
+--- The roots to scan in one environment.
+---
+--- The Windows roots are a separate list because they are separate places:
+--- ~/Projects on a drive has nothing to do with ~/Projects in a distribution,
+--- and scanning either list in the wrong environment would find nothing at
+--- best and the wrong repositories at worst.
+local function repo_roots_for(distro)
+  if util.is_windows and not distro then
+    return settings.repo_roots_windows
+  end
+  return settings.repo_roots
+end
+
 --- Command that finds repositories in one environment.
 ---
 --- Deliberately free of shell variables, and not because that reads nicer.
@@ -47,19 +60,11 @@ local cache_version = 3
 --- status is sort's rather than find's: a root that does not exist then costs
 --- nothing, instead of reading as "this whole environment is unavailable".
 ---
---- The Windows roots are a separate list because they are separate places:
---- ~/Projects on a drive has nothing to do with ~/Projects in a distribution,
---- and scanning either list in the wrong environment would find nothing at
---- best and the wrong repositories at worst.
----
 --- @param distro string|nil Environment whose roots to scan and whose home
 ---   they expand against.
 local function scan_command(distro)
-  local configured = (util.is_windows and not distro) and settings.repo_roots_windows
-    or settings.repo_roots
-
   local roots = {}
-  for _, root in ipairs(configured) do
+  for _, root in ipairs(repo_roots_for(distro)) do
     roots[#roots + 1] = util.shquote(util.expand(root, distro))
   end
 
@@ -131,6 +136,13 @@ end
 --- @param force boolean|nil Rescan instead of using the cached result.
 --- @return table List of { path, client, repo, distro } entries.
 function M.scan(distro, force)
+  -- An environment with no roots has nothing to look in. Without this, find
+  -- would be handed no path at all and would fall back to searching the
+  -- working directory of the WezTerm process.
+  if #repo_roots_for(distro) == 0 then
+    return {}
+  end
+
   local envs = load_cache()
   local key = cache_key(distro)
 

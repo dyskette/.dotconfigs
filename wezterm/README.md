@@ -23,7 +23,7 @@ Neovim's page-up; both have arrow/PageUp equivalents. Move it in
 |---|---|
 | `wezterm.lua`       | Entry point: domains, appearance, leader, wiring |
 | `wf_settings.lua`   | **Everything you are expected to tune** |
-| `wf_shells.lua`     | Shell/domain chooser at startup and on LEADER Enter |
+| `wf_shells.lua`     | Where-to-work chooser: environment, then shell or project |
 | `wf_util.lua`       | Platform differences, shell execution, path and color math |
 | `wf_theme.lua`      | Light/dark theme selection |
 | `wf_projects.lua`   | Repo discovery, pickers, the layout template |
@@ -50,36 +50,48 @@ glob, so a subdirectory would silently not be linked.
    exist, and new splits do not inherit the current directory.
 5. Open a new WezTerm and press `LEADER f`.
 
-## Shells: Windows or WSL
+## Where to work: `LEADER Enter`
 
 Consulting is not single-platform — some clients are Windows top to bottom,
 others are mixed and covered through WSL. So the choice is presented rather
-than assumed:
+than assumed, in two steps:
 
-- **When a window opens**, a fuzzy picker lists the shells. `Escape` keeps the
-  default (WSL), so the common case costs one keystroke — or none, if you just
-  start typing in the pane behind it.
-- **`LEADER Enter`** brings the same list up any time, for a tab on the other
-  platform.
-- Picking the shell that is already running is a no-op; picking a different one
-  opens it and drops the placeholder tab, so you never end up with a spare.
+1. **Where** — one entry per work environment: each WSL distro, plus Windows.
+   `Escape` keeps whatever is already running.
+2. **What** — the shells available there, then that environment's projects.
+   Picking a shell opens a tab; picking a project builds its workspace.
+
+The same picker runs **when a window opens**, so launching WezTerm can go
+straight into a project rather than landing in a scratch shell first. The
+common case still costs one keystroke: `Escape` at step 1 keeps the default
+environment's shell — or none at all, if you just start typing in the pane
+behind it.
+
+Two steps rather than one because `LEADER f` is scoped to the domain of the
+pane it was invoked from — it answers "a project where I already am". Getting
+to a project *elsewhere* used to mean spawning a throwaway shell there first,
+purely to move the picker's context. Naming the environment up front removes
+that step.
+
+Picking the shell that is already running is a no-op; picking a different one
+opens it and drops the placeholder tab, so you never end up with a spare.
 
 Tabs and splits made from a pane inherit its domain, so a window stays on one
 platform until you ask otherwise. Edit `shells_windows` / `shells_unix` in
-`wf_settings.lua` to change the list, or set `startup_shell_picker = false` to
-go straight to the default.
+`wf_settings.lua` to change the shell list, or set
+`startup_shell_picker = false` to go straight to the default.
 
 Adding a WSL distribution is two entries in `wf_settings.lua`: one in
-`wsl_distros`, which creates the `WSL:<distro>` domain *and* adds the distro to
-the project scan, and one in `shells_windows` pointing at that domain so the
-picker offers it. `distro` must match `wsl.exe -l -v` exactly. Ubuntu-24.04 and
-FedoraLinux-42 are wired up this way.
+`wsl_distros`, which creates the `WSL:<distro>` domain, adds the distro to the
+project scan *and* puts it in step 1; and one in `shells_windows` pointing at
+that domain so step 2 has a shell to offer. `distro` must match `wsl.exe -l -v`
+exactly. Ubuntu-24.04 and FedoraLinux-42 are wired up this way.
 
 Helper tabs follow the pane they were invoked from: `LEADER ?` and `LEADER Y`
 open in the current pane's domain, so pressing them in a PowerShell pane uses
 Windows `nvim` and never starts the WSL VM just to display a file.
 
-WezTerm's own launcher (`LEADER Shift+Enter`) lists the same entries plus every
+WezTerm's own launcher (`LEADER Shift+Enter`) lists every shell plus every
 registered domain — useful for confirming a domain name if a shell reports one
 as unknown.
 
@@ -131,8 +143,9 @@ the same way a secondary distro is tagged.
 - The notes template has a PowerShell spelling alongside the bash one, since
   `mkdir -p` and `printf` are not available to a pwsh pane.
 - Without Git installed, the Windows roots simply yield nothing; WSL projects
-  are unaffected. Setting `repo_roots_windows = {}` skips the Windows side
-  entirely.
+  are unaffected. Setting `repo_roots_windows = {}` stops Windows *projects*
+  being scanned or offered, but Windows stays in the `LEADER Enter` list — it
+  is still somewhere shells run.
 
 **Known gap:** `LEADER f` finds repositories, not remotes — a bare clone or a
 worktree whose `.git` is a file rather than a directory is not matched.

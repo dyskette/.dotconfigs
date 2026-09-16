@@ -32,8 +32,8 @@ differs from US, the LATAM column says how to type it.
 
 | Key | Action |
 |---|---|
-| `LEADER f`   | Find project — fuzzy picker, opens or switches |
-| `LEADER F`   | Rescan repo roots, then pick |
+| `LEADER f`   | Find project in *this pane's* environment |
+| `LEADER F`   | Rescan this environment's roots, then pick |
 | `LEADER w`   | Switch between open workspaces only |
 | `LEADER Tab` | Toggle last workspace |
 | `LEADER n`   | Jump to @notes |
@@ -96,7 +96,7 @@ Named tabs recreate themselves from the template if you closed them.
 | `LEADER ?`            | This cheat sheet |
 | `LEADER Ctrl+r`       | Reload config |
 | `LEADER Ctrl+l`       | Clear scrollback and screen |
-| `LEADER Enter`        | Shell chooser — WSL / PowerShell / cmd / Git Bash |
+| `LEADER Enter`        | Where → what: pick an environment, then a shell or project |
 | `LEADER Shift+Enter`  | WezTerm's own launcher (domains + launch menu) |
 ]]
 

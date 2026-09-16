@@ -27,8 +27,10 @@ local native_env = { default = not M.is_windows, short = settings.windows_short 
 
 --- Every work environment, as configured entries.
 ---
---- The native entry comes last so that scan results, which are merged by
---- recency anyway, are not led by whichever list happens to be first.
+--- The native entry is always present on Windows, even with no Windows
+--- repository roots configured: it is somewhere shells run, not only somewhere
+--- repositories live, and dropping it would take PowerShell out of the
+--- environment picker on a machine that keeps all its code in WSL.
 function M.distros()
   if not M.is_windows then
     return { native_env }
@@ -38,12 +40,7 @@ function M.distros()
   for _, entry in ipairs(settings.wsl_distros) do
     list[#list + 1] = entry
   end
-
-  -- Skipped entirely when there are no Windows roots, so a machine that keeps
-  -- everything in WSL pays nothing for the Windows side existing.
-  if #settings.repo_roots_windows > 0 then
-    list[#list + 1] = native_env
-  end
+  list[#list + 1] = native_env
   return list
 end
 
@@ -56,8 +53,9 @@ function M.default_distro()
       return entry
     end
   end
-  -- The list is empty only if every distro and every Windows root was
-  -- configured away; the native environment is still somewhere to stand.
+  -- distros() always yields at least the native environment, so this is a
+  -- guard against a wsl_distros list with no entry marked default rather than
+  -- against an empty list.
   return list[1] or native_env
 end
 
@@ -111,6 +109,15 @@ function M.env_label(entry)
     return entry.short or entry.distro
   end
   return M.is_windows and "windows" or "local"
+end
+
+--- Full name for a work environment, for menu entries. env_label is the short
+--- form, for titles and tags where the context is already established.
+function M.env_title(entry)
+  if entry.distro then
+    return "WSL · " .. entry.distro
+  end
+  return M.is_windows and "Windows" or "Local"
 end
 
 --- Runs a shell command inside a work environment and captures its output.
