@@ -119,18 +119,18 @@ list, ordering is by mtime — what you touched most recently.
 
 ### Workspace names
 
-Repos in the default distro keep bare names (`billing-api`), so nothing
-about the everyday case changed. A repo in a *secondary* distro is tagged with
-that distro's `short` (`billing-api@ubuntu`), because the same repo
-cloned into two distros is two projects: same code, different toolchain, and
-one workspace would put the Ubuntu build in a Fedora pane. The picker shows the
-tagged name, so which one you are opening is visible before Enter.
+Repos in the default distro keep bare names (`billing-api`), so nothing about
+the everyday case changed. A repo in a *secondary* distro is tagged with that
+distro's `short` (`billing-api@ubuntu`), because the same repo cloned into two
+distros is two projects: same code, different toolchain, and one workspace
+would put the Ubuntu build in a Fedora pane. The picker shows the tagged name,
+so which one you are opening is visible before Enter.
 
-Windows projects are **bare** by default — a Windows repo is usually distinct
-work rather than a second copy, and a suffix on a name with no twin is noise.
-When the two sides do overlap, the shared name is one workspace and whichever
-opens first wins. Set `windows_short = "win"` in `wf_settings.lua` to tag them
-the same way a secondary distro is tagged.
+Windows projects are tagged the same way, via `windows_short` — `billing-api@win`.
+They can be left bare by setting it to `nil`, which reads better when the two
+sides hold different work; set it whenever they overlap, because a name shared
+between two environments *is* one workspace and opening the second silently
+switches to the first.
 
 ### Windows specifics
 

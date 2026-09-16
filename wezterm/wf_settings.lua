@@ -56,12 +56,14 @@ M.windows_shell = "pwsh.exe"
 --- Tag for the workspace names of Windows projects, as `<repo>@<tag>`, the
 --- way a secondary distro is tagged. nil keeps them bare.
 ---
---- Bare by default because a Windows project is usually distinct work rather
---- than a second copy of a repo that also lives in WSL, and a suffix on a name
---- with no twin is noise. Worth setting when the two sides do overlap: a name
---- shared with a repo in the default distro is one workspace, and whichever is
---- opened first wins — the second silently reuses the first one's panes.
-M.windows_short = nil
+--- Set, because the two sides do overlap here: ~/.dotconfigs exists in every
+--- environment by design, and a repository cloned on both the Windows side and
+--- in the default distro is not unusual. A workspace name is global to the
+--- mux, so a name shared between two environments *is* one workspace --
+--- opening the second finds the first already there, skips building it, and
+--- silently switches to it instead. Back to nil if the suffix ever costs more
+--- than the collisions do.
+M.windows_short = "win"
 
 --- Maximum directory depth of the repository scan.
 M.scan_depth = 4
