@@ -28,14 +28,17 @@ M.wsl_distros = {
 --- Roots scanned for git repositories, in WSL/Linux path terms.
 --- Scanned in every distro above; paths that do not exist are skipped
 --- silently, so roots specific to one distro cost nothing in the others.
-M.repo_roots = { "~/Projects", "~/code", "~/work", "~/dev" }
+---
+--- A root may be a repository itself rather than a directory of them:
+--- ~/.dotconfigs is matched by its own .git and opens like any other project.
+M.repo_roots = { "~/Projects", "~/.dotconfigs", "~/code", "~/work", "~/dev" }
 
 --- Roots scanned for git repositories on the Windows side, in Windows terms.
 ---
 --- Write them with forward slashes: they are handed to Git Bash as-is and come
 --- back as the project's working directory, and a path that is valid in both
 --- places needs no translation in between. Set to {} to stop scanning Windows.
-M.repo_roots_windows = { "~/Projects", "~/source/repos" }
+M.repo_roots_windows = { "~/Projects", "~/.dotconfigs", "~/source/repos" }
 
 --- Git Bash, used only to run the repository scan over the Windows roots.
 ---
