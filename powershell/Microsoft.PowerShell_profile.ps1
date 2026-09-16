@@ -18,9 +18,21 @@ function Invoke-Starship-PreCommand {
         $env:SYSTEM_COLOR_THEME = "dark"
     }
 
-    # Emit OSC 9;9 so Windows Terminal can track CWD for duplicate tab/pane
+    # Report the working directory so the terminal can reopen a tab or split
+    # where this one is. OSC 9;9 is ConEmu's, and both Windows Terminal and
+    # WezTerm honour it.
+    #
+    # OSC 9;12 ("prompt start") is ConEmu's too, but WezTerm implements OSC 9
+    # as an iTerm2 toast instead and has no handler for the 12 subcommand, so
+    # it posts a Windows notification whose entire body is "12" -- once per
+    # prompt. It is therefore emitted only under Windows Terminal, matching the
+    # guard bash/bashrc.d/starship.sh already puts on its own OSC 9;9 line.
     $loc = $executionContext.SessionState.Path.CurrentLocation;
-    $prompt = "$([char]27)]9;12$([char]7)"
+    $prompt = ""
+    if ($env:WT_SESSION)
+    {
+        $prompt += "$([char]27)]9;12$([char]7)"
+    }
     if ($loc.Provider.Name -eq "FileSystem")
     {
         $prompt += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]27)\"
