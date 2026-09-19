@@ -1,0 +1,4 @@
+# MSBuild output. The .vsix is a build artifact of the .vstheme sources in this
+# directory, so it is rebuilt rather than tracked.
+bin/
+obj/

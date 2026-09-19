@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+
+    <!-- VSIX settings. GeneratePkgDefFile is off because this extension ships
+         no package: the only pkgdef in the container is the one the color
+         compiler produces from the .vstheme files. -->
+    <VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+    <VsixDeployOnDebug>true</VsixDeployOnDebug>
+    <GeneratePkgDefFile>false</GeneratePkgDefFile>
+    <UseCodebase>true</UseCodebase>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectCapability Include="CreateVsixContainer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- VsixColorCompiler discovers **/*.vstheme, compiles each to a .pkgdef
+         and adds it to the VSIX; the .vstheme files need no explicit item. -->
+    <PackageReference Include="Microsoft.VisualStudio.VsixColorCompiler" Version="17.11.35325.10" />
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.5.40034">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\Icon.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+  </ItemGroup>
+
+  <!-- Publish the container into dist/ so it can be committed. A new machine
+       installs the theme without MSBuild, the VSSDK or a NuGet restore, which
+       it would not have before Visual Studio itself is set up. -->
+  <Target Name="CopyVsixToDist" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetVsixContainer)"
+          DestinationFolder="$(MSBuildProjectDirectory)\dist"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

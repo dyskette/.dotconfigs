@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+    <Metadata>
+        <Identity Id="DotfilesThemes.4b860ce7-87ee-4ef3-8dbe-baae892cd138" Version="1.0.4" Language="en-US" Publisher="Eddy Castillo" />
+        <DisplayName>Dotfiles Theme Pack</DisplayName>
+        <Description xml:space="preserve">Gruvbox Dark and Rose Pine Dawn for Visual Studio 2026, ported from the VS Code themes of the same names.</Description>
+        <Icon>Resources\Icon.png</Icon>
+        <Tags>theme, gruvbox, rose pine, dark, light</Tags>
+    </Metadata>
+    <Installation>
+        <!-- Visual Studio 2026 judges compatibility from the lower bound only,
+             but the upper bound is kept explicit so the manifest still reads
+             correctly to the 17.x installer. -->
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.9, 19.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.9, 19.0)">
+            <ProductArchitecture>arm64</ProductArchitecture>
+        </InstallationTarget>
+    </Installation>
+    <Prerequisites>
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+    </Prerequisites>
+    <Assets>
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+    </Assets>
+</PackageManifest>
