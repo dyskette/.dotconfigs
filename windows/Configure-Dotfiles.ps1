@@ -81,6 +81,12 @@ $links = @(
         Type   = "SymbolicLink"
     }
     @{
+        App    = "vs"
+        Source = "vs\vsvimrc"
+        Target = "$env:USERPROFILE\.vsvimrc"
+        Type   = "SymbolicLink"
+    }
+    @{
         App    = "vscode"
         Source = "vscode\settings.json"
         Target = "$env:APPDATA\Code\User\settings.json"
@@ -130,6 +136,7 @@ $links = @(
         Type   = "HardLink"
     }
 )
+
 
 # ── LocalBin (special: creates dir + adds to PATH) ─────────────────────────
 

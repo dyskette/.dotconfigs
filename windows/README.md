@@ -55,6 +55,7 @@ If the repo is already cloned:
 | starship | `starship/` | `$HOME\.config\starship` | Junction |
 | bash | `bash/bashrc` | `$HOME\.bashrc` | Symlink |
 | bash | `bash/bashrc.d/` | `$HOME\.bashrc.d` | Junction |
+| vs | `vs/vsvimrc` | `$HOME\.vsvimrc` | Symlink |
 | vscode | `vscode/*.json` | `$APPDATA\Code\User\` | Symlink |
 | windows-terminal | `windows_terminal/settings.json` | Terminal LocalState | Symlink |
 | wezterm | `wezterm/*.lua` | `$HOME\.config\wezterm\` | Symlink |
