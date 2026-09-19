@@ -28,7 +28,7 @@
       "name": "Dotfiles Theme Pack (Gruvbox Dark, Rose Pine Dawn)"
     },
     {
-      // Built from github.com/dyskette/vs-nerdx at 10fa682, branch
+      // Built from github.com/dyskette/vs-nerdx at 9d6e24f, branch
       // feat/vscode-neovim-keymap. Rebuild there and copy the package here.
       "path": "vs/vendor/VSNerdX-26.vsix",
       "name": "VsNerdX (nvim-tree style Solution Explorer)"
