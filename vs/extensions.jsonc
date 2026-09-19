@@ -1,6 +1,6 @@
 // Visual Studio extensions, installed by windows/Install-Extensions.ps1.
 //
-// Two kinds of entry:
+// Three kinds of entry:
 //
 //   "id"   - Marketplace itemName (publisher.extension), as it appears in the
 //            marketplace URL. Resolved to a .vsix through the Marketplace REST
@@ -8,8 +8,11 @@
 //            "version" is "latest" or a pinned version string.
 //
 //   "path" - repo-relative path to a .vsix built from sources in this repo.
-//            Committed as an artifact so a new machine can install it without
-//            MSBuild, the VSSDK or a NuGet restore.
+//
+//   "path" under vendor/ - a .vsix built from a repo of mine that lives
+//            elsewhere. Committed because a clean machine has no MSBuild, no
+//            VSSDK and no NuGet restore until Visual Studio is already set up,
+//            which is the wrong order for installing an extension.
 //
 // Either way the package is handed to VSIXInstaller.exe, and the identity
 // recorded inside it decides whether the install is skipped as already present.
@@ -23,6 +26,12 @@
     {
       "path": "vs/theme/dist/DotfilesThemes.vsix",
       "name": "Dotfiles Theme Pack (Gruvbox Dark, Rose Pine Dawn)"
+    },
+    {
+      // Built from github.com/dyskette/vs-nerdx at 80d69ea, branch
+      // feat/vscode-neovim-keymap. Rebuild there and copy the package here.
+      "path": "vs/vendor/VSNerdX-26.vsix",
+      "name": "VsNerdX (nvim-tree style Solution Explorer)"
     }
   ]
 }
