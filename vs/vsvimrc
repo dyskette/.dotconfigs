@@ -40,6 +40,9 @@ nnoremap gi :vsc Edit.GoToImplementation<CR>
 nnoremap go :vsc Edit.GoToTypeDefinition<CR>
 nnoremap gr :vsc Edit.FindAllReferences<CR>
 
+" Peek in place: inline, no tool window, no tab churn (Esc closes it)
+nnoremap gp :vsc Edit.PeekDefinition<CR>
+
 " Search code
 nnoremap <leader>ss :vsc Edit.GoToAll<CR>
 nnoremap <leader>sf :vsc Edit.GoToFile<CR>
@@ -48,12 +51,30 @@ nnoremap <leader>sg :vsc Edit.FindInFiles<CR>
 nnoremap <leader>so :vsc Edit.GoToSymbol<CR>
 nnoremap <leader>sd :vsc View.ErrorList<CR>
 
+" Quickfix-style navigation over the active results list (Error List, Find
+" Results, Output). Driven from the editor, so the tool window never needs
+" focus -- works around VsVim #2818, where focus after :vsc is unreliable.
+nnoremap ]q :vsc Edit.GoToNextLocation<CR>
+nnoremap [q :vsc Edit.GoToPrevLocation<CR>
+
+" Diagnostics in the current file, without opening the Error List at all
+nnoremap ]d :vsc Edit.GotoNextIssueinFile<CR>
+nnoremap [d :vsc Edit.GotoPreviousIssueinFile<CR>
+
+" Dismiss the tool window a previous command left open.
+" Native equivalents while focus is inside the pane (VsVim does not handle
+" keys there): Shift+Esc closes it, Esc returns focus to the editor.
+nnoremap <leader>q :vsc Window.CloseToolWindow<CR>
+
+" Promote the preview tab to a real one, so navigation stops reusing it
+nnoremap <leader>k :vsc Window.KeepTabOpen<CR>
+
 " Refactoring
-nnoremap <Space>va :vsc View.QuickActions<CR>
-vnoremap <Space>va :vsc View.QuickActions<CR>
-nnoremap <Space>rn :vsc Refactor.Rename<CR>
-nnoremap <Space>rm :vsc Refactor.ExtractMethod<CR>
-vnoremap <Space>rm :vsc Refactor.ExtractMethod<CR>
+nnoremap <leader>va :vsc View.QuickActions<CR>
+vnoremap <leader>va :vsc View.QuickActions<CR>
+nnoremap <leader>rn :vsc Refactor.Rename<CR>
+nnoremap <leader>rm :vsc Refactor.ExtractMethod<CR>
+vnoremap <leader>rm :vsc Refactor.ExtractMethod<CR>
 
 " Git
 nnoremap <leader>gb :vsc Team.Git.Annotate<CR>
