@@ -42,7 +42,7 @@ If the repo is already cloned:
 - **JetBrains Mono NL Nerd Font**
 - **Windows Explorer** — show file extensions, show hidden files
 - **Virtual Desktops** — unified taskbar and Alt+Tab across desktops
-- **Editor extensions** for VS Code (from `vscode/extensions.json`)
+- **Editor extensions** for VS Code (from `vscode/extensions.json`) and Visual Studio (from `vs/extensions.jsonc`)
 - **Node.js LTS** via fnm
 
 ### Dotfile Links (managed by `Configure-Dotfiles.ps1`)
@@ -84,7 +84,7 @@ If the repo is already cloned:
 | `Configure-Dotfiles.ps1` | Data-driven symlink/junction table |
 | `Configure-WindowsSettings.ps1` | Windows registry tweaks |
 | `Install-WSL.ps1` | WSL + Ubuntu 24.04 setup |
-| `Install-Extensions.ps1` | VS Code extensions |
+| `Install-Extensions.ps1` | VS Code and Visual Studio extensions |
 | `Install-JetBrainsFont.ps1` | Nerd Font installation |
 | `Setup-NodeLTS.ps1` | Node.js LTS via fnm |
 

@@ -1,0 +1,28 @@
+// Visual Studio extensions, installed by windows/Install-Extensions.ps1.
+//
+// Two kinds of entry:
+//
+//   "id"   - Marketplace itemName (publisher.extension), as it appears in the
+//            marketplace URL. Resolved to a .vsix through the Marketplace REST
+//            API, because Visual Studio has no marketplace-id install verb.
+//            "version" is "latest" or a pinned version string.
+//
+//   "path" - repo-relative path to a .vsix built from sources in this repo.
+//            Committed as an artifact so a new machine can install it without
+//            MSBuild, the VSSDK or a NuGet restore.
+//
+// Either way the package is handed to VSIXInstaller.exe, and the identity
+// recorded inside it decides whether the install is skipped as already present.
+{
+  "extensions": [
+    {
+      "id": "JaredParMSFT.VsVim2022Preview",
+      "name": "VsVim 2026",
+      "version": "latest"
+    },
+    {
+      "path": "vs/theme/dist/DotfilesThemes.vsix",
+      "name": "Dotfiles Theme Pack (Gruvbox Dark, Rose Pine Dawn)"
+    }
+  ]
+}
