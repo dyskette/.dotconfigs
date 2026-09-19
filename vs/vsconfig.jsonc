@@ -1,3 +1,9 @@
+// Visual Studio 2026 (18.x) installation manifest.
+// Apply: Visual Studio Installer > Modify > More > Import configuration,
+// or: vs_installer.exe modify --installPath "<path>" --config <this file>
+//
+// Component IDs verified against the 18.x catalog. Most carry over unchanged
+// from 17.x; .NET 10 does not exist there, so this file targets 2026 only.
 {
   "$schema": "https://json.schemastore.org/vsconfig.json",
   "version": "1.0",
@@ -8,12 +14,13 @@
     "Microsoft.VisualStudio.Workload.Azure",       // Azure Functions, App Service, Storage
 
     // .NET
-    "Microsoft.Net.Component.4.8.TargetingPack",   // .NET Framework 4.8 targeting
-    "Microsoft.NetCore.Component.Runtime.8.0",     // .NET 8 LTS runtime
+    "Microsoft.Net.Component.4.8.TargetingPack",   // .NET Framework 4.8 reference assemblies
+    "Microsoft.Net.Component.4.8.SDK",             // .NET Framework 4.8 build tools
+    "Microsoft.NetCore.Component.Runtime.10.0",    // .NET 10 LTS runtime - supported to 2028-11-14
 
     // C/C++ native toolchain (also required by Rust MSVC target for linking)
-    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",    // MSVC v143 compiler/linker
-    "Microsoft.VisualStudio.Component.Windows11SDK.26100",   // Windows 11 SDK (24H2)
-    "Microsoft.VisualStudio.Component.VC.CMake.Project"      // CMake project support
+    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",    // MSVC v14.5x compiler/linker (latest)
+    "Microsoft.VisualStudio.Component.Windows11SDK.26100",  // Windows 11 SDK (10.0.26100.6901)
+    "Microsoft.VisualStudio.Component.VC.CMake.Project"     // CMake project support
   ]
 }

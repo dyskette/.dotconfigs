@@ -241,10 +241,10 @@ if (-not $SkipPackages) {
         Write-Warning "packages.jsonc not found at: $packagesJson"
     }
 
-    # Install or amend Visual Studio 2022 Enterprise with the workloads in vsconfig.
+    # Install or amend Visual Studio 2026 Enterprise with the workloads in vsconfig.
     #
     # The bootstrapper's `install` verb refuses with exit code 1 when the product is
-    # already present ("Visual Studio Enterprise 2022 ya se ha instalado") and bails
+    # already present ("Visual Studio Enterprise 2026 ya se ha instalado") and bails
     # *before* reading --config, silently leaving the declared workloads uninstalled.
     # An existing installation must therefore be amended with the VS Installer's
     # `modify` verb, which is idempotent and adds only the missing components.
@@ -255,8 +255,11 @@ if (-not $SkipPackages) {
 
         $vsPath = $null
         if (Test-Path $vswhere) {
-            $vsPath = & $vswhere -latest -products Microsoft.VisualStudio.Product.Enterprise -property installationPath |
-                Select-Object -First 1
+            # -version pins the match to 18.x: this manifest declares .NET 10, which
+            # only exists in the VS 2026 catalog, so it must never be pushed at a
+            # leftover 17.x installation.
+            $vsPath = & $vswhere -latest -products Microsoft.VisualStudio.Product.Enterprise `
+                -version "[18.0,19.0)" -property installationPath | Select-Object -First 1
         }
 
         # The installer parses --config as strict JSON, so the commented .jsonc is
@@ -280,7 +283,8 @@ if (-not $SkipPackages) {
         $vsSkip = $false
         if ($vsPath -and $vsComponents) {
             $satisfied = & $vswhere -latest -products Microsoft.VisualStudio.Product.Enterprise `
-                -requires @($vsComponents) -property installationPath | Select-Object -First 1
+                -version "[18.0,19.0)" -requires @($vsComponents) -property installationPath |
+                Select-Object -First 1
             if ($satisfied) {
                 Write-Host "Visual Studio already has all components from vsconfig. Skipping." -ForegroundColor Green
                 $vsSkip = $true
@@ -290,7 +294,7 @@ if (-not $SkipPackages) {
         if ($vsSkip) {
             $vsExit = 0
         } elseif ($vsPath) {
-            Write-Host "Applying vsconfig to existing Visual Studio 2022 Enterprise at $vsPath..." -ForegroundColor Yellow
+            Write-Host "Applying vsconfig to existing Visual Studio 2026 Enterprise at $vsPath..." -ForegroundColor Yellow
             Write-Host "This downloads several GB and can take a while; the installer shows its own progress window." -ForegroundColor Yellow
 
             # setup.exe is a Windows-subsystem binary, so the call operator does not
@@ -311,8 +315,8 @@ if (-not $SkipPackages) {
                 -ArgumentList $vsArgs -Wait -PassThru
             $vsExit = $vsProcess.ExitCode
         } else {
-            Write-Host "Installing Visual Studio 2022 Enterprise..." -ForegroundColor Yellow
-            winget install --exact --id Microsoft.VisualStudio.2022.Enterprise --silent --accept-package-agreements --accept-source-agreements --override "--wait --passive --norestart --config `"$vsConfigArg`""
+            Write-Host "Installing Visual Studio 2026 Enterprise..." -ForegroundColor Yellow
+            winget install --exact --id Microsoft.VisualStudio.Enterprise --silent --accept-package-agreements --accept-source-agreements --override "--wait --passive --norestart --config `"$vsConfigArg`""
             $vsExit = $LASTEXITCODE
         }
 
