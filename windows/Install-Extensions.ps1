@@ -142,10 +142,12 @@ function Get-InstalledVsix {
 .PARAMETER Version
     Version to fetch from the Marketplace, or "latest". Ignored for LocalPath.
 
-.PARAMETER SkuName
-    Edition to scope the install to. Extensions whose manifest also targets
-    other products registered with the VS Installer (SSMS, for one) would
-    otherwise be offered to those as well.
+.PARAMETER InstanceId
+    vswhere instanceId of the target installation. Scoping matters because
+    extensions whose manifest also targets other products registered with the
+    VS Installer (SSMS, for one) would otherwise be offered to those as well.
+    /skuName is not used: VSIXInstaller rejects it unless /skuVersion is given
+    too, and fails with "Failed to determine install target path".
 
 .PARAMETER InstalledVsix
     Identity map from Get-InstalledVsix, used to skip what is already present.
@@ -159,7 +161,7 @@ function Install-VsExtension {
         [string]$MarketplaceId,
         [string]$LocalPath,
         [string]$Version = "latest",
-        [string]$SkuName = "Enterprise",
+        [string]$InstanceId,
         [hashtable]$InstalledVsix = @{},
         [switch]$Force
     )
@@ -209,7 +211,7 @@ function Install-VsExtension {
 
     # Start-Process joins -ArgumentList with spaces without quoting, so the
     # package path has to carry its own quotes.
-    $arguments = @("/quiet", "/skuName:$SkuName", "`"$vsix`"")
+    $arguments = @("/quiet", "/instanceIds:$InstanceId", "`"$vsix`"")
     $process = Start-Process -FilePath $vsixInstaller -ArgumentList $arguments -Wait -PassThru -NoNewWindow
     if ($isTemporary) { Remove-Item $vsix -Force -ErrorAction SilentlyContinue }
 
@@ -219,7 +221,7 @@ function Install-VsExtension {
     }
     return @{
         status  = "failed"
-        message = "VSIXInstaller exited with $($process.ExitCode). Logs: $env:TEMP\VSIXInstaller*.log"
+        message = "VSIXInstaller exited with $($process.ExitCode). Logs: $env:TEMP\dd_VSIXInstaller*.log"
     }
 }
 
@@ -384,7 +386,7 @@ if ($vsExtensions.Count -gt 0) {
             $version = if ($entry.version) { $entry.version } else { "latest" }
 
             # "path" is repo-relative so the manifest stays machine-independent.
-            $arguments = @{ VsPath = $vsPath; InstalledVsix = $installedVsix; Force = $Force }
+            $arguments = @{ VsPath = $vsPath; InstanceId = $vsInstanceId; InstalledVsix = $installedVsix; Force = $Force }
             if ($entry.path) {
                 $arguments.LocalPath = Join-Path $dotfilesRoot $entry.path
             } else {
@@ -401,11 +403,11 @@ if ($vsExtensions.Count -gt 0) {
                 }
                 "skipped" {
                     Write-Host "  Already installed: $label" -ForegroundColor Cyan
-                    $skippedExtensions += $entry.id
+                    $skippedExtensions += $label
                 }
                 default {
                     Write-Warning "  Failed: $label - $($result.message)"
-                    $failedExtensions += $entry.id
+                    $failedExtensions += $label
                 }
             }
         }
