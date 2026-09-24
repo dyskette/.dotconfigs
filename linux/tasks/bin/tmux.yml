@@ -9,6 +9,7 @@
   ansible.builtin.set_fact:
     tmux_build_container: tmux-build
     tmux_build_runner: "{{ 'toolbox run --container tmux-build ' if is_fedora_silverblue else '' }}"
+    tmux_build_stamp: "{{ ansible_env.HOME }}/.local/share/tmux/build-commit"
 
 - name: Tmux | Install build dependencies (Debian/Ubuntu)
   ansible.builtin.package:
@@ -88,18 +89,31 @@
     method: GET
   register: tmux_latest_commit
 
+- name: Tmux | Read the commit recorded for the installed build
+  ansible.builtin.shell: |
+    if [ -x {{ ansible_env.HOME }}/.local/bin/tmux ] && [ -r {{ tmux_build_stamp }} ]; then
+      cat {{ tmux_build_stamp }}
+    else
+      echo "not installed"
+    fi
+  register: tmux_recorded_commit
+  changed_when: false
+  failed_when: false
+
 - name: Tmux | Set target version
   ansible.builtin.set_fact:
     tmux_target_version: "{{ tmux_latest_commit.json.sha[:7] }}"
+    tmux_needs_build: "{{ tmux_recorded_commit.stdout | trim != tmux_latest_commit.json.sha }}"
 
 - name: Tmux | Show current and target versions
   ansible.builtin.debug:
     msg: |
-      Current: {{ tmux_current_version.stdout }}
+      Current: {{ tmux_current_version.stdout }} ({{ tmux_recorded_commit.stdout | trim }})
       Target: master-{{ tmux_target_version }}
+      Build needed: {{ tmux_needs_build }}
 
 - name: Tmux | Build and install from source
-  when: tmux_current_version.stdout == "not installed" or tmux_target_version not in tmux_current_version.stdout
+  when: tmux_needs_build
   block:
     - name: Tmux | Create build directory
       ansible.builtin.file:
@@ -154,6 +168,20 @@
         cmd: "{{ ansible_env.HOME }}/.local/bin/tmux -V"
       register: tmux_installed_version
 
+    # Written only after the binary has been verified to run, so a failed build
+    # never leaves a stamp that would skip the next attempt.
+    - name: Tmux | Create the stamp directory
+      ansible.builtin.file:
+        path: "{{ tmux_build_stamp | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Tmux | Record the commit that was built
+      ansible.builtin.copy:
+        content: "{{ tmux_latest_commit.json.sha }}\n"
+        dest: "{{ tmux_build_stamp }}"
+        mode: "0644"
+
     - name: Tmux | Show installed version
       ansible.builtin.debug:
         msg: "Successfully installed: {{ tmux_installed_version.stdout }}"
@@ -162,4 +190,4 @@
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.local/src/tmux"
     state: absent
-  when: tmux_current_version.stdout == "not installed" or tmux_target_version not in tmux_current_version.stdout
+  when: tmux_needs_build
