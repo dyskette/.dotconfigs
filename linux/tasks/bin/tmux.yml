@@ -1,3 +1,15 @@
+# On ostree hosts (Silverblue) the toolchain is never layered on the host: the build
+# runs inside a dedicated toolbx container and installs into the shared $HOME, so the
+# host gets the binary without gaining any -devel package. toolbx tracks the host's
+# Fedora release, so the result links against the same libevent/ncurses/glibc the host
+# ships. `ansible.builtin.package` must not be used on these hosts: Ansible resolves
+# pkg_mgr to the deprecated `atomic_container` backend and the task fails with
+# "missing required arguments: backend, image".
+- name: Tmux | Set build variables
+  ansible.builtin.set_fact:
+    tmux_build_container: tmux-build
+    tmux_build_runner: "{{ 'toolbox run --container tmux-build ' if is_fedora_silverblue else '' }}"
+
 - name: Tmux | Install build dependencies (Debian/Ubuntu)
   ansible.builtin.package:
     name:
@@ -27,7 +39,37 @@
       - git
     state: present
   become: true
-  when: is_fedora or is_fedora_silverblue
+  when: is_fedora
+
+- name: Tmux | Prepare the build container (Fedora Silverblue)
+  when: is_fedora_silverblue
+  block:
+    - name: Tmux | Check for the build toolbx container
+      ansible.builtin.command:
+        cmd: podman container exists {{ tmux_build_container }}
+      register: tmux_build_container_stat
+      changed_when: false
+      failed_when: false
+
+    - name: Tmux | Create the build toolbx container
+      ansible.builtin.command:
+        cmd: toolbox create --assumeyes {{ tmux_build_container }}
+      when: tmux_build_container_stat.rc != 0
+
+    - name: Tmux | Start the build toolbx container
+      ansible.builtin.command:
+        cmd: podman start {{ tmux_build_container }}
+      changed_when: false
+
+    # toolbx has no passwordless sudo, so the install runs as root over podman exec
+    # instead of through `toolbox run`.
+    - name: Tmux | Install build dependencies in the build toolbx container
+      ansible.builtin.command:
+        cmd: >-
+          podman exec --user root {{ tmux_build_container }}
+          dnf install -y libevent-devel ncurses-devel gcc make bison pkg-config autoconf automake
+      register: tmux_build_deps
+      changed_when: "'Nothing to do' not in tmux_build_deps.stdout"
 
 - name: Tmux | Check if tmux is already installed and get version
   ansible.builtin.shell: |
@@ -77,30 +119,32 @@
         depth: 1
         force: true
 
+    # `toolbox run` reuses the caller's working directory, so chdir carries into the
+    # container: $HOME is shared with the host and the source tree lives under it.
     - name: Tmux | Generate configure script
       ansible.builtin.command:
-        cmd: sh autogen.sh
+        cmd: "{{ tmux_build_runner }}sh autogen.sh"
         chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
       environment:
         PATH: "{{ ansible_env.PATH }}"
 
     - name: Tmux | Configure build
       ansible.builtin.command:
-        cmd: ./configure --prefix={{ ansible_env.HOME }}/.local
+        cmd: "{{ tmux_build_runner }}./configure --prefix={{ ansible_env.HOME }}/.local"
         chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
       environment:
         PATH: "{{ ansible_env.PATH }}"
 
     - name: Tmux | Build tmux
       ansible.builtin.command:
-        cmd: make -j{{ ansible_processor_vcpus }}
+        cmd: "{{ tmux_build_runner }}make -j{{ ansible_processor_vcpus }}"
         chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
       environment:
         PATH: "{{ ansible_env.PATH }}"
 
     - name: Tmux | Install tmux
       ansible.builtin.command:
-        cmd: make install
+        cmd: "{{ tmux_build_runner }}make install"
         chdir: "{{ ansible_env.HOME }}/.local/src/tmux"
       environment:
         PATH: "{{ ansible_env.PATH }}"
