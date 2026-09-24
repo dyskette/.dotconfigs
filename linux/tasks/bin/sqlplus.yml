@@ -23,7 +23,7 @@
         name: unzip
         state: present
       become: true
-      when: is_fedora or is_fedora_silverblue
+      when: is_fedora
 
     - name: SQL*Plus | Install libaio package (Debian/Ubuntu)
       ansible.builtin.package:
@@ -38,7 +38,20 @@
         name: libaio
         state: present
       become: true
-      when: is_fedora or is_fedora_silverblue
+      when: is_fedora
+
+    # Both ship in the Silverblue base image, so this is normally a no-op: the module
+    # passes --allow-inactive --idempotent. ansible.builtin.package cannot be used on
+    # ostree hosts, where it resolves pkg_mgr to the atomic_container backend and fails
+    # with "missing required arguments: backend, image". Oracle's prebuilt binaries
+    # link libaio, so it has to be on the host rather than in a container.
+    - name: SQL*Plus | Install unzip and libaio packages (Fedora Silverblue)
+      community.general.rpm_ostree_pkg:
+        name:
+          - unzip
+          - libaio
+        state: present
+      when: is_fedora_silverblue
 
     # Ubuntu 24.04's libaio1t64 bumped the soname to libaio.so.1t64, but Oracle's
     # prebuilt binaries still link against libaio.so.1. On amd64 the t64 rebuild is
