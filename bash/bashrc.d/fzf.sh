@@ -29,23 +29,31 @@ if command -v fzf &> /dev/null; then
   # Bind Ctrl+R to fzf history search (only in interactive shells)
   [[ $- == *i* ]] && bind -x '"\C-r": __fzf_history__'
 
-  # Zellij session manager
-  # Always uses sessions — switch-session from inside, attach --create from outside
-  # With no args: fzf pick from project directories
-  zj() {
-    local dir name
-
+  # Resolve the project directory for zj/tm: the argument if given,
+  # otherwise an fzf pick from directories under ~. Fails when cancelled.
+  __pick_project_dir() {
     if [[ -n "$1" ]]; then
-      dir="$(realpath "$1")"
+      # -e: fail on a missing directory instead of resolving it anyway
+      realpath -e "$1"
     else
+      local dir
       dir=$(fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
         fzf --reverse --height=50% \
             --header="select project directory" \
             --border=none \
             --preview-window=border-left \
             --preview 'eza --tree --git-ignore --level 2 --colour=always --icons=always {} 2>/dev/null || ls {}')
-      [[ -z "$dir" ]] && return
+      [[ -n "$dir" ]] && echo "$dir"
     fi
+  }
+
+  # Zellij session manager
+  # Always uses sessions — switch-session from inside, attach --create from outside
+  # With no args: fzf pick from project directories
+  zj() {
+    local dir name
+
+    dir="$(__pick_project_dir "$1")" || return
 
     name="$(basename "$dir" | tr '.' '_')"
 
@@ -53,6 +61,25 @@ if command -v fzf &> /dev/null; then
       zellij action switch-session "$name" --cwd "$dir"
     else
       zellij attach --create "$name" options --default-cwd "$dir"
+    fi
+  }
+
+  # Tmux session manager, the tmux twin of zj
+  # switch-client from inside, new-session -A (attach or create) from outside
+  # With no args: fzf pick from project directories
+  tm() {
+    local dir name
+
+    dir="$(__pick_project_dir "$1")" || return
+
+    name="$(basename "$dir" | tr '.' '_')"
+
+    # "=" makes -t match the name exactly instead of by prefix
+    if [[ -n "$TMUX" ]]; then
+      tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$dir"
+      tmux switch-client -t "=$name"
+    else
+      tmux new-session -A -s "$name" -c "$dir"
     fi
   }
 fi

@@ -176,7 +176,12 @@ function tmux-pwsh {
     wsl --distribution Ubuntu-24.04 --exec bash -c $command
 }
 
-function zj {
+<#
+.SYNOPSIS
+    Resolve the project directory for zj/tm: the given path, or an fzf pick
+    from directories under $HOME. Returns nothing when the pick is cancelled.
+#>
+function Select-ProjectDirectory {
     param(
         [Parameter(Position = 0)]
         [string]$Directory
@@ -184,19 +189,28 @@ function zj {
 
     if ($Directory)
     {
-        $dir = (Resolve-Path -LiteralPath $Directory).Path
+        (Resolve-Path -LiteralPath $Directory -ErrorAction Stop).Path
     } else
     {
-        $dir = fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . $HOME |
+        fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . $HOME |
             fzf --reverse --height=50% `
                 --header="select project directory" `
                 --border=none `
                 --preview-window=border-left `
                 --preview "eza --tree --git-ignore --level 2 --colour=always --icons=always {}"
-        if (-not $dir)
-        {
-            return
-        }
+    }
+}
+
+function zj {
+    param(
+        [Parameter(Position = 0)]
+        [string]$Directory
+    )
+
+    $dir = Select-ProjectDirectory $Directory
+    if (-not $dir)
+    {
+        return
     }
 
     $name = (Split-Path -Leaf $dir) -replace '\.', '_'
@@ -207,5 +221,42 @@ function zj {
     } else
     {
         zellij attach --create $name options --default-cwd $dir
+    }
+}
+
+<#
+.SYNOPSIS
+    psmux session manager, the psmux twin of zj: switch-client from inside,
+    new-session -A (attach or create) from outside.
+.NOTES
+    Calls psmux, not tmux: the tmux function above is a WSL wrapper.
+#>
+function tm {
+    param(
+        [Parameter(Position = 0)]
+        [string]$Directory
+    )
+
+    $dir = Select-ProjectDirectory $Directory
+    if (-not $dir)
+    {
+        return
+    }
+
+    # TrimEnd: fd prints directories with a trailing separator.
+    $name = (Split-Path -Leaf $dir.TrimEnd('\', '/')) -replace '\.', '_'
+
+    # "=" makes -t match the name exactly
+    if ($env:TMUX)
+    {
+        psmux has-session -t "=$name" 2>$null
+        if ($LASTEXITCODE -ne 0)
+        {
+            psmux new-session -d -s $name -c $dir
+        }
+        psmux switch-client -t "=$name"
+    } else
+    {
+        psmux new-session -A -s $name -c $dir
     }
 }
