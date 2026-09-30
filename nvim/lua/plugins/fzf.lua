@@ -41,8 +41,13 @@ return {
       rg_opts = "--column --line-number --no-heading --color=always --smart-case --max-columns=4096 -e",
     },
     defaults = {
-      file_icons = true,
-      color_icons = true,
+      -- Icons make every picker spawn a headless nvim that loads
+      -- nvim-web-devicons: ~800 ms and jittery per open on Windows, versus
+      -- ~250 ms steady without them.
+      file_icons = false,
+      -- Git status icons add a `git status` per open: git_files went from
+      -- ~1.1 s to ~360 ms without them.
+      git_icons = false,
     },
   },
   config = function(_, opts)
