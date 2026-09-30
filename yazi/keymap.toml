@@ -1,0 +1,9 @@
+# Additions to yazi's default keymap; nothing here replaces a default key.
+
+[[mgr.prepend_keymap]]
+# explorer.exe resolves on Windows and, through interop, inside WSL, where it
+# opens the folder as \\wsl.localhost\<distro>\..., so files can be dragged
+# in and out. Orphaned: Explorer outlives the command and exits with 1 anyway.
+on = "E"
+run = 'shell --orphan "explorer.exe ."'
+desc = "Open the current folder in File Explorer"

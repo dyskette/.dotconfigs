@@ -1,3 +1,21 @@
+# Open a directory (default: the current one) in Windows File Explorer, from
+# WSL or Git Bash. From WSL it opens as \\wsl.localhost\<distro>\..., so files
+# can be dragged in and out of Linux folders.
+function e() {
+  local dir="${1:-.}"
+
+  if [ -n "$WSL_DISTRO_NAME" ]; then
+    explorer.exe "$(wslpath -w "$dir")"
+  elif command -v cygpath &>/dev/null; then
+    explorer.exe "$(cygpath -w "$dir")"
+  else
+    echo "e: Windows File Explorer is only reachable from WSL or Git Bash" >&2
+    return 1
+  fi
+  # explorer.exe exits with 1 even when it opens the window.
+  return 0
+}
+
 function sd() {
   local directory_path
 
