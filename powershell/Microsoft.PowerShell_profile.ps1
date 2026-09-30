@@ -166,19 +166,6 @@ function y
     Remove-Item -Path $tmp
 }
 
-# The WSL shells below load no profile, so ~/.local/bin (where the tmux build
-# with the mode 2031 theme hooks lives) is put on PATH by hand; otherwise the
-# distro's older /usr/bin/tmux runs and rejects client-dark-theme.
-function tmux {
-    $command = "export PATH=`$HOME/.local/bin:`$PATH; cd -- && tmux $args"
-    wsl --distribution FedoraLinux-42 --exec bash --noprofile -c $command
-}
-
-function tmux-pwsh {
-    $command = "export PATH=`$HOME/.local/bin:`$PATH; tmux -L pwsh -f `$HOME/.dotconfigs/tmux/pwsh.conf $args"
-    wsl --distribution FedoraLinux-42 --exec bash -c $command
-}
-
 <#
 .SYNOPSIS
     Resolve the project directory for zj/tm: the given path, or an fzf pick
@@ -231,8 +218,6 @@ function zj {
 .SYNOPSIS
     psmux session manager, the psmux twin of zj: switch-client from inside,
     new-session -A (attach or create) from outside.
-.NOTES
-    Calls psmux, not tmux: the tmux function above is a WSL wrapper.
 #>
 function tm {
     param(

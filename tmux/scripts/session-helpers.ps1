@@ -4,8 +4,7 @@
     run directly.
 
 .NOTES
-    Always call psmux, not tmux: the PowerShell profile may shadow tmux with
-    a WSL wrapper, and inside a popup psmux reaches the right server through
+    Inside a popup psmux reaches the right server through
     PSMUX_TARGET_SESSION even though $env:TMUX is empty.
 #>
 

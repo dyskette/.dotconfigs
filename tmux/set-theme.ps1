@@ -31,7 +31,6 @@ $themeFile = if ($selected -eq 'light') { 'rose-pine-dawn.conf' } else { 'gruvbo
 # a time instead of `psmux source-file`, working around two psmux 3.3.8 bugs:
 # a source-file sent from the command line resets every key binding to the
 # defaults, and commands chained with ';' on the command line get dropped.
-# psmux, not tmux: the PowerShell profile may shadow tmux with a WSL wrapper.
 foreach ($line in Get-Content (Join-Path $PSScriptRoot $themeFile)) {
     if ($line -match '^\s*set(?:-option)?\s+-g\s+(\S+)\s+(?:"(.*)"|(\S+))\s*$') {
         $value = if ($null -ne $Matches[2]) { $Matches[2] } else { $Matches[3] }
