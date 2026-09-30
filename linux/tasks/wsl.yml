@@ -25,3 +25,40 @@
       when: wayland_symlink_service.changed
       ansible.builtin.command:
         cmd: systemctl --user enable symlink-wayland-socket.service
+
+    # Every WSL2 distro shares one kernel, and so one binfmt_misc table. When
+    # another distro (e.g. Ubuntu, or podman-machine) stops, the WSLInterop
+    # entry disappears for all of them, and Windows programs stop running
+    # here: "cannot execute binary file". That breaks npiperelay, and with it
+    # the SSH agent bridge (bash/bashrc.d/ssh-agent-pipe.sh). Put the entry
+    # back whenever it goes missing. A loop rather than a timer, so the journal
+    # does not get a start/finish line every few seconds.
+    - name: Create WSL interop guard service
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/wsl-interop-guard.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Re-register WSL interop when another distro removes it
+          ConditionVirtualization=wsl
+          After=systemd-binfmt.service
+
+          [Service]
+          Type=simple
+          ExecStart=/bin/sh -c 'while :; do [ -e /proc/sys/fs/binfmt_misc/WSLInterop ] || echo ":WSLInterop:M::MZ::/init:PF" > /proc/sys/fs/binfmt_misc/register; sleep 1; done'
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+      register: wsl_interop_guard_service
+
+    - name: Enable WSL interop guard service
+      become: true
+      ansible.builtin.systemd_service:
+        name: wsl-interop-guard.service
+        enabled: true
+        state: "{{ 'restarted' if wsl_interop_guard_service.changed else 'started' }}"
+        daemon_reload: "{{ wsl_interop_guard_service.changed }}"
