@@ -1,5 +1,3 @@
-local utils = require("config.utils")
-
 local mason_opts = {
   registries = {
     "github:mason-org/mason-registry",
@@ -72,7 +70,9 @@ return {
   {
     "williamboman/mason.nvim",
     cond = not vim.g.vscode,
-    event = utils.events.VeryLazy,
+    -- Loaded as a dependency of nvim-lspconfig (VeryLazy), which is also what
+    -- puts mason's bin directory on PATH for conform's formatters.
+    cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUpdate", "MasonLog" },
     opts = mason_opts,
   },
   {

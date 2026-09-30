@@ -1,12 +1,26 @@
-local utils = require("config.utils")
-
 return {
   "ibhagwan/fzf-lua",
   cond = not vim.g.vscode,
-  dependencies = { "nvim-tree/nvim-web-devicons", "folke/trouble.nvim" },
+  dependencies = { "folke/trouble.nvim" },
   cmd = { "FzfLua" },
-  event = { utils.events.VeryLazy },
   keys = require("config.keymaps").fzf,
+  init = function()
+    -- lazy.nvim runs `init` even for specs its `cond` disabled.
+    if vim.g.vscode then
+      return
+    end
+    -- Stand-in until the first vim.ui.select: loading fzf-lua (config below)
+    -- replaces it through register_ui_select(), and the call is passed on.
+    local builtin_select = vim.ui.select
+    local function stub(...)
+      require("fzf-lua")
+      if vim.ui.select == stub then
+        vim.ui.select = builtin_select
+      end
+      return vim.ui.select(...)
+    end
+    vim.ui.select = stub
+  end,
   opts = {
     winopts = {
       height = 0.50,

@@ -51,6 +51,9 @@ utils.events = {
   LazyDone = "LazyDone",
   -- After `LazyDone` and processing `VimEnter` auto commands
   VeryLazy = "VeryLazy",
+  -- First file read or created; after the first screen for files given on
+  -- the command line, and never when nvim starts without one (config.lazy)
+  LazyFile = "User LazyFile",
   -- After entering (visiting, switching-to) a new or existing buffer
   BufEnter = "BufEnter",
   -- After creating a new buffer (except during startup, see `VimEnter`) or renaming an existing buffer

@@ -277,7 +277,17 @@ local lualine_opts = function()
     sections = {
       lualine_b = {
         "branch",
-        "diff",
+        {
+          "diff",
+          -- Counts from gitsigns: without a source, lualine spawns its own
+          -- `git diff` for every buffer, which is slow to start on Windows.
+          source = function()
+            local status = vim.b.gitsigns_status_dict
+            if status then
+              return { added = status.added, modified = status.changed, removed = status.removed }
+            end
+          end,
+        },
         {
           "diagnostics",
           symbols = {
@@ -343,6 +353,21 @@ return {
   {
     "nvim-lualine/lualine.nvim",
     cond = not vim.g.vscode,
+    -- After the first screen. Until then show an empty bar rather than the
+    -- default statusline, so it does not flash before lualine replaces it;
+    -- lualine's globalstatus sets 'laststatus' back when it loads.
+    event = utils.events.VeryLazy,
+    init = function()
+      -- lazy.nvim runs `init` even for specs its `cond` disabled.
+      if vim.g.vscode then
+        return
+      end
+      if vim.fn.argc(-1) > 0 then
+        vim.o.statusline = " "
+      else
+        vim.o.laststatus = 0
+      end
+    end,
     opts = lualine_opts,
     dependencies = {
       "nvim-tree/nvim-web-devicons",

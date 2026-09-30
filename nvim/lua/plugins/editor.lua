@@ -4,8 +4,6 @@ local indent_opts = {}
 
 local surround_opts = {}
 
-local comment_opts = {}
-
 local autopairs_opts = {}
 
 local autotag_opts = {}
@@ -14,33 +12,41 @@ local nvim_highlight_colors_opts = {}
 
 local live_rename_opts = {}
 
+-- Commenting (gc, gcc) is built into Neovim, so there is no plugin for it.
 return {
   -- Detect expandtab, tabstop, softtabstop and shiftwidth automatically
   {
     "nmac427/guess-indent.nvim",
     cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    event = utils.events.LazyFile,
     opts = indent_opts,
+    config = function(_, opts)
+      local guess_indent = require("guess-indent")
+      guess_indent.setup(opts)
+      -- The buffer that fired LazyFile was read before the plugin's own
+      -- autocmd existed.
+      guess_indent.set_from_buffer(nil, "auto_cmd", true)
+    end,
   },
   -- Add parenthesis, tags, quotes with vim motions
   {
     "kylechui/nvim-surround",
     version = "*", -- Use for stability; omit to use `main` branch for the latest features
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    event = utils.events.VeryLazy,
     opts = surround_opts,
   },
   -- Close parenthesis, tags, quotes on insert
   {
     "windwp/nvim-autopairs",
     cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    event = utils.events.InsertEnter,
     opts = autopairs_opts,
   },
   -- Close tags e.g. <div></div> on insert
   {
     "windwp/nvim-ts-autotag",
     cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    event = utils.events.InsertEnter,
     opts = autotag_opts,
   },
   {
@@ -49,18 +55,12 @@ return {
     keys = require("config.keymaps").live_rename,
     opts = live_rename_opts,
   },
-  -- Code commenting with vim motions
-  {
-    "numToStr/Comment.nvim",
-    cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
-    opts = comment_opts,
-  },
   -- Show colors like #eb6f92 with a background of its own color
   {
     "brenoprata10/nvim-highlight-colors",
     cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    -- setup() refreshes every open buffer, so loading late loses nothing.
+    event = utils.events.LazyFile,
     opts = nvim_highlight_colors_opts,
   },
   -- Json tools

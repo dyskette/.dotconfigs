@@ -1,5 +1,3 @@
-local utils = require("config.utils")
-
 local conform_opts = {
   formatters_by_ft = {
     lua = { "stylua" },
@@ -25,38 +23,11 @@ local conform_opts = {
   },
 }
 
-local nvim_lint_config = function()
-  local lint = require("lint")
-
-  -- Python is absent on purpose: ruff runs as a language server (see
-  -- lspconfig.lua) and publishes its diagnostics live, rather than only on
-  -- read and write the way nvim-lint fires. pylint used to live here, and had
-  -- to be installed into each project's virtual environment to be found.
-  lint.linters_by_ft = {
-    -- javascript = { "eslint_d" },
-    -- typescript = { "eslint_d" },
-    -- javascriptreact = { "eslint_d" },
-    -- typescriptreact = { "eslint_d" },
-    -- svelte = { "eslint_d" },
-  }
-
-  local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
-
-  vim.api.nvim_create_autocmd({ utils.events.BufReadPre, utils.events.BufWritePost }, {
-    group = lint_augroup,
-    callback = function()
-      lint.try_lint()
-    end,
-  })
-end
-
+-- No nvim-lint: every linter it ran is covered by a language server now (ruff
+-- for python, eslint-lsp for javascript), which publish diagnostics live
+-- rather than on read and write. Add it back with a linters_by_ft entry if a
+-- language ever needs a linter that has no server.
 return {
-  {
-    "mfussenegger/nvim-lint",
-    cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
-    config = nvim_lint_config,
-  },
   {
     "stevearc/conform.nvim",
     cond = not vim.g.vscode,

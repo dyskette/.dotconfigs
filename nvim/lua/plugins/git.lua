@@ -19,7 +19,8 @@ return {
   {
     "lewis6991/gitsigns.nvim",
     cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    -- setup() attaches to buffers already open, so loading late loses nothing.
+    event = utils.events.LazyFile,
     keys = require("config.keymaps").gitsigns,
     opts = gitsigns_opts,
   },

@@ -21,10 +21,14 @@ return {
   {
     "mrjones2014/smart-splits.nvim",
     cond = not vim.g.vscode,
-    lazy = false,
+    -- Loaded by the first Ctrl+hjkl; announcing Neovim to WezTerm does not
+    -- need the plugin, so that part lives in `init` and runs at startup.
     opts = smart_splits_opts,
-    config = function(_, opts)
-      require("smart-splits").setup(opts)
+    init = function()
+      -- lazy.nvim runs `init` even for specs its `cond` disabled.
+      if vim.g.vscode then
+        return
+      end
 
       local augroup = vim.api.nvim_create_augroup("WeztermIsNvim", { clear = true })
 

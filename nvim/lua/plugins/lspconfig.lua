@@ -26,10 +26,9 @@ end
 local function setup_global_lsp_config()
   -- Set default configuration for all LSP clients
   -- This uses the new vim.lsp.config() API with the '*' wildcard
+  -- Completion capabilities are not set here: blink.cmp (a dependency, so
+  -- loaded first) registers them on "*" from its own plugin/ file.
   vim.lsp.config("*", {
-    -- LSP client capabilities (what the editor can do)
-    capabilities = require("blink.cmp").get_lsp_capabilities(),
-
     -- Client behavior flags
     flags = {
       -- Reduce debounce for faster responsiveness
@@ -225,11 +224,14 @@ local function setup_language_servers()
     root_markers = { "package.json", ".git" },
     settings = {
       json = {
-        -- Use external schema store for better JSON validation
-        schemas = require("schemastore").json.schemas(),
         validate = { enable = true },
       },
     },
+    -- The schema catalog is resolved when the server starts, not at startup.
+    before_init = function(_, config)
+      -- Use external schema store for better JSON validation
+      config.settings.json.schemas = require("schemastore").json.schemas()
+    end,
   }
 
   -- YAML Language Server with schema support
@@ -244,10 +246,13 @@ local function setup_language_servers()
           enable = false,
           url = "",
         },
-        -- Use external schema store for better YAML validation
-        schemas = require("schemastore").yaml.schemas(),
       },
     },
+    -- The schema catalog is resolved when the server starts, not at startup.
+    before_init = function(_, config)
+      -- Use external schema store for better YAML validation
+      config.settings.yaml.schemas = require("schemastore").yaml.schemas()
+    end,
   }
 
   -- XML Language Server
@@ -288,70 +293,83 @@ local function enable_language_servers()
   local enabled_servers = {}
   local group = vim.api.nvim_create_augroup("dyskette_lsp_filetype", { clear = true })
 
+  local function enable_for(ft)
+    local server_map = {
+      lua = "lua_ls",
+      sh = "bashls",
+      bash = "bashls",
+      ps1 = "powershell_es",
+      python = { "basedpyright", "ruff" },
+      javascript = "vtsls",
+      typescript = "vtsls",
+      javascriptreact = "vtsls",
+      typescriptreact = "vtsls",
+      vue = { "vtsls", "vue_ls" },
+      html = "html",
+      css = "cssls",
+      scss = "cssls",
+      less = "cssls",
+      json = "jsonls",
+      jsonc = "jsonls",
+      yaml = "yamlls",
+      yml = "yamlls",
+      xml = "lemminx",
+      toml = "taplo",
+      dart = "dartls",
+      rust = "rust_analyzer",
+      cs = "roslyn",
+      razor = "roslyn",
+    }
+
+    local servers = server_map[ft]
+    if servers then
+      if type(servers) == "table" then
+        for _, server in ipairs(servers) do
+          if not enabled_servers[server] then
+            vim.lsp.enable(server)
+            enabled_servers[server] = true
+          end
+        end
+      else
+        if not enabled_servers[servers] then
+          vim.lsp.enable(servers)
+          enabled_servers[servers] = true
+        end
+      end
+
+      -- Also enable eslint for JS/TS files
+      if
+        ft == "javascript"
+        or ft == "typescript"
+        or ft == "javascriptreact"
+        or ft == "typescriptreact"
+        or ft == "vue"
+      then
+        if not enabled_servers["eslint"] then
+          vim.lsp.enable("eslint")
+          enabled_servers["eslint"] = true
+        end
+      end
+    end
+  end
+
   vim.api.nvim_create_autocmd("FileType", {
     desc = "Enable LSP servers per filetype",
     group = group,
     callback = function(args)
-      local ft = args.match
-      local server_map = {
-        lua = "lua_ls",
-        sh = "bashls",
-        bash = "bashls",
-        ps1 = "powershell_es",
-        python = { "basedpyright", "ruff" },
-        javascript = "vtsls",
-        typescript = "vtsls",
-        javascriptreact = "vtsls",
-        typescriptreact = "vtsls",
-        vue = { "vtsls", "vue_ls" },
-        html = "html",
-        css = "cssls",
-        scss = "cssls",
-        less = "cssls",
-        json = "jsonls",
-        jsonc = "jsonls",
-        yaml = "yamlls",
-        yml = "yamlls",
-        xml = "lemminx",
-        toml = "taplo",
-        dart = "dartls",
-        rust = "rust_analyzer",
-        cs = "roslyn",
-        razor = "roslyn",
-      }
-
-      local servers = server_map[ft]
-      if servers then
-        if type(servers) == "table" then
-          for _, server in ipairs(servers) do
-            if not enabled_servers[server] then
-              vim.lsp.enable(server)
-              enabled_servers[server] = true
-            end
-          end
-        else
-          if not enabled_servers[servers] then
-            vim.lsp.enable(servers)
-            enabled_servers[servers] = true
-          end
-        end
-
-        -- Also enable eslint for JS/TS files
-        if
-          ft == "javascript"
-          or ft == "typescript"
-          or ft == "javascriptreact"
-          or ft == "typescriptreact"
-          or ft == "vue"
-        then
-          if not enabled_servers["eslint"] then
-            vim.lsp.enable("eslint")
-            enabled_servers["eslint"] = true
-          end
-        end
-      end
+      enable_for(args.match)
     end,
   })
+
+  -- The plugin loads on LazyFile, after the FileType event of the buffer that
+  -- triggered it (or of files opened from the command line) has already
+  -- fired. vim.lsp.enable() re-runs FileType for existing buffers itself, so
+  -- enabling is enough.
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype ~= "" then
+      enable_for(vim.bo[buf].filetype)
+    end
+  end
 end
 
 -- Main function that sets up the entire LSP configuration
@@ -428,7 +446,10 @@ return {
   {
     "neovim/nvim-lspconfig",
     cond = not vim.g.vscode,
-    event = { utils.events.BufReadPre, utils.events.BufNewFile },
+    -- Never before the first screen: servers take far longer to initialise
+    -- than this delay, and enable_language_servers() catches up on open
+    -- buffers.
+    event = utils.events.LazyFile,
     init = clear_default_lsp_keymaps,
     config = lsp_config,
     dependencies = {
