@@ -81,6 +81,13 @@ $links = @(
         Type   = "SymbolicLink"
     }
     @{
+        # psmux (tmux for Windows) reads ~/.psmux.conf before ~/.tmux.conf
+        App    = "tmux"
+        Source = "tmux\psmux.conf"
+        Target = "$env:USERPROFILE\.psmux.conf"
+        Type   = "SymbolicLink"
+    }
+    @{
         App    = "vs"
         Source = "vs\vsvimrc"
         Target = "$env:USERPROFILE\.vsvimrc"
