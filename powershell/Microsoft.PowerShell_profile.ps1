@@ -166,14 +166,17 @@ function y
     Remove-Item -Path $tmp
 }
 
+# The WSL shells below load no profile, so ~/.local/bin (where the tmux build
+# with the mode 2031 theme hooks lives) is put on PATH by hand; otherwise the
+# distro's older /usr/bin/tmux runs and rejects client-dark-theme.
 function tmux {
-    $command = "cd -- && tmux $args"
-    wsl --distribution Ubuntu-24.04 --exec bash --noprofile -c $command
+    $command = "export PATH=`$HOME/.local/bin:`$PATH; cd -- && tmux $args"
+    wsl --distribution FedoraLinux-42 --exec bash --noprofile -c $command
 }
 
 function tmux-pwsh {
-    $command = "tmux -L pwsh -f `$HOME/.dotconfigs/tmux/pwsh.conf $args"
-    wsl --distribution Ubuntu-24.04 --exec bash -c $command
+    $command = "export PATH=`$HOME/.local/bin:`$PATH; tmux -L pwsh -f `$HOME/.dotconfigs/tmux/pwsh.conf $args"
+    wsl --distribution FedoraLinux-42 --exec bash -c $command
 }
 
 <#
