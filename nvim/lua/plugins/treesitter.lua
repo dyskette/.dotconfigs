@@ -82,6 +82,16 @@ return {
   dependencies = {
     { "windwp/nvim-ts-autotag" },
     {
+      -- Sticky header with the enclosing function/class/block; replaces the
+      -- LSP symbol breadcrumb that used to sit in the status line.
+      "nvim-treesitter/nvim-treesitter-context",
+      keys = require("config.keymaps").treesitter_context,
+      opts = {
+        -- Cap the header so deeply nested code does not eat the window.
+        max_lines = 3,
+      },
+    },
+    {
       "lukas-reineke/indent-blankline.nvim",
       main = "ibl",
       opts = {

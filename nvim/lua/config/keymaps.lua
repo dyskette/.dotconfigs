@@ -222,6 +222,18 @@ return {
     },
   },
 
+  treesitter_context = {
+    {
+      -- Not "[c" (the plugin's example): that is the built-in previous-change
+      -- motion in diff mode, which diffview relies on.
+      "[x",
+      function()
+        require("treesitter-context").go_to_context(vim.v.count1)
+      end,
+      desc = "Go to context (enclosing scope)",
+    },
+  },
+
   neogit = {
     {
       "<leader>gg",
