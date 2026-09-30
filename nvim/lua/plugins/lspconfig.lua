@@ -131,31 +131,43 @@ local function setup_language_servers()
   -- basedpyright's own default is "recommended", which is considerably
   -- stricter and would light up existing code on day one. Raise it when you
   -- want to, per project or here.
-  vim.lsp.config.basedpyright = {
-    cmd = { "basedpyright-langserver", "--stdio" },
-    filetypes = { "python" },
-    root_markers = { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", ".venv", ".git" },
+  --
+  -- cmd, filetypes and the rest of the settings come from nvim-lspconfig's
+  -- lsp/basedpyright.lua; this only adds to them.
+  vim.lsp.config("basedpyright", {
+    -- Replaces nvim-lspconfig's list rather than extending it: its markers
+    -- plus .venv, so a uv project without a pyproject.toml still roots there.
+    root_markers = {
+      "pyrightconfig.json",
+      "pyproject.toml",
+      "setup.py",
+      "setup.cfg",
+      "requirements.txt",
+      "Pipfile",
+      ".venv",
+      ".git",
+    },
     settings = {
       basedpyright = {
+        -- Ruff sorts imports (its code action, and conform's
+        -- ruff_organize_imports on format), so only one organize-imports
+        -- action is offered.
+        disableOrganizeImports = true,
         analysis = {
           typeCheckingMode = "standard",
         },
       },
     },
-  }
+  })
 
   -- Ruff supplies the diagnostics pylint used to, and the formatting isort and
   -- black used to. It matters here that it is a single static binary: pylint
   -- had to be installed into each project's virtual environment to be found on
   -- PATH, which is why linting only worked in a shell that had activated one.
+  -- nvim-lspconfig's lsp/ruff.lua is used as is.
   --
   -- Both servers attach to python buffers. on_lsp_attach drops ruff's hover so
   -- the type checker answers it alone.
-  vim.lsp.config.ruff = {
-    cmd = { "ruff", "server" },
-    filetypes = { "python" },
-    root_markers = { "pyproject.toml", "ruff.toml", ".ruff.toml", ".git" },
-  }
 
   -- JavaScript/TypeScript
   -- ====================
