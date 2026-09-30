@@ -317,8 +317,7 @@ local function enable_language_servers()
       toml = "taplo",
       dart = "dartls",
       rust = "rust_analyzer",
-      cs = "roslyn",
-      razor = "roslyn",
+      -- cs and razor: roslyn.nvim enables its server itself.
     }
 
     local servers = server_map[ft]
@@ -380,65 +379,65 @@ local function lsp_config()
   enable_language_servers()
 end
 
--- Configuration for C# development using Roslyn language server
-local roslyn_config = function(_, opts)
-  require("roslyn").setup(opts)
+-- C# and Razor through roslyn.nvim. Razor is co-hosted by the Roslyn server
+-- itself, so there is no separate Razor server or plugin.
+--
+-- Only settings are configured here. They merge onto the plugin's own
+-- lsp/roslyn.lua, which supplies the command (the Mason binary, in daemon
+-- mode, tied to this nvim's process id), the filetypes and solution-based
+-- root detection, and the plugin enables the server itself.
+local roslyn_settings = {
+  ["csharp|inlay_hints"] = {
+    csharp_enable_inlay_hints_for_implicit_object_creation = true,
+    csharp_enable_inlay_hints_for_implicit_variable_types = true,
+    csharp_enable_inlay_hints_for_lambda_parameter_types = true,
+    csharp_enable_inlay_hints_for_types = true,
+    dotnet_enable_inlay_hints_for_indexer_parameters = true,
+    dotnet_enable_inlay_hints_for_literal_parameters = true,
+    dotnet_enable_inlay_hints_for_object_creation_parameters = true,
+    dotnet_enable_inlay_hints_for_other_parameters = true,
+    dotnet_enable_inlay_hints_for_parameters = true,
+    dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix = true,
+    dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
+    dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
+  },
+  ["csharp|code_lens"] = {
+    dotnet_enable_references_code_lens = true,
+    dotnet_enable_tests_code_lens = true,
+  },
+  ["csharp|background_analysis"] = {
+    -- "openFiles" is much lighter if large solutions feel slow.
+    dotnet_analyzer_diagnostics_scope = "fullSolution",
+    dotnet_compiler_diagnostics_scope = "fullSolution",
+  },
+  ["csharp|completion"] = {
+    dotnet_provide_regex_completions = true,
+    dotnet_show_completion_items_from_unimported_namespaces = true,
+    dotnet_show_name_completion_suggestions = true,
+  },
+  ["csharp|symbol_search"] = {
+    dotnet_search_reference_assemblies = true,
+  },
+}
 
-  -- Configure Roslyn using modern vim.lsp.config() API with integrated Razor support
-  vim.lsp.config.roslyn = {
-    cmd = {
-      "roslyn",
-      "--stdio",
-      "--logLevel=Information",
-      "--extensionLogDirectory=" .. vim.fs.dirname(vim.lsp.log.get_filename()),
-    },
-    filetypes = { "cs", "razor" },
-    root_markers = { "*.sln", "*.csproj", "omnisharp.json" },
-    settings = {
-      ["csharp|inlay_hints"] = {
-        csharp_enable_inlay_hints_for_implicit_object_creation = true,
-        csharp_enable_inlay_hints_for_implicit_variable_types = true,
-        csharp_enable_inlay_hints_for_lambda_parameter_types = true,
-        csharp_enable_inlay_hints_for_types = true,
-        dotnet_enable_inlay_hints_for_indexer_parameters = true,
-        dotnet_enable_inlay_hints_for_literal_parameters = true,
-        dotnet_enable_inlay_hints_for_object_creation_parameters = true,
-        dotnet_enable_inlay_hints_for_other_parameters = true,
-        dotnet_enable_inlay_hints_for_parameters = true,
-        dotnet_suppress_inlay_hints_for_parameters_that_differ_only_by_suffix = true,
-        dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
-        dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
-      },
-      ["csharp|code_lens"] = {
-        dotnet_enable_references_code_lens = true,
-        dotnet_enable_tests_code_lens = true,
-      },
-      ["csharp|background_analysis"] = {
-        dotnet_analyzer_diagnostics_scope = "fullSolution",
-        dotnet_compiler_diagnostics_scope = "fullSolution",
-      },
-      ["csharp|completion"] = {
-        dotnet_provide_regex_completions = true,
-        dotnet_show_completion_items_from_unimported_namespaces = true,
-        dotnet_show_name_completion_suggestions = true,
-      },
-      ["csharp|symbol_search"] = {
-        dotnet_search_reference_assemblies = true,
-      },
-    },
-  }
-
-  vim.lsp.enable("roslyn")
-end
-
--- Initialize Razor file type detection
+-- Runs at startup, before the plugin loads on its filetypes.
 local function roslyn_init()
+  -- lazy.nvim runs `init` even for specs its `cond` disabled.
+  if vim.g.vscode then
+    return
+  end
+
+  -- The plugin is loaded by these filetypes, so it cannot be what detects them.
   vim.filetype.add({
     extension = {
       razor = "razor",
       cshtml = "razor",
     },
   })
+
+  -- Registered before the plugin loads: its plugin/ file enables the server
+  -- as it loads, so settings added any later would miss the first client.
+  vim.lsp.config("roslyn", { settings = roslyn_settings })
 end
 
 return {
@@ -490,7 +489,6 @@ return {
       broad_search = true,
       lock_target = true,
     },
-    config = roslyn_config,
     init = roslyn_init,
   },
 }

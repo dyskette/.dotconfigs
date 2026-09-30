@@ -36,10 +36,6 @@ local mason_tool_installer_opts = function()
     "rust-analyzer", -- rust
   }
 
-  local debuggers = {
-    "netcoredbg", -- c#
-  }
-
   local linters = {
     -- "eslint", -- js linter -- I'll use the LSP version instead
     -- "pylint", -- python linter -- replaced by ruff, which needs no venv to be found
@@ -57,7 +53,6 @@ local mason_tool_installer_opts = function()
     ensure_installed = vim
       .iter({
         language_servers,
-        debuggers,
         linters,
         formatters,
       })
