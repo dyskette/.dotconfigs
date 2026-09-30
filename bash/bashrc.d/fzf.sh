@@ -30,14 +30,15 @@ if command -v fzf &> /dev/null; then
   [[ $- == *i* ]] && bind -x '"\C-r": __fzf_history__'
 
   # Resolve the project directory for zj/tm: the argument if given,
-  # otherwise an fzf pick from directories under ~. Fails when cancelled.
+  # otherwise an fzf pick from directories under ~, searched $2 levels deep
+  # (default 3). Fails when cancelled.
   __pick_project_dir() {
     if [[ -n "$1" ]]; then
       # -e: fail on a missing directory instead of resolving it anyway
       realpath -e "$1"
     else
       local dir
-      dir=$(fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
+      dir=$(fd --type directory --max-depth "${2:-3}" --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
         fzf --reverse --height=50% \
             --header="select project directory" \
             --border=none \
@@ -70,7 +71,8 @@ if command -v fzf &> /dev/null; then
   tm() {
     local dir name
 
-    dir="$(__pick_project_dir "$1")" || return
+    # Five levels, like the tmux popups (tmux/scripts), two more than zj
+    dir="$(__pick_project_dir "$1" 5)" || return
 
     name="$(basename "$dir" | tr '.' '_')"
 

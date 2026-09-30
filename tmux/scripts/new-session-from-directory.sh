@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Create new tmux session from selected directory
-selected=$(fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
+selected=$(fd --type directory --max-depth 5 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
     sort | \
     fzf --reverse \
         --header="create-new-session" \
