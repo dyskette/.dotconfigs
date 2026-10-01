@@ -61,21 +61,22 @@ return {
     vim.keymap.set("n", "n", "nzzzv", { desc = "Go to next coincidence" })
     vim.keymap.set("n", "N", "Nzzzv", { desc = "Go to previous coincidence" })
 
-    -- Window resizing, repeatable like tmux's `bind-key -r`: <leader>H/J/K/L
-    -- resizes once and then keeps reading keys, so further H/J/K/L presses keep
-    -- resizing without the leader. Any other key ends it and is handled as
-    -- usual; there is no timeout, so pausing does not drop out of it.
+    -- Window resizing on the native <C-w> keys, made repeatable like tmux's
+    -- `bind-key -r`: after <C-w>> (or <, +, -), further >, <, + and - keep
+    -- resizing without <C-w>. Any other key ends it and is handled as usual;
+    -- there is no timeout, so pausing does not drop out of it. Each step is 5
+    -- columns or 2 rows instead of the native 1, or the count when one is given.
     local resize_steps = {
-      H = "vertical resize -5",
-      L = "vertical resize +5",
-      J = "resize +2",
-      K = "resize -2",
+      [">"] = { cmd = "vertical resize +", step = 5 },
+      ["<"] = { cmd = "vertical resize -", step = 5 },
+      ["+"] = { cmd = "resize +", step = 2 },
+      ["-"] = { cmd = "resize -", step = 2 },
     }
-    local function resize_mode(key)
+    local function resize_mode(key, count)
       while resize_steps[key] do
-        vim.cmd(resize_steps[key])
+        vim.cmd(resize_steps[key].cmd .. (count or resize_steps[key].step))
         vim.cmd.redraw()
-        vim.api.nvim_echo({ { "-- RESIZE --  H/L narrower/wider, J/K taller/shorter, any other key ends", "ModeMsg" } }, false, {})
+        vim.api.nvim_echo({ { "-- RESIZE --  > < wider/narrower, + - taller/shorter, any other key ends", "ModeMsg" } }, false, {})
         local ok, next_key = pcall(vim.fn.getcharstr)
         key = ok and next_key or nil
       end
@@ -85,10 +86,10 @@ return {
         vim.api.nvim_feedkeys(key, "m", false)
       end
     end
-    for key, step in pairs(resize_steps) do
-      vim.keymap.set("n", "<leader>" .. key, function()
-        resize_mode(key)
-      end, { desc = "Resize window (" .. step .. "), repeat with " .. key })
+    for key, def in pairs(resize_steps) do
+      vim.keymap.set("n", "<C-w>" .. key, function()
+        resize_mode(key, vim.v.count > 0 and vim.v.count or nil)
+      end, { desc = "Resize window (" .. def.cmd .. def.step .. "), repeat with " .. key })
     end
 
     -- Terminal
