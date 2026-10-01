@@ -3,19 +3,31 @@ Set-PSReadLineKeyHandler -Key 'Ctrl+n' -Function HistorySearchForward
 Set-PSReadLineKeyHandler -Key "Ctrl+y" -Function AcceptSuggestion
 Set-PSReadLineKeyHandler -Key "Ctrl+d" -Function DeleteCharOrExit
 
+# One PATH scan for every tool the profile wires up, instead of one per tool.
+$tools = @{}
+Get-Command starship, nvim, yazi, fnm, dotnet -CommandType Application -ErrorAction SilentlyContinue |
+    ForEach-Object { $tools[$_.Name -replace '\.exe$', ''] = $_.Source }
+
 function Invoke-Starship-PreCommand {
     $theme = Get-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme
+    $name = if ($theme.AppsUseLightTheme) { "light" } else { "dark" }
 
-    if ($theme.AppsUseLightTheme)
+    # `starship config palette` starts a second starship and rewrites the
+    # config file, so it only runs when the Windows theme actually changed,
+    # not before every prompt.
+    if ($name -ne $global:StarshipPaletteTheme)
     {
-        starship config palette rose-pine-dawn
-        $env:BAT_THEME = "rose-pine-dawn"
-        $env:SYSTEM_COLOR_THEME = "light"
-    } else
-    {
-        starship config palette gruvbox
-        $env:BAT_THEME = "gruvbox"
-        $env:SYSTEM_COLOR_THEME = "dark"
+        if ($name -eq "light")
+        {
+            starship config palette rose-pine-dawn
+            $env:BAT_THEME = "rose-pine-dawn"
+        } else
+        {
+            starship config palette gruvbox
+            $env:BAT_THEME = "gruvbox"
+        }
+        $env:SYSTEM_COLOR_THEME = $name
+        $global:StarshipPaletteTheme = $name
     }
 
     # Report the working directory so the terminal can reopen a tab or split
@@ -40,33 +52,69 @@ function Invoke-Starship-PreCommand {
     $host.ui.Write($prompt)
 }
 
-if (Get-Command starship -ErrorAction SilentlyContinue)
+if ($tools.starship)
 {
     $env:STARSHIP_CONFIG = "$HOME\.dotconfigs\starship\config.toml"
-    Invoke-Expression (&starship init powershell)
+
+    # The theme the config's palette already matches, so the first prompt of
+    # a shell does not rewrite it either.
+    $palette = (Select-String -LiteralPath $env:STARSHIP_CONFIG -Pattern '^palette = "(.+)"' -List).Matches.Groups[1].Value
+    $global:StarshipPaletteTheme = switch ($palette) { "rose-pine-dawn" { "light" } "gruvbox" { "dark" } }
+    if ($global:StarshipPaletteTheme)
+    {
+        $env:SYSTEM_COLOR_THEME = $global:StarshipPaletteTheme
+        $env:BAT_THEME = $palette
+    }
+
+    # `starship init powershell` only prints a line that runs starship again
+    # for the full script, so every shell paid for two starship processes and
+    # an Invoke-Expression. The full script is cached instead, and rebuilt
+    # whenever starship.exe is newer than the cache (i.e. after an update).
+    $starshipInit = Join-Path $env:LOCALAPPDATA "starship\init.ps1"
+    $initFile = Get-Item -LiteralPath $starshipInit -ErrorAction SilentlyContinue
+    if (-not $initFile -or $initFile.LastWriteTime -lt (Get-Item -LiteralPath $tools.starship).LastWriteTime)
+    {
+        $null = New-Item -ItemType Directory -Force -Path (Split-Path $starshipInit)
+        & $tools.starship init powershell --print-full-init | Set-Content -LiteralPath $starshipInit -Encoding utf8
+    }
+    . $starshipInit
 }
 
 if (-not $env:SHELL)
 {
-    $env:SHELL = (Get-Command pwsh).Source
+    $env:SHELL = [Environment]::ProcessPath
 }
 
-if (Get-Command nvim -ErrorAction SilentlyContinue)
+if ($tools.nvim)
 {
     $env:EDITOR = "nvim"
 }
 
-if (Get-Command yazi -ErrorAction SilentlyContinue)
+if ($tools.yazi)
 {
     $env:YAZI_FILE_ONE = "C:\Program Files\Git\usr\bin\file.exe"
 }
 
-if (Get-Command fnm -ErrorAction SilentlyContinue)
+if ($tools.fnm)
 {
-    fnm env --use-on-cd | Out-String | Invoke-Expression
+    # An interactive shell runs it once PowerShell is first idle, i.e. just
+    # after the first prompt is drawn, so starting fnm does not delay it.
+    # Everything fnm defines is global: or $env:, so running from the event
+    # action changes nothing else. -Command/-File runs never go idle, so they
+    # load it right away.
+    $nonInteractive = [Environment]::GetCommandLineArgs() -match '^-(c|command|f|file|e|ec|encodedcommand)$'
+    if ($nonInteractive)
+    {
+        fnm env --use-on-cd | Out-String | Invoke-Expression
+    } else
+    {
+        $null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
+            fnm env --use-on-cd | Out-String | Invoke-Expression
+        }
+    }
 }
 
-if (Get-Command dotnet -ErrorAction SilentlyContinue)
+if ($tools.dotnet)
 {
     # PowerShell parameter completion shim for the dotnet CLI
     Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock {
