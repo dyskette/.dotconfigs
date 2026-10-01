@@ -9,5 +9,10 @@ $selected = psmux list-windows -F '#{session_name}:#{window_index}: #{window_nam
 
 if ($selected) {
     $target = ($selected -split ':')[0..1] -join ':'
-    psmux select-window -t $target
+    $output = psmux select-window -t $target 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        # Keep the popup open rather than close silently on a refused switch.
+        Write-Host "Could not select window '$target': $output" -ForegroundColor Red
+        $null = Read-Host 'Press Enter to close'
+    }
 }

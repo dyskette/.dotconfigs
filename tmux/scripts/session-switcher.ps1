@@ -66,5 +66,13 @@ $selected = psmux list-sessions -F '#{?session_attached,,#{session_activity}:#{s
         --preview $previewCommand
 
 if ($selected) {
-    psmux switch-client -t ($selected -split ' ', 2)[0]
+    $name = ($selected -split ' ', 2)[0]
+    # "=" matches the name exactly rather than as a prefix.
+    $output = psmux switch-client -t "=$name" 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        # Keep the popup open: a refused switch would otherwise just close it,
+        # which looks like nothing happened.
+        Write-Host "Could not switch to '$name': $output" -ForegroundColor Red
+        $null = Read-Host 'Press Enter to close'
+    }
 }
