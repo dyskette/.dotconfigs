@@ -41,10 +41,10 @@ glob, so a subdirectory would silently not be linked.
    installer). The glob picks up the new `wf_*.lua` automatically.
 2. **Set your repo roots** in `wf_settings.lua` — `repo_roots` (inside WSL) and
    `repo_roots_windows` (on the drive). Nothing works until these are right.
-3. **Neovim**: `nvim/lua/plugins/wezterm-nav.lua` adds `smart-splits.nvim` and
-   publishes `IS_NVIM` so `Ctrl+hjkl` crosses the editor/terminal boundary.
-   Note the leader shadows `<C-b>` inside Neovim (page-up, and blink's
-   documentation scroll); use `PageUp` and `<C-f>`.
+3. **Neovim**: `Ctrl+hjkl` moves between WezTerm panes even inside Neovim;
+   Neovim's own splits use its `<C-w>` prefix. Note the leader shadows `<C-b>`
+   inside Neovim (page-up, and blink's documentation scroll); use `PageUp` and
+   `<C-f>`.
 4. **Shell**: `bash/bashrc.d/wezterm-shell-integration.sh` emits OSC 133 and
    OSC 7. Without it `LEADER y`, `LEADER { }` and the git status field do not
    exist, and new splits do not inherit the current directory.

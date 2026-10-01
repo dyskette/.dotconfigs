@@ -17,47 +17,12 @@ local util = require("wf_util")
 
 local M = {}
 
--- ── Neovim-aware pane focus ────────────────────────────────────────────────
+-- ── Pane focus ─────────────────────────────────────────────────────────────
 
---- Whether the pane is running Neovim.
----
---- Detection is by user var rather than process name: on Windows the visible
---- foreground process of a WSL pane is wsl.exe, so the process name never says
---- "nvim". Neovim publishes IS_NVIM over OSC 1337 instead (see the nvim-side
---- plugin), which also survives ssh. The process check remains as a fallback
---- for a native Linux WezTerm.
-local function is_nvim(pane)
-  local ok, vars = pcall(function()
-    return pane:get_user_vars()
-  end)
-  if ok and vars and vars.IS_NVIM == "true" then
-    return true
-  end
-
-  local proc_ok, proc = pcall(function()
-    return pane:get_foreground_process_name()
-  end)
-  if proc_ok and proc then
-    return proc:find("nvim") ~= nil or proc:find("vim") ~= nil
-  end
-  return false
-end
-
---- One set of keys that moves through both Neovim splits and WezTerm panes.
---- Inside Neovim the key is forwarded; Neovim yields at its split edges and
---- focus leaves the editor.
+--- Ctrl+hjkl moves between WezTerm panes, Neovim or not: Neovim's own splits
+--- are reached with its <C-w> prefix, so nothing is forwarded into it.
 local function pane_nav(key, direction)
-  return {
-    key = key,
-    mods = "CTRL",
-    action = wezterm.action_callback(function(window, pane)
-      if is_nvim(pane) then
-        window:perform_action(act.SendKey({ key = key, mods = "CTRL" }), pane)
-      else
-        window:perform_action(act.ActivatePaneDirection(direction), pane)
-      end
-    end),
-  }
+  return { key = key, mods = "CTRL", action = act.ActivatePaneDirection(direction) }
 end
 
 -- ── Semantic-zone actions ──────────────────────────────────────────────────

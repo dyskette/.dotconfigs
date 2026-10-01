@@ -48,7 +48,7 @@
   // ── Terminal ────────────────────────────────────────────────────────────────
   // Every <C-w> binding the extension ships is gated on !terminalFocus, and its
   // only way out of a terminal is ctrl+Escape. These four restore the same
-  // ctrl+hjkl that smart-splits gives the terminal buffers in plain nvim -- and
+  // ctrl+hjkl that nvim's terminal-mode maps give terminal buffers -- and
   // that WezTerm already takes over in a non-nvim pane, so readline loses
   // ctrl+h/k/l here exactly as it does there.
   // All four commands are in VS Code's default commandsToSkipShell.

@@ -108,9 +108,9 @@ local function setup_keymaps()
   end
 
   -- ── Splits and panes ──────────────────────────────────────────────────────
-  -- smart-splits.nvim's job outside VS Code. `navigate*` crosses workbench
-  -- parts as well as editor groups, which is the closest the host has to "move
-  -- one window over, and keep going past the edge of the editor".
+  -- `navigate*` crosses workbench parts as well as editor groups, which is the
+  -- closest the host has to "move one window over, and keep going past the
+  -- edge of the editor".
   map({ "n", "x" }, "<C-h>", action("workbench.action.navigateLeft"), "Go to left split or pane")
   map({ "n", "x" }, "<C-j>", action("workbench.action.navigateDown"), "Go to below split or pane")
   map({ "n", "x" }, "<C-k>", action("workbench.action.navigateUp"), "Go to above split or pane")
