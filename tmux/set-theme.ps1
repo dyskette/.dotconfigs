@@ -27,6 +27,12 @@ if ($selected -notin 'dark', 'light') {
 
 $themeFile = if ($selected -eq 'light') { 'rose-pine-dawn.conf' } else { 'gruvbox.conf' }
 
+# Target the session this runs for (psmux exports it to run-shell commands).
+# `psmux set-option -g` without -t does not follow PSMUX_TARGET_SESSION and
+# lands on whichever session psmux picks, so one session's config load or
+# theme toggle would restyle another.
+$target = if ($env:PSMUX_TARGET_SESSION) { @('-t', $env:PSMUX_TARGET_SESSION) } else { @() }
+
 # The theme's "set -g <option> <value>" lines are replayed one psmux call at
 # a time instead of `psmux source-file`, working around two psmux 3.3.8 bugs:
 # a source-file sent from the command line resets every key binding to the
@@ -34,8 +40,8 @@ $themeFile = if ($selected -eq 'light') { 'rose-pine-dawn.conf' } else { 'gruvbo
 foreach ($line in Get-Content (Join-Path $PSScriptRoot $themeFile)) {
     if ($line -match '^\s*set(?:-option)?\s+-g\s+(\S+)\s+(?:"(.*)"|(\S+))\s*$') {
         $value = if ($null -ne $Matches[2]) { $Matches[2] } else { $Matches[3] }
-        psmux set-option -g $Matches[1] $value 2>$null
+        psmux set-option @target -g $Matches[1] $value 2>$null
     }
 }
 
-psmux set-environment -g SYSTEM_COLOR_THEME $selected
+psmux set-environment @target -g SYSTEM_COLOR_THEME $selected
