@@ -72,9 +72,13 @@ function set_command_title() {
 	printf "\033]2;%s\007" "$first_word" >/dev/tty
 }
 
+# At the prompt the title is the current folder (~ for home), so a tab or
+# tmux window reads as where the shell is rather than which shell it is.
 function reset_title() {
 	[[ $- != *i* ]] && return
-	printf "\033]2;bash\007" >/dev/tty
+	local dir="${PWD/#$HOME/\~}"
+	dir="${dir##*/}"
+	printf "\033]2;%s\007" "${dir:-/}" >/dev/tty
 }
 
 # History: append to the file after every command so concurrent shells and

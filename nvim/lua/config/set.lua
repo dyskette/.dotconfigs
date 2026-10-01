@@ -34,6 +34,11 @@ end
 vim.o.termguicolors = true
 vim.o.winborder = "single"
 
+-- Terminal title: the file being edited, so a tmux/psmux window and the
+-- terminal tab read "nvim lspconfig.lua"; %m adds [+] while it is modified.
+vim.o.title = true
+vim.o.titlestring = "nvim %t%( %m%)"
+
 -- Line numbers
 vim.o.number = true
 vim.o.relativenumber = true

@@ -49,7 +49,26 @@ function Invoke-Starship-PreCommand {
     {
         $prompt += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]27)\"
     }
+
+    # Title at the prompt: the current folder (~ for home), as bash does, so a
+    # tab or psmux window reads as where the shell is. Without it the title is
+    # pwsh.exe's full path.
+    $folder = if ($loc.ProviderPath -eq $HOME) { "~" } else { Split-Path -Leaf $loc.ProviderPath }
+    $prompt += "$([char]27)]2;$folder$([char]7)"
     $host.ui.Write($prompt)
+}
+
+# Title while a command runs: its first word (npm, dotnet, ...), as bash does.
+# PSReadLine calls this on Enter, just before the line executes; returning its
+# default decision keeps the usual history filtering (e.g. of secrets).
+Set-PSReadLineOption -AddToHistoryHandler {
+    param([string]$line)
+    $command = ($line.TrimStart() -split '\s+', 2)[0]
+    if ($command)
+    {
+        [Console]::Write("$([char]27)]2;$command$([char]7)")
+    }
+    [Microsoft.PowerShell.PSConsoleReadLine]::GetDefaultAddToHistoryOption($line)
 }
 
 if ($tools.starship)
