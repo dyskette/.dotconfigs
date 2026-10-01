@@ -65,6 +65,14 @@ local function on_lsp_attach()
       if client.name == "ruff" then
         client.server_capabilities.hoverProvider = false
       end
+
+      -- Browser preview, on demand only (mpls runs with --no-auto).
+      if client.name == "mpls" then
+        vim.keymap.set("n", "<leader>mp", "<cmd>LspMplsOpenPreview<cr>", {
+          buffer = args.buf,
+          desc = "Open markdown preview in the browser",
+        })
+      end
     end,
   })
 end
@@ -168,6 +176,18 @@ local function setup_language_servers()
   --
   -- Both servers attach to python buffers. on_lsp_attach drops ruff's hover so
   -- the type checker answers it alone.
+
+  -- Markdown
+  -- ========
+
+  -- Markdown Preview Language Server: a live browser preview with mermaid,
+  -- images, tables and math. nvim-lspconfig's lsp/mpls.lua already passes
+  -- --no-auto (without it the browser opens for every markdown file) and
+  -- defines :LspMplsOpenPreview; only the theme is set here, to match the
+  -- current background when the server starts.
+  vim.lsp.config("mpls", {
+    cmd = { "mpls", "--theme", vim.o.background, "--enable-emoji", "--enable-footnotes", "--no-auto" },
+  })
 
   -- JavaScript/TypeScript
   -- ====================
@@ -327,6 +347,7 @@ local function enable_language_servers()
       yml = "yamlls",
       xml = "lemminx",
       toml = "taplo",
+      markdown = "mpls",
       dart = "dartls",
       rust = "rust_analyzer",
       -- cs and razor: roslyn.nvim enables its server itself.
