@@ -315,3 +315,50 @@ function tm {
         psmux new-session -A -s $name -c $dir
     }
 }
+
+<#
+.SYNOPSIS
+    psmux (and its tmux alias) with tmux's detach-on-destroy off: when the
+    session the client is on ends because its last pane closed, attach to the
+    most recently used session left instead of dropping back to this shell.
+.DESCRIPTION
+    psmux has no detach-on-destroy, and a hook cannot move the client either:
+    the server exits right after running it. What psmux does keep is the
+    session a client last entered, switches included, in
+    ~/.psmux/last_session. If that session still has a port file once the
+    client is gone, the client was detached on purpose and the loop stops.
+    Only client commands from outside psmux are looped; everything else runs
+    as is.
+#>
+function Invoke-Psmux {
+    $exe = (Get-Command psmux -CommandType Application)[0].Source
+    $client = -not $env:TMUX -and (
+        $args.Count -eq 0 -or
+        $args[0] -in 'attach-session', 'attach', 'a', 'at' -or
+        ($args[0] -in 'new-session', 'new' -and $args -notcontains '-d'))
+
+    & $exe @args
+    if (-not $client)
+    {
+        return
+    }
+
+    $data = Join-Path $HOME '.psmux'
+    while ($true)
+    {
+        $last = Get-Content -LiteralPath (Join-Path $data 'last_session') -ErrorAction Ignore
+        if (-not $last -or (Test-Path -LiteralPath (Join-Path $data "$last.port")))
+        {
+            return
+        }
+        & $exe has-session 2>$null
+        if ($LASTEXITCODE -ne 0)
+        {
+            return
+        }
+        & $exe attach-session
+    }
+}
+
+function psmux { Invoke-Psmux @args }
+function tmux { Invoke-Psmux @args }
