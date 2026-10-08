@@ -64,6 +64,7 @@
 
         // GUI editors
         { "PackageIdentifier": "Microsoft.VisualStudioCode" },
+        { "PackageIdentifier": "Microsoft.VisualStudioCode.CLI" },
         { "PackageIdentifier": "ZedIndustries.Zed" },
 
         // GUI apps
