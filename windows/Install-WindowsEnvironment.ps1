@@ -156,11 +156,17 @@ function Invoke-WingetWithRetry {
         if ($attempt -lt $MaxAttempts) {
             Write-Host "winget exited with $exitCode. Retrying in ${DelaySeconds}s (attempt $($attempt + 1) of $MaxAttempts)..." -ForegroundColor Yellow
 
-            # exit -1978335217 / 0x8a15000f: source index data missing or corrupt,
-            # commonly seen on fresh images where winget ships without pre-fetched
-            # source data. 'source reset' re-downloads it before the next attempt.
+            # exit -1978335217 / 0x8a15000f: source index data missing or corrupt.
+            # 'source reset --force' alone only reconfigures the source list; the
+            # corrupt on-disk index.db under LocalState survives the reset and the
+            # error keeps recurring, so the cached state has to be wiped first.
             if ($exitCode -eq -1978335217) {
-                Write-Host "Resetting winget sources..." -ForegroundColor Yellow
+                Write-Host "Clearing winget source cache and resetting sources..." -ForegroundColor Yellow
+                $wingetState = "$env:LOCALAPPDATA\Microsoft\WinGet\State"
+                $wingetLocalState = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState"
+                Remove-Item -Path $wingetState -Recurse -Force -ErrorAction SilentlyContinue
+                Get-ChildItem -Path $wingetLocalState -Filter "*source*" -ErrorAction SilentlyContinue |
+                    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
                 Start-Process -FilePath "winget" -ArgumentList @("source", "reset", "--force") -NoNewWindow -Wait | Out-Null
             }
 
