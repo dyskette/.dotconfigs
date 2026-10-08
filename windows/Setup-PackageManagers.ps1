@@ -72,6 +72,37 @@ try {
             throw "Failed to find .msixbundle in release assets."
         }
 
+        # Dependencies (VCLibs/UI.Xaml) must be installed first, otherwise winget
+        # registers but fails to open sources at runtime (exit -1978335217).
+        $depsUrl = $latestJson.assets | Where-Object { $_.browser_download_url -like '*DesktopAppInstaller_Dependencies.zip' } | Select-Object -ExpandProperty browser_download_url
+        if ($depsUrl) {
+            $depsZipPath = "$env:TEMP\winget_deps.zip"
+            $depsExtractPath = "$env:TEMP\winget_deps"
+            Write-Host "Downloading winget dependencies from: $depsUrl" -ForegroundColor Gray
+            Invoke-WebRequest -Uri $depsUrl -OutFile $depsZipPath -UseBasicParsing
+
+            if (Test-Path $depsExtractPath) {
+                Remove-Item -Path $depsExtractPath -Recurse -Force
+            }
+            Expand-Archive -Path $depsZipPath -DestinationPath $depsExtractPath -Force
+
+            $arch = if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
+            $depPackages = Get-ChildItem -Path $depsExtractPath -Recurse -Filter "*.appx" | Where-Object { $_.FullName -like "*\$arch\*" }
+            foreach ($dep in $depPackages) {
+                Write-Host "Installing dependency: $($dep.Name)" -ForegroundColor Gray
+                try {
+                    Add-AppxPackage -Path $dep.FullName -ErrorAction Stop
+                } catch {
+                    Write-Warning "Could not install dependency $($dep.Name): $_"
+                }
+            }
+
+            Remove-Item -Path $depsZipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $depsExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+        } else {
+            Write-Warning "Could not find DesktopAppInstaller_Dependencies.zip in release assets; winget may fail to open sources."
+        }
+
         $msixPath = "$env:TEMP\Setup.msix"
         Write-Host "Downloading winget from: $wingetUrl" -ForegroundColor Gray
         Invoke-WebRequest -Uri $wingetUrl -OutFile $msixPath -UseBasicParsing
