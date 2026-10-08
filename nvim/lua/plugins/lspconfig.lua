@@ -2,16 +2,9 @@ local utils = require("config.utils")
 
 -- Remove Neovim 0.11+ default LSP keymaps that conflict with custom mappings
 -- These are global mappings, not buffer-local, so we delete them once at startup.
--- Runs from the spec's `init` rather than at file scope, so that importing this
--- file inside VS Code changes nothing. lazy.nvim runs `init` even for specs its
--- `cond` disabled, so the guard has to live here rather than on the spec:
--- `config.vscode` has already dropped these by the time this would run, and
--- `vim.keymap.del` throws on a mapping that is no longer there.
+-- Runs from the spec's `init` rather than at file scope, so that re-running
+-- `:source` does not throw on a mapping already deleted.
 local function clear_default_lsp_keymaps()
-  if vim.g.vscode then
-    return
-  end
-
   vim.keymap.del("n", "grn")
   vim.keymap.del("n", "gra")
   vim.keymap.del("x", "gra")
@@ -455,11 +448,6 @@ local roslyn_settings = {
 
 -- Runs at startup, before the plugin loads on its filetypes.
 local function roslyn_init()
-  -- lazy.nvim runs `init` even for specs its `cond` disabled.
-  if vim.g.vscode then
-    return
-  end
-
   -- The plugin is loaded by these filetypes, so it cannot be what detects them.
   vim.filetype.add({
     extension = {
@@ -477,7 +465,6 @@ return {
   -- Main LSP configuration plugin
   {
     "neovim/nvim-lspconfig",
-    cond = not vim.g.vscode,
     -- Never before the first screen: servers take far longer to initialise
     -- than this delay, and enable_language_servers() catches up on open
     -- buffers.
@@ -515,7 +502,6 @@ return {
   -- C# Roslyn language server
   {
     "seblyng/roslyn.nvim",
-    cond = not vim.g.vscode,
     -- Only load for C# and Razor files
     ft = { "cs", "razor" },
     opts = {

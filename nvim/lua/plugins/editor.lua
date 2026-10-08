@@ -17,7 +17,6 @@ return {
   -- Detect expandtab, tabstop, softtabstop and shiftwidth automatically
   {
     "nmac427/guess-indent.nvim",
-    cond = not vim.g.vscode,
     event = utils.events.LazyFile,
     opts = indent_opts,
     config = function(_, opts)
@@ -38,27 +37,23 @@ return {
   -- Close parenthesis, tags, quotes on insert
   {
     "windwp/nvim-autopairs",
-    cond = not vim.g.vscode,
     event = utils.events.InsertEnter,
     opts = autopairs_opts,
   },
   -- Close tags e.g. <div></div> on insert
   {
     "windwp/nvim-ts-autotag",
-    cond = not vim.g.vscode,
     event = utils.events.InsertEnter,
     opts = autotag_opts,
   },
   {
     "saecki/live-rename.nvim",
-    cond = not vim.g.vscode,
     keys = require("config.keymaps").live_rename,
     opts = live_rename_opts,
   },
   -- Show colors like #eb6f92 with a background of its own color
   {
     "brenoprata10/nvim-highlight-colors",
-    cond = not vim.g.vscode,
     -- setup() refreshes every open buffer, so loading late loses nothing.
     event = utils.events.LazyFile,
     opts = nvim_highlight_colors_opts,
@@ -66,7 +61,6 @@ return {
   -- Json tools
   {
     "VPavliashvili/json-nvim",
-    cond = not vim.g.vscode,
     ft = "json", -- only load for json filetype
   },
 }

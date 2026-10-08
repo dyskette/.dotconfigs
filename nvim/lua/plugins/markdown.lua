@@ -6,7 +6,6 @@
 -- protocol, which Windows Terminal does not implement.
 return {
   "MeanderingProgrammer/render-markdown.nvim",
-  cond = not vim.g.vscode,
   ft = { "markdown" },
   dependencies = {
     "nvim-treesitter/nvim-treesitter",

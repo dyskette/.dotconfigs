@@ -64,7 +64,6 @@ end
 return {
   {
     "williamboman/mason.nvim",
-    cond = not vim.g.vscode,
     -- Loaded as a dependency of nvim-lspconfig (VeryLazy), which is also what
     -- puts mason's bin directory on PATH for conform's formatters.
     cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUpdate", "MasonLog" },
@@ -72,7 +71,6 @@ return {
   },
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
-    cond = not vim.g.vscode,
     cmd = {
       "MasonToolsInstall",
       "MasonToolsInstallSync",

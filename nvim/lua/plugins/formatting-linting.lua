@@ -30,7 +30,6 @@ local conform_opts = {
 return {
   {
     "stevearc/conform.nvim",
-    cond = not vim.g.vscode,
     opts = conform_opts,
     keys = require("config.keymaps").conform,
   },

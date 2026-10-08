@@ -2,7 +2,8 @@
   "extensions": [
     "jdinhlife.gruvbox",
     "mvllow.rose-pine",
-    "asvetliakov.vscode-neovim",
+    "vscodevim.vim",
+    "kahole.magit",
     "haphazarddev.oil-code"
   ],
   "windows": [

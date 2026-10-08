@@ -18,7 +18,6 @@ local neogit_opts = {
 return {
   {
     "lewis6991/gitsigns.nvim",
-    cond = not vim.g.vscode,
     -- setup() attaches to buffers already open, so loading late loses nothing.
     event = utils.events.LazyFile,
     keys = require("config.keymaps").gitsigns,
@@ -26,7 +25,6 @@ return {
   },
   {
     "NeogitOrg/neogit",
-    cond = not vim.g.vscode,
     keys = require("config.keymaps").neogit,
     opts = neogit_opts,
     dependencies = {

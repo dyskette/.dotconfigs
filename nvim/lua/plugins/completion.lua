@@ -66,7 +66,6 @@ local blink_opts = {
 
 return {
   "saghen/blink.cmp",
-  cond = not vim.g.vscode,
   event = { utils.events.CmdlineEnter, utils.events.InsertEnter },
   dependencies = "rafamadriz/friendly-snippets",
   version = "*",

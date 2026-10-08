@@ -3,8 +3,6 @@ local utils = require("config.utils")
 -- Default indentation
 -- When guess-indent detects spaces, it will override: 'expandtab', 'tabstop', 'softtabstop', 'shiftwidth'
 -- When guess-indent detects tabs, it will use 'tabstop'
--- Inside VS Code the extension syncs these from the editor's own detection
--- instead, so what is set here is only the starting point.
 vim.o.expandtab = true
 vim.o.tabstop = 4
 vim.o.softtabstop = 4
@@ -20,15 +18,6 @@ vim.api.nvim_create_autocmd(utils.events.TextYankPost, {
     vim.hl.on_yank({ higroup = "IncSearch", timeout = 200 })
   end,
 })
-
--- Everything below draws the terminal UI, and none of it survives inside VS
--- Code: the editor owns line numbers, scrolloff, rulers and wrapping through
--- its own settings, diagnostics come from the extension host rather than from a
--- language server nvim ever talks to, and vscode-neovim force-sets 'list',
--- 'wrap', 'winborder' and 'colorcolumn' on every BufEnter regardless.
-if vim.g.vscode then
-  return
-end
 
 -- Pretty colors
 vim.o.termguicolors = true

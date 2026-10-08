@@ -1,14 +1,9 @@
 return {
   "ibhagwan/fzf-lua",
-  cond = not vim.g.vscode,
   dependencies = { "folke/trouble.nvim" },
   cmd = { "FzfLua" },
   keys = require("config.keymaps").fzf,
   init = function()
-    -- lazy.nvim runs `init` even for specs its `cond` disabled.
-    if vim.g.vscode then
-      return
-    end
     -- Stand-in until the first vim.ui.select: loading fzf-lua (config below)
     -- replaces it through register_ui_select(), and the call is passed on.
     local builtin_select = vim.ui.select

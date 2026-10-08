@@ -48,15 +48,6 @@ return {
     vim.keymap.set("x", "<", "<gv", { desc = "Indent backwards" })
     vim.keymap.set("x", ">", ">gv", { desc = "Indent forward" })
 
-    -- Everything below belongs to the terminal: VS Code owns the terminal
-    -- panel, the problems list, the language servers and the diagnostic UI, and
-    -- scrolling is driven by 'editor.cursorSurroundingLines' rather than by
-    -- 'scrolloff', so `zz` never reaches the viewport. `config.vscode` maps
-    -- these same keys onto the host's commands.
-    if vim.g.vscode then
-      return
-    end
-
     -- keep cursor in the middle of the buffer vertically and unfold (zv) if there is a fold
     vim.keymap.set("n", "n", "nzzzv", { desc = "Go to next coincidence" })
     vim.keymap.set("n", "N", "Nzzzv", { desc = "Go to previous coincidence" })
