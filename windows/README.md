@@ -18,8 +18,8 @@ If the repo is already cloned:
 # Run as Administrator — installs and configures everything
 .\Install-WindowsEnvironment.ps1
 
-# Skip specific phases
-.\Install-WindowsEnvironment.ps1 -SkipWSL
+# Opt in / skip specific phases
+.\Install-WindowsEnvironment.ps1 -InstallWSL
 .\Install-WindowsEnvironment.ps1 -SkipPackages -SkipFont
 ```
 
@@ -65,7 +65,7 @@ If the repo is already cloned:
 
 | Parameter | Description |
 |-----------|-------------|
-| `-SkipWSL` | Skip WSL installation |
+| `-InstallWSL` | Install WSL with Ubuntu 24.04 (opt-in, off by default) |
 | `-SkipPackages` | Skip winget package installation |
 | `-SkipConfiguration` | Skip dotfile linking |
 | `-SkipExtensions` | Skip editor extension installation |

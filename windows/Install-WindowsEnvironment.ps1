@@ -17,8 +17,8 @@
 #>
 
 param(
-    [Parameter(HelpMessage="Skip WSL installation")]
-    [switch]$SkipWSL,
+    [Parameter(HelpMessage="Install WSL with Ubuntu 24.04")]
+    [switch]$InstallWSL,
 
     [Parameter(HelpMessage="Skip package installation")]
     [switch]$SkipPackages,
@@ -198,14 +198,14 @@ function Update-SessionPath {
 
 # ── 1. WSL ──────────────────────────────────────────────────────────────────
 
-if (-not $SkipWSL) {
+if ($InstallWSL) {
     $wslResult = Invoke-Step -ScriptName "Install-WSL.ps1" -Parameters @{ ForceRestart = $true } -Description "Setting up WSL with Ubuntu 24.04"
     if ($wslResult.restart_required) {
         Write-Host "WSL installation requires a restart. Please run this script again after restart." -ForegroundColor Yellow
         exit 0
     }
 } else {
-    Write-Host "Skipping WSL installation." -ForegroundColor Yellow
+    Write-Host "Skipping WSL installation (use -InstallWSL to enable)." -ForegroundColor Yellow
 }
 
 # ── 2. Package installation ────────────────────────────────────────────────
