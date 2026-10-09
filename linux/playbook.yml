@@ -53,6 +53,7 @@
         - mpls
         - azure-functions-core-tools
         - aspire
+        - vscode-cli
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -129,6 +130,8 @@
       tags: [bin, azure-functions-core-tools]
     - import_tasks: tasks/bin/aspire.yml
       tags: [bin, aspire]
+    - import_tasks: tasks/bin/vscode-cli.yml
+      tags: [bin, vscode-cli]
 
     - name: Dotnet
       tags: dotnet

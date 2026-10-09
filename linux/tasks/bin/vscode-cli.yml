@@ -1,0 +1,44 @@
+---
+# Standalone `code` CLI (tunnels, headless use). Skipped on Fedora Silverblue
+# hosts, which get full VS Code via the flatpak in packages.yml instead; native
+# Fedora, Fedora toolbox containers, and Ubuntu get this standalone CLI.
+- name: Download VS Code CLI tarball
+  ansible.builtin.get_url:
+    url: https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64
+    dest: /tmp/vscode_cli.tar.gz
+    mode: "0644"
+  register: download_status
+  when: not is_fedora_silverblue
+
+- name: Remove existing VS Code CLI installation
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/vscode-cli"
+    state: absent
+  when: not is_fedora_silverblue and download_status.changed
+
+- name: Create VS Code CLI directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/opt/vscode-cli"
+    state: directory
+  when: not is_fedora_silverblue and download_status.changed
+
+- name: Extract VS Code CLI binary
+  ansible.builtin.unarchive:
+    src: /tmp/vscode_cli.tar.gz
+    dest: "{{ ansible_env.HOME }}/.local/opt/vscode-cli/"
+    remote_src: yes
+  when: not is_fedora_silverblue and download_status.changed
+
+- name: Create symlink to code binary
+  ansible.builtin.file:
+    src: "{{ ansible_env.HOME }}/.local/opt/vscode-cli/code"
+    dest: "{{ ansible_env.HOME }}/.local/bin/code"
+    state: link
+    force: yes
+  when: not is_fedora_silverblue
+
+- name: Clean up downloaded tarball
+  ansible.builtin.file:
+    path: /tmp/vscode_cli.tar.gz
+    state: absent
+  when: not is_fedora_silverblue
