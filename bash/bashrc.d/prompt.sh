@@ -121,14 +121,13 @@ function __prompt_init() {
 }
 
 function __prompt_command() {
-	# First, before anything overwrites $?. Later PROMPT_COMMAND entries
-	# (wezterm-shell-integration.sh) read the command's status from here.
-	__prompt_status=$?
+	# First, before anything overwrites $?.
+	local status=$?
 	history -a
 	reset_title
 
 	local style='\[\e[32m\]'
-	(( __prompt_status )) && style='\[\e[31m\]'
+	(( status )) && style='\[\e[31m\]'
 	PS1="${__prompt_head}${style}${__prompt_char}\[\e[0m\] "
 }
 
@@ -146,15 +145,6 @@ if [[ $- == *i* ]]; then
 	else
 		_theme=$(detect_terminal_theme)
 	fi
-
-	# WezTerm implements OSC 11 only for setting the background and never
-	# answers a query, so detect_terminal_theme comes back empty there and
-	# the theme would fall back to dark on a light background. It exports
-	# WEZTERM_THEME instead. Consulted only when the query went unanswered,
-	# so a terminal that does reply always wins -- the variable is
-	# inherited, and would otherwise leak a stale answer into a terminal
-	# that can answer for itself.
-	_theme="${_theme:-$WEZTERM_THEME}"
 
 	apply_theme "${_theme:-dark}"
 	unset _theme

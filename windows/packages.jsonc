@@ -59,7 +59,6 @@
 
         // Terminal emulators
         { "PackageIdentifier": "Microsoft.WindowsTerminal" },
-        { "PackageIdentifier": "wez.wezterm" },
 
         // GUI editors
         { "PackageIdentifier": "Microsoft.VisualStudioCode" },

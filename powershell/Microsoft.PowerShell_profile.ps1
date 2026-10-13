@@ -69,13 +69,12 @@ function prompt
     }
 
     # Report the working directory so the terminal can reopen a tab or
-    # split where this one is. OSC 9;9 is ConEmu's, and both Windows
-    # Terminal and WezTerm honour it.
+    # split where this one is. OSC 9;9 is ConEmu's, and Windows Terminal
+    # honours it.
     #
-    # OSC 9;12 ("prompt start") is ConEmu's too, but WezTerm implements
-    # OSC 9 as an iTerm2 toast instead and has no handler for the 12
-    # subcommand, so it posts a Windows notification whose entire body is
-    # "12" -- once per prompt. It is therefore emitted only under Windows
+    # OSC 9;12 ("prompt start") is ConEmu's too, but terminals that read
+    # OSC 9 as an iTerm2 toast instead post a notification whose entire body
+    # is "12" -- once per prompt. It is therefore emitted only under Windows
     # Terminal, matching the guard bash/bashrc.d/prompt.sh already puts on
     # its own OSC 9;9 line.
     $osc = ""

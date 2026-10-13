@@ -34,7 +34,7 @@ If the repo is already cloned:
 | **Compilers** | WinLibs (GCC/MinGW-w64 + GDB + Make + CMake) |
 | **CLI Tools** | make, wget, jq, yq, fzf, fd, eza, ripgrep, bat, less, yazi, ffmpeg |
 | **Shell** | PowerShell Core |
-| **Terminals** | Windows Terminal, WezTerm |
+| **Terminals** | Windows Terminal |
 | **Apps** | Firefox, Obsidian, KeePassXC, Dropbox |
 
 ### System Configuration
@@ -57,7 +57,6 @@ If the repo is already cloned:
 | vs | `vs/vsvimrc` | `$HOME\.vsvimrc` | Symlink |
 | vscode | `vscode/*.json` | `$APPDATA\Code\User\` | Symlink |
 | windows-terminal | `windows_terminal/settings.json` | Terminal LocalState | Symlink |
-| wezterm | `wezterm/*.lua` | `$HOME\.config\wezterm\` | Symlink |
 | zed | `zed/*.json` | `$APPDATA\Zed\` | Symlink |
 
 ## Parameters

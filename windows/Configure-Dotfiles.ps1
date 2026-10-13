@@ -105,12 +105,6 @@ $links = @(
         Type   = "SymbolicLink"
     }
     @{
-        App    = "wezterm"
-        Source = "wezterm\*.lua"
-        Target = "$env:USERPROFILE\.config\wezterm"
-        Type   = "Directory"
-    }
-    @{
         App    = "yazi"
         Source = "yazi"
         Target = "$env:APPDATA\yazi\config"

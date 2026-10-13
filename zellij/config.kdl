@@ -270,9 +270,9 @@ default_mode "locked"
 show_startup_tips false
 
 themes {
-    // Rose Pine Dawn, matching wezterm/rose-pine-dawn.lua and
-    // tmux/rose-pine-dawn.conf. Zellij ships no rose-pine theme, and the short
-    // 16-colour palette form is not enough here: Zellij derives the UI
+    // Rose Pine Dawn, matching tmux/rose-pine-dawn.conf. Zellij ships no
+    // rose-pine theme, and the short 16-colour palette form is not enough
+    // here: Zellij derives the UI
     // components from it and gives selected and unselected rows the same
     // background, so selections disappear. Spelled out per component, the way
     // Zellij's own light themes (gruvbox-light, catppuccin-latte) are.
