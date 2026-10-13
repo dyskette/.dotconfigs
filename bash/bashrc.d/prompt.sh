@@ -47,10 +47,8 @@ function detect_terminal_theme() {
 function apply_theme() {
 	local theme="$1"
 	if [[ "$theme" == "light" ]]; then
-		starship config palette rose-pine-dawn
 		export BAT_THEME='rose-pine-dawn'
 	else
-		starship config palette gruvbox
 		export BAT_THEME='gruvbox'
 	fi
 	export SYSTEM_COLOR_THEME="$theme"
@@ -61,8 +59,7 @@ function set_command_title() {
 	[[ $- != *i* ]] && return
 
 	case "$BASH_COMMAND" in
-		*"starship_precmd"*)   return ;;
-		*"__bp_trap_string"*)  return ;;
+		__*)                   return ;;
 		"$PROMPT_COMMAND")     return ;;
 		"trap - DEBUG")        return ;;
 		printf*\\e]*)          return ;;
@@ -90,33 +87,77 @@ HISTFILESIZE=200000
 HISTCONTROL=ignoreboth:erasedups
 HISTTIMEFORMAT='%F %T  '
 
+# The prompt: [󰣀 ][domain\]user@host dir ❯
+#
+# Plain bash only, no command substitution or external program: a fork is
+# what makes a prompt slow, and Git Bash's fork is especially expensive. Who
+# and where never change within a shell, so that part is built once; only the
+# status colour is set before each prompt. Colours are the terminal's own 16,
+# so they follow its light/dark theme by themselves.
+function __prompt_init() {
+	local user="${USER:-$USERNAME}" host="${HOSTNAME%%.*}"
+	local domain="" ssh="" user_style='\[\e[32m\]' char='❯'
+
+	# Domain accounts (AD, Entra ID) are domain\user, as whoami prints them,
+	# and that is the name runas, ACLs and shares want. A local Windows
+	# account's domain is the machine itself, so it is left out there.
+	if [[ -n "$USERDOMAIN" && "${USERDOMAIN,,}" != "${COMPUTERNAME,,}" ]]; then
+		domain="\[\e[2m\]${USERDOMAIN,,}\\\\\[\e[22m\]"
+	fi
+
+	# root, or an elevated Windows shell: only an elevated token carries the
+	# Administrators group (544).
+	if (( EUID == 0 )) || [[ " ${GROUPS[*]} " == *" 544 "* ]]; then
+		user_style='\[\e[1;31m\]'
+		char='#'
+	fi
+
+	if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]]; then
+		ssh='\[\e[33m\]󰣀\[\e[0m\] '
+	fi
+
+	__prompt_head="${ssh}${domain}${user_style}${user}\[\e[0m\]\[\e[34m\]@${host,,}\[\e[0m\] \[\e[36m\]\w\[\e[0m\] "
+	__prompt_char="$char"
+}
+
+function __prompt_command() {
+	# First, before anything overwrites $?. Later PROMPT_COMMAND entries
+	# (wezterm-shell-integration.sh) read the command's status from here.
+	__prompt_status=$?
+	history -a
+	reset_title
+
+	local style='\[\e[32m\]'
+	(( __prompt_status )) && style='\[\e[31m\]'
+	PS1="${__prompt_head}${style}${__prompt_char}\[\e[0m\] "
+}
+
 if [[ $- == *i* ]]; then
 	trap 'set_command_title' DEBUG
-	PROMPT_COMMAND="history -a; reset_title"
 
-	if command -v starship &>/dev/null; then
-		export STARSHIP_CONFIG="$HOME/.config/starship/config.toml"
-		eval "$(starship init bash)"
+	# \w keeps only the last three folders: ~/.../a/b/c
+	PROMPT_DIRTRIM=3
+	__prompt_init
+	PROMPT_COMMAND=__prompt_command
 
-		# Detect theme once at startup
-		if [[ -n "$TMUX" ]]; then
-			_theme=$(tmux show-environment -g SYSTEM_COLOR_THEME 2>/dev/null | cut -d= -f2)
-		else
-			_theme=$(detect_terminal_theme)
-		fi
-
-		# WezTerm implements OSC 11 only for setting the background and never
-		# answers a query, so detect_terminal_theme comes back empty there and
-		# the prompt would fall back to dark on a light background. It exports
-		# WEZTERM_THEME instead. Consulted only when the query went unanswered,
-		# so a terminal that does reply always wins -- the variable is
-		# inherited, and would otherwise leak a stale answer into a terminal
-		# that can answer for itself.
-		_theme="${_theme:-$WEZTERM_THEME}"
-
-		apply_theme "${_theme:-dark}"
-		unset _theme
+	# Detect theme once at startup
+	if [[ -n "$TMUX" ]]; then
+		_theme=$(tmux show-environment -g SYSTEM_COLOR_THEME 2>/dev/null | cut -d= -f2)
+	else
+		_theme=$(detect_terminal_theme)
 	fi
+
+	# WezTerm implements OSC 11 only for setting the background and never
+	# answers a query, so detect_terminal_theme comes back empty there and
+	# the theme would fall back to dark on a light background. It exports
+	# WEZTERM_THEME instead. Consulted only when the query went unanswered,
+	# so a terminal that does reply always wins -- the variable is
+	# inherited, and would otherwise leak a stale answer into a terminal
+	# that can answer for itself.
+	_theme="${_theme:-$WEZTERM_THEME}"
+
+	apply_theme "${_theme:-dark}"
+	unset _theme
 
 	# Emit OSC 9;9 so Windows Terminal can track CWD for duplicate tab/pane
 	if [[ -n "$WT_SESSION" ]] && command -v wslpath &>/dev/null; then

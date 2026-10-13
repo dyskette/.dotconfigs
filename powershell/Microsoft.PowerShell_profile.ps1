@@ -5,57 +5,112 @@ Set-PSReadLineKeyHandler -Key "Ctrl+d" -Function DeleteCharOrExit
 
 # One PATH scan for every tool the profile wires up, instead of one per tool.
 $tools = @{}
-Get-Command starship, nvim, yazi, fnm, dotnet -CommandType Application -ErrorAction SilentlyContinue |
+Get-Command nvim, yazi, fnm, dotnet -CommandType Application -ErrorAction SilentlyContinue |
     ForEach-Object { $tools[$_.Name -replace '\.exe$', ''] = $_.Source }
 
-function Invoke-Starship-PreCommand {
-    $theme = Get-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme
-    $name = if ($theme.AppsUseLightTheme) { "light" } else { "dark" }
-
-    # `starship config palette` starts a second starship and rewrites the
-    # config file, so it only runs when the Windows theme actually changed,
-    # not before every prompt.
-    if ($name -ne $global:StarshipPaletteTheme)
+# The prompt: [󰣀 ][domain\]user@host dir ❯
+#
+# Who and where never change within a shell, so that part is built once; each
+# prompt only shortens the path and picks the status colour, with no external
+# program or module, so it stays instant. Colours are the terminal's own 16,
+# so they follow its light/dark theme by themselves.
+& {
+    $user = [Environment]::UserName
+    $isAdmin = if ($IsWindows)
     {
-        if ($name -eq "light")
-        {
-            starship config palette rose-pine-dawn
-            $env:BAT_THEME = "rose-pine-dawn"
-        } else
-        {
-            starship config palette gruvbox
-            $env:BAT_THEME = "gruvbox"
-        }
-        $env:SYSTEM_COLOR_THEME = $name
-        $global:StarshipPaletteTheme = $name
+        [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+            [Security.Principal.WindowsBuiltInRole]::Administrator)
+    } else
+    {
+        $user -eq 'root'
+    }
+    $global:PromptChar = if ($isAdmin) { '#' } else { '❯' }
+    $head = if ($isAdmin) { "`e[1;31m$user`e[0m" } else { "`e[32m$user`e[0m" }
+
+    # Domain accounts (AD, Entra ID) are domain\user, as whoami prints
+    # them, and that is the name runas, ACLs and shares want. A local
+    # account's domain is the machine itself, so it is left out there.
+    $domain = if ($IsWindows) { [Environment]::UserDomainName }
+    if ($domain -and $domain -ne [Environment]::MachineName)
+    {
+        $head = "`e[2m$($domain.ToLower())\`e[22m$head"
     }
 
-    # Report the working directory so the terminal can reopen a tab or split
-    # where this one is. OSC 9;9 is ConEmu's, and both Windows Terminal and
-    # WezTerm honour it.
+    if ($env:SSH_CONNECTION)
+    {
+        $head = "`e[33m󰣀`e[0m $head"
+    }
+
+    $global:PromptHead = "$head`e[34m@$([Environment]::MachineName.ToLower())`e[0m "
+}
+
+# PSReadLine redraws this part of the prompt in red while the line has a
+# syntax error.
+Set-PSReadLineOption -PromptText "$global:PromptChar "
+
+function prompt
+{
+    $ok = $?
+    $loc = $executionContext.SessionState.Path.CurrentLocation
+
+    # Follow the Windows app theme for the tools that read it: bat, and
+    # psmux through SYSTEM_COLOR_THEME. A direct registry read, as
+    # Get-ItemProperty costs a provider round trip on every prompt.
+    if ($IsWindows)
+    {
+        $light = [Microsoft.Win32.Registry]::GetValue(
+            'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize', 'AppsUseLightTheme', 0)
+        $theme = if ($light) { 'light' } else { 'dark' }
+        if ($theme -ne $env:SYSTEM_COLOR_THEME -or -not $env:BAT_THEME)
+        {
+            $env:SYSTEM_COLOR_THEME = $theme
+            $env:BAT_THEME = if ($light) { 'rose-pine-dawn' } else { 'gruvbox' }
+        }
+    }
+
+    # Report the working directory so the terminal can reopen a tab or
+    # split where this one is. OSC 9;9 is ConEmu's, and both Windows
+    # Terminal and WezTerm honour it.
     #
-    # OSC 9;12 ("prompt start") is ConEmu's too, but WezTerm implements OSC 9
-    # as an iTerm2 toast instead and has no handler for the 12 subcommand, so
-    # it posts a Windows notification whose entire body is "12" -- once per
-    # prompt. It is therefore emitted only under Windows Terminal, matching the
-    # guard bash/bashrc.d/starship.sh already puts on its own OSC 9;9 line.
-    $loc = $executionContext.SessionState.Path.CurrentLocation;
-    $prompt = ""
+    # OSC 9;12 ("prompt start") is ConEmu's too, but WezTerm implements
+    # OSC 9 as an iTerm2 toast instead and has no handler for the 12
+    # subcommand, so it posts a Windows notification whose entire body is
+    # "12" -- once per prompt. It is therefore emitted only under Windows
+    # Terminal, matching the guard bash/bashrc.d/prompt.sh already puts on
+    # its own OSC 9;9 line.
+    $osc = ""
     if ($env:WT_SESSION)
     {
-        $prompt += "$([char]27)]9;12$([char]7)"
+        $osc += "`e]9;12`a"
     }
     if ($loc.Provider.Name -eq "FileSystem")
     {
-        $prompt += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]27)\"
+        $osc += "`e]9;9;`"$($loc.ProviderPath)`"`e\"
     }
 
-    # Title at the prompt: the current folder (~ for home), as bash does, so a
-    # tab or psmux window reads as where the shell is. Without it the title is
-    # pwsh.exe's full path.
+    # Title at the prompt: the current folder (~ for home), as bash does,
+    # so a tab or psmux window reads as where the shell is. Without it the
+    # title is pwsh.exe's full path.
     $folder = if ($loc.ProviderPath -eq $HOME) { "~" } else { Split-Path -Leaf $loc.ProviderPath }
-    $prompt += "$([char]27)]2;$folder$([char]7)"
-    $host.ui.Write($prompt)
+    $host.UI.Write("$osc`e]2;$folder`a")
+
+    # ~ for home, and only the last three folders, as bash's
+    # PROMPT_DIRTRIM=3: ~\...\a\b\c
+    $path = if ($loc.Provider.Name -eq "FileSystem") { $loc.ProviderPath } else { $loc.Path }
+    $sep = [IO.Path]::DirectorySeparatorChar
+    if ($path.StartsWith($HOME, [StringComparison]::OrdinalIgnoreCase) -and
+        ($path.Length -eq $HOME.Length -or $path[$HOME.Length] -eq $sep))
+    {
+        $path = "~" + $path.Substring($HOME.Length)
+    }
+    $parts = $path.Split($sep)
+    if ($parts.Count -gt 4)
+    {
+        $path = $parts[0] + $sep + "..." + $sep + ($parts[-3..-1] -join $sep)
+    }
+
+    $style = if ($ok) { "`e[32m" } else { "`e[31m" }
+    "$global:PromptHead`e[36m$path`e[0m $style$global:PromptChar`e[0m "
 }
 
 # Title while a command runs: its first word (npm, dotnet, ...), as bash does.
@@ -69,34 +124,6 @@ Set-PSReadLineOption -AddToHistoryHandler {
         [Console]::Write("$([char]27)]2;$command$([char]7)")
     }
     [Microsoft.PowerShell.PSConsoleReadLine]::GetDefaultAddToHistoryOption($line)
-}
-
-if ($tools.starship)
-{
-    $env:STARSHIP_CONFIG = "$HOME\.dotconfigs\starship\config.toml"
-
-    # The theme the config's palette already matches, so the first prompt of
-    # a shell does not rewrite it either.
-    $palette = (Select-String -LiteralPath $env:STARSHIP_CONFIG -Pattern '^palette = "(.+)"' -List).Matches.Groups[1].Value
-    $global:StarshipPaletteTheme = switch ($palette) { "rose-pine-dawn" { "light" } "gruvbox" { "dark" } }
-    if ($global:StarshipPaletteTheme)
-    {
-        $env:SYSTEM_COLOR_THEME = $global:StarshipPaletteTheme
-        $env:BAT_THEME = $palette
-    }
-
-    # `starship init powershell` only prints a line that runs starship again
-    # for the full script, so every shell paid for two starship processes and
-    # an Invoke-Expression. The full script is cached instead, and rebuilt
-    # whenever starship.exe is newer than the cache (i.e. after an update).
-    $starshipInit = Join-Path $env:LOCALAPPDATA "starship\init.ps1"
-    $initFile = Get-Item -LiteralPath $starshipInit -ErrorAction SilentlyContinue
-    if (-not $initFile -or $initFile.LastWriteTime -lt (Get-Item -LiteralPath $tools.starship).LastWriteTime)
-    {
-        $null = New-Item -ItemType Directory -Force -Path (Split-Path $starshipInit)
-        & $tools.starship init powershell --print-full-init | Set-Content -LiteralPath $starshipInit -Encoding utf8
-    }
-    . $starshipInit
 }
 
 if (-not $env:SHELL)

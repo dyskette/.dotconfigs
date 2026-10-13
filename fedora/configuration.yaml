@@ -51,13 +51,6 @@
       args:
         creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:eza-community:eza.repo
 
-    - name: Enable COPR repository for starship
-      become: yes
-      ansible.builtin.command:
-        cmd: dnf -y copr enable starship/starship
-      args:
-        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:starship:starship.repo
-
     - name: Enable COPR repository for fnm
       become: yes
       ansible.builtin.command:
@@ -92,7 +85,6 @@
           - ripgrep
           - ffmpeg
           - yazi
-          - starship
           - bat
           - azure-cli
           - azure-functions-core-tools

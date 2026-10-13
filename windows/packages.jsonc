@@ -49,7 +49,6 @@
         { "PackageIdentifier": "jstarks.npiperelay" },
 
         // Shell
-        { "PackageIdentifier": "Starship.Starship" },
         { "PackageIdentifier": "Microsoft.PowerShell" },
 
         // TUI apps

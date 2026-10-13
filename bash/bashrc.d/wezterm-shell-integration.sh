@@ -8,8 +8,8 @@
 #   - new splits    inherit the current directory
 #   - status bar    git branch and dirty count, at no rendering cost
 #
-# Must be sourced after starship.sh, which owns PS1 and PROMPT_COMMAND. The
-# bashrc.d loader sources in glob order, and "w" sorts after "s".
+# Must be sourced after prompt.sh, which owns PS1 and PROMPT_COMMAND. The
+# bashrc.d loader sources in glob order, and "w" sorts after "p".
 
 # Confine every effect to interactive WezTerm sessions: nothing here should
 # alter a script, an ssh session or another terminal.
@@ -45,10 +45,10 @@ __wf_git_status() {
 }
 
 __wf_precmd() {
-	# Starship records the real command status before its own prompt logic
+	# prompt.sh records the real command status before its own prompt logic
 	# runs; without it $? here would be the status of the previous
 	# PROMPT_COMMAND entry rather than the user's command.
-	local cmd_status=${STARSHIP_CMD_STATUS:-$?}
+	local cmd_status=${__prompt_status:-$?}
 
 	__wf_osc "133;D;${cmd_status}"
 	__wf_osc "133;A"
@@ -59,7 +59,7 @@ __wf_precmd() {
 
 	__wf_set_user_var "WF_GIT" "$(__wf_git_status)"
 
-	# Starship rewrites PS1 every prompt, so the input-start marker is
+	# prompt.sh rewrites PS1 every prompt, so the input-start marker is
 	# re-appended each time rather than once at startup.
 	case "$PS1" in
 	*'133;B'*) ;;
@@ -76,7 +76,7 @@ case "$PS0" in
 *) PS0="${PS0}"'\e]133;C\a' ;;
 esac
 
-# Append, never prepend: this has to run after starship has set PS1.
+# Append, never prepend: this has to run after prompt.sh has set PS1.
 if [[ ${PROMPT_COMMAND@a} == *a* ]]; then
 	PROMPT_COMMAND+=(__wf_precmd)
 else

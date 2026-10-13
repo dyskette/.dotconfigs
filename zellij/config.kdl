@@ -406,6 +406,6 @@ themes {
 // Which of these is active follows the color scheme the host terminal reports
 // over DEC mode 2031. Terminals that don't implement it (Windows Terminal)
 // never report, and Zellij then stays on theme_dark -- the shell relays the
-// theme to it instead, see sync_zellij_theme in bash/bashrc.d/starship.sh.
+// theme to it instead, see sync_zellij_theme in bash/bashrc.d/prompt.sh.
 theme_dark "gruvbox-dark"
 theme_light "rose-pine-dawn"

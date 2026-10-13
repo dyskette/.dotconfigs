@@ -33,7 +33,7 @@ If the repo is already cloned:
 | **Languages** | Python 3.12, Deno, fnm (Node.js) |
 | **Compilers** | WinLibs (GCC/MinGW-w64 + GDB + Make + CMake) |
 | **CLI Tools** | make, wget, jq, yq, fzf, fd, eza, ripgrep, bat, less, yazi, ffmpeg |
-| **Shell** | PowerShell Core, Starship prompt |
+| **Shell** | PowerShell Core |
 | **Terminals** | Windows Terminal, WezTerm |
 | **Apps** | Firefox, Obsidian, KeePassXC, Dropbox |
 
@@ -52,7 +52,6 @@ If the repo is already cloned:
 | nvim | `nvim/` | `$LOCALAPPDATA\nvim` | Junction |
 | powershell | `powershell/` | `$HOME\Documents\PowerShell` | Junction |
 | bat | `bat/` | `$APPDATA\bat` | Junction |
-| starship | `starship/` | `$HOME\.config\starship` | Junction |
 | bash | `bash/bashrc` | `$HOME\.bashrc` | Symlink |
 | bash | `bash/bashrc.d/` | `$HOME\.bashrc.d` | Junction |
 | vs | `vs/vsvimrc` | `$HOME\.vsvimrc` | Symlink |

@@ -56,13 +56,6 @@ $links = @(
         PostHook = { bat cache --build 2>&1 | Out-Null }
     }
     @{
-        App    = "starship"
-        Source = "starship"
-        Target = "$env:USERPROFILE\.config\starship"
-        Type   = "Junction"
-        EnvVar = @{ Name = "STARSHIP_CONFIG"; Value = "$env:USERPROFILE\.config\starship\config.toml"; Scope = "User" }
-    }
-    @{
         App    = "bash"
         Source = "bash\bashrc"
         Target = "$env:USERPROFILE\.bashrc"

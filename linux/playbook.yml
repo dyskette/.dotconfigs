@@ -34,7 +34,6 @@
         - yazi
         - jq
         - yq
-        - starship
         - imagemagick
         - tmux
         - zed
@@ -92,8 +91,6 @@
       tags: [bin, jq]
     - import_tasks: tasks/bin/yq.yml
       tags: [bin, yq]
-    - import_tasks: tasks/bin/starship.yml
-      tags: [bin, starship]
     - import_tasks: tasks/bin/imagemagick.yml
       tags: [bin, imagemagick]
     - import_tasks: tasks/bin/tmux.yml
