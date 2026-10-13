@@ -266,46 +266,46 @@ return {
     },
   },
 
-  fzf = {
+  picker = {
     {
       "<leader>sf",
       function()
-        require("fzf-lua").files()
+        Snacks.picker.files()
       end,
       desc = "Search files",
     },
     {
       "<leader>sr",
       function()
-        require("fzf-lua").oldfiles({ cwd_only = true, include_current_session = true })
+        Snacks.picker.recent({ filter = { cwd = true } })
       end,
       desc = "Search recent files (current working directory only)",
     },
     {
       "<leader>si",
       function()
-        require("fzf-lua").git_files()
+        Snacks.picker.git_files()
       end,
       desc = "Search git files",
     },
     {
       "<leader>sg",
       function()
-        require("fzf-lua").live_grep()
+        Snacks.picker.grep()
       end,
       desc = "Search by grep",
     },
     {
       "<leader>sw",
       function()
-        require("fzf-lua").grep_cword()
+        Snacks.picker.grep_word()
       end,
       desc = "Search current word",
     },
     {
       "<leader>sw",
       function()
-        require("fzf-lua").grep_visual()
+        Snacks.picker.grep_word()
       end,
       mode = "x",
       desc = "Search current selection",
@@ -313,56 +313,56 @@ return {
     {
       "<leader>sb",
       function()
-        require("fzf-lua").buffers()
+        Snacks.picker.buffers()
       end,
       desc = "Search buffers",
     },
     {
       "<leader>so",
       function()
-        require("fzf-lua").lsp_workspace_symbols()
+        Snacks.picker.lsp_workspace_symbols()
       end,
       desc = "Search workspace symbols",
     },
     {
       "gd",
       function()
-        require("fzf-lua").lsp_definitions()
+        Snacks.picker.lsp_definitions()
       end,
       desc = "Go to definition",
     },
     {
       "gD",
       function()
-        require("fzf-lua").lsp_declarations()
+        Snacks.picker.lsp_declarations()
       end,
       desc = "Go to declaration",
     },
     {
       "gi",
       function()
-        require("fzf-lua").lsp_implementations()
+        Snacks.picker.lsp_implementations()
       end,
       desc = "Go to implementation",
     },
     {
       "go",
       function()
-        require("fzf-lua").lsp_typedefs()
+        Snacks.picker.lsp_type_definitions()
       end,
       desc = "Go to definition of the type",
     },
     {
       "gr",
       function()
-        require("fzf-lua").lsp_references()
+        Snacks.picker.lsp_references()
       end,
       desc = "Go to references",
     },
     {
       "<leader>va",
       function()
-        require("fzf-lua").lsp_code_actions()
+        vim.lsp.buf.code_action()
       end,
       mode = { "n", "x" },
       desc = "View LSP code actions",
