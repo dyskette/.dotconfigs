@@ -62,6 +62,14 @@ local blink_opts = {
   snippets = {
     preset = "default",
   },
+  -- The Lua matcher rather than the Rust one: on every start the Rust one
+  -- checks its prebuilt binary against the plugin version, which is two git
+  -- processes and a certutil hash (~125 ms of process starts on Windows),
+  -- download or not. The Lua one has no typo tolerance or frecency, which
+  -- matters little at completion-list sizes.
+  fuzzy = {
+    implementation = "lua",
+  },
 }
 
 return {
