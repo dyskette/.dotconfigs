@@ -3,22 +3,21 @@
 function detect_terminal_theme() {
 	[[ -e /dev/tty ]] || return 1
 
-	local old_stty fd response
-	old_stty=$(stty -g -F /dev/tty 2>/dev/null) || return 1
-
+	local fd response
 	exec {fd}<>/dev/tty
-	stty -F /dev/tty raw -echo min 0 time 1 2>/dev/null || { exec {fd}>&-; return 1; }
 
+	# Read up to the BEL that ends the reply rather than a fixed byte count
+	# under a 100ms window: terminals that answer late (Zed, while it starts)
+	# otherwise leave the reply in the input queue, where readline prints it
+	# at the first prompt. -s turns echo off, -d puts the tty in cbreak.
 	printf '\033]11;?\007' >&"$fd"
-	response=$(dd bs=1 count=64 <&"$fd" 2>/dev/null)
-
-	stty -F /dev/tty "$old_stty" 2>/dev/null
+	IFS= read -rs -d $'\a' -t 0.5 -u "$fd" response
 	exec {fd}>&-
 
 	[[ -z "$response" ]] && return 1
 
-	# Strip BEL / ST terminators
-	response="${response%%$'\007'*}"
+	# Terminals that end the reply with ST instead of BEL hit the timeout;
+	# the partial read still holds the colour.
 	response="${response%%$'\033\\'*}"
 
 	# Extract rgb:R/G/B from OSC 11 response
