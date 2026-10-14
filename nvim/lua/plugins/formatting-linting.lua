@@ -1,3 +1,5 @@
+local mason_cmd = require("config.mason_cmd")
+
 -- Formatting prefers the language servers that are already running over
 -- starting a formatter process per format: ruff for python, and the json and
 -- yaml servers (yaml-language-server bundles prettier, so its output is
@@ -66,37 +68,35 @@ local ruff_organize_imports_lsp = {
   end,
 }
 
---- On Windows, mason puts a .cmd shim in its bin/ for every tool, so each
---- format would start cmd.exe before the formatter (prettier's shim even
---- calls a second .cmd, which calls node). These run the program the shim
---- points to directly. A package that is not installed keeps conform's
---- default command, so the error is the usual "not found".
-local function direct_commands()
-  if vim.fn.has("win32") == 0 then
-    return {}
-  end
-  local packages = vim.fn.stdpath("data") .. "/mason/packages/"
-  local exists = function(path)
-    return vim.uv.fs_stat(packages .. path) ~= nil
-  end
-
+--- conform's formatter overrides that start mason tools without their
+--- Windows shim (see config/mason_cmd.lua): the program, and for node tools
+--- node with the script, ahead of the formatter's own arguments. A tool that
+--- is not installed keeps conform's default command and its usual error.
+--- @param tools table<string, string> conform formatter name -> mason command name
+local function direct_commands(tools)
   local formatters = {}
-  if exists("stylua/stylua.exe") then
-    formatters.stylua = { command = packages .. "stylua/stylua.exe" }
-  end
-  if exists("beautysh/venv/Scripts/beautysh.exe") then
-    formatters.beautysh = { command = packages .. "beautysh/venv/Scripts/beautysh.exe" }
-  end
-  if exists("prettier/node_modules/prettier/bin/prettier.cjs") then
-    formatters.prettier = {
-      command = "node",
-      prepend_args = { packages .. "prettier/node_modules/prettier/bin/prettier.cjs" },
-    }
+  for formatter, command in pairs(tools) do
+    local direct = mason_cmd.resolve(command)
+    if direct then
+      formatters[formatter] = { command = table.remove(direct, 1), prepend_args = direct }
+    end
   end
   return formatters
 end
 
 local conform_opts = function()
+  local formatters = direct_commands({
+    stylua = "stylua",
+    beautysh = "beautysh",
+    prettier = "prettier",
+    sql_formatter = "sql-formatter",
+  })
+  formatters.ruff_organize_imports_lsp = ruff_organize_imports_lsp
+  -- After the script, when sql-formatter runs through node.
+  formatters.sql_formatter = formatters.sql_formatter or {}
+  formatters.sql_formatter.prepend_args =
+    vim.list_extend(formatters.sql_formatter.prepend_args or {}, { "-l", "postgresql" })
+
   return {
     -- A default rather than an argument of the format() call, as a call
     -- argument would override the per-filetype lsp_format below.
@@ -118,12 +118,7 @@ local conform_opts = function()
       markdown = { "prettier" },
       sql = { "sql_formatter" },
     },
-    formatters = vim.tbl_deep_extend("force", direct_commands(), {
-      ruff_organize_imports_lsp = ruff_organize_imports_lsp,
-      sql_formatter = {
-        prepend_args = { "-l", "postgresql" },
-      },
-    }),
+    formatters = formatters,
   }
 end
 

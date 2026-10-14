@@ -1,4 +1,5 @@
 local utils = require("config.utils")
+local mason_cmd = require("config.mason_cmd")
 
 -- Remove Neovim 0.11+ default LSP keymaps that conflict with custom mappings
 -- These are global mappings, not buffer-local, so we delete them once at startup.
@@ -318,6 +319,23 @@ local function enable_language_servers()
   local enabled_servers = {}
   local group = vim.api.nvim_create_augroup("dyskette_lsp_filetype", { clear = true })
 
+  -- Once per server: start it without mason's Windows shim (see
+  -- config/mason_cmd.lua), then enable it. vim.lsp.config[server] is the
+  -- resolved config, nvim-lspconfig's lsp/ files included, so this works for
+  -- the commands defined above and the ones taken from nvim-lspconfig alike.
+  local function enable(server)
+    if enabled_servers[server] then
+      return
+    end
+    enabled_servers[server] = true
+    local cmd = vim.lsp.config[server] and vim.lsp.config[server].cmd
+    local direct = type(cmd) == "table" and mason_cmd.resolve(cmd[1])
+    if direct then
+      vim.lsp.config(server, { cmd = vim.list_extend(direct, cmd, 2) })
+    end
+    vim.lsp.enable(server)
+  end
+
   local function enable_for(ft)
     local server_map = {
       lua = "lua_ls",
@@ -348,18 +366,8 @@ local function enable_language_servers()
 
     local servers = server_map[ft]
     if servers then
-      if type(servers) == "table" then
-        for _, server in ipairs(servers) do
-          if not enabled_servers[server] then
-            vim.lsp.enable(server)
-            enabled_servers[server] = true
-          end
-        end
-      else
-        if not enabled_servers[servers] then
-          vim.lsp.enable(servers)
-          enabled_servers[servers] = true
-        end
+      for _, server in ipairs(type(servers) == "table" and servers or { servers }) do
+        enable(server)
       end
 
       -- Also enable eslint for JS/TS files
@@ -370,10 +378,7 @@ local function enable_language_servers()
         or ft == "typescriptreact"
         or ft == "vue"
       then
-        if not enabled_servers["eslint"] then
-          vim.lsp.enable("eslint")
-          enabled_servers["eslint"] = true
-        end
+        enable("eslint")
       end
     end
   end
