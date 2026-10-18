@@ -98,6 +98,13 @@ function __prompt_init() {
 	local user="${USER:-$USERNAME}" host="${HOSTNAME%%.*}"
 	local domain="" ssh="" user_style='\[\e[32m\]' char='❯'
 
+	# In a Toolbx container a login shell (toolbox enter) gets HOSTNAME from
+	# /etc/profile's hostnamectl, which asks the host over the shared D-Bus,
+	# while a non-login shell gets the container's own. Use the container's.
+	if [[ -f /run/.toolboxenv ]]; then
+		read -r host </etc/hostname
+	fi
+
 	# Domain accounts (AD, Entra ID) are domain\user, as whoami prints them,
 	# and that is the name runas, ACLs and shares want. A local Windows
 	# account's domain is the machine itself, so it is left out there.
