@@ -25,7 +25,6 @@
         { "PackageIdentifier": "ezwinports.make" },
 
         // Database CLIs
-        { "PackageIdentifier": "PostgreSQL.PostgreSQL.18" },
         { "PackageIdentifier": "Microsoft.Sqlcmd" },
         { "PackageIdentifier": "Oracle.InstantClient.Basic" },
 
