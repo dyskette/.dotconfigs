@@ -33,6 +33,11 @@
   loop:
     - { path: "{{ ansible_env.HOME }}/.config/zed/" }
 
+- name: Dotfiles | Create lazygit directory
+  ansible.builtin.file:
+    path: "{{ config_dir }}/lazygit"
+    state: directory
+
 - name: Dotfiles | Create symbolic links
   ansible.builtin.file:
     src: "{{ repository_dir }}/{{ item.src }}"
@@ -44,6 +49,7 @@
     - { src: "bash/bashrc", dest: "{{ ansible_env.HOME }}/.bashrc" }
     - { src: "bash/bashrc.d", dest: "{{ ansible_env.HOME }}/.bashrc.d" }
     - { src: "bat", dest: "{{ config_dir }}/bat" }
+    - { src: "lazygit/config.yml", dest: "{{ config_dir }}/lazygit/config.yml" }
     - { src: "claude/settings.json", dest: "{{ ansible_env.HOME }}/.claude/settings.json" }
     - { src: "ghostty", dest: "{{ config_dir }}/ghostty" }
     - { src: "jetbrains/ideavimrc", dest: "{{ ansible_env.HOME }}/.ideavimrc" }
@@ -57,6 +63,15 @@
     - { src: "zellij", dest: "{{ config_dir }}/zellij" }
     - { src: "yazi", dest: "{{ config_dir }}/yazi" }
     - { src: "opencode", dest: "{{ config_dir }}/opencode" }
+  tags: dotfiles
+
+# The lazygit pager is delta, which reads its settings from git config.
+- name: Dotfiles | Include delta settings in the global git config
+  community.general.git_config:
+    name: include.path
+    value: "{{ repository_dir }}/git/delta.gitconfig"
+    add_mode: add
+    scope: global
   tags: dotfiles
 
 - name: Dotfiles | Install yazi packages

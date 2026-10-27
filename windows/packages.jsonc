@@ -22,6 +22,8 @@
 
         // Version control and build tools
         { "PackageIdentifier": "Git.Git" },
+        { "PackageIdentifier": "JesseDuffield.lazygit" },
+        { "PackageIdentifier": "dandavison.delta" },
         { "PackageIdentifier": "ezwinports.make" },
 
         // Database CLIs

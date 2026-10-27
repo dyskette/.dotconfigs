@@ -1,0 +1,13 @@
+# Settings for delta (https://github.com/dandavison/delta), included from the
+# global gitconfig by the installers. Delta reads its options from git config
+# even when it is not git's pager.
+
+# Delta cannot query the terminal background from inside lazygit, and the
+# light syntax theme (rose-pine-dawn) is not one it recognizes as light. The
+# shell prompts export DELTA_FEATURES=+dark or +light next to BAT_THEME, which
+# delta also reads, so both follow the system theme.
+[delta "dark"]
+    dark = true
+
+[delta "light"]
+    light = true

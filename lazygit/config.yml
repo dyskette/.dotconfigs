@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jesseduffield/lazygit/master/schema/config.json
+git:
+  pagers:
+    # lazygit owns scrolling, so delta must not start a pager of its own.
+    # Light/dark comes from DELTA_FEATURES, see git/delta.gitconfig.
+    - pager: delta --paging=never

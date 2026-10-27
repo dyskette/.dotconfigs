@@ -43,6 +43,20 @@ $links = @(
         Type   = "Junction"
     }
     @{
+        # A file link, not a junction: lazygit keeps state.yml in this folder.
+        App    = "lazygit"
+        Source = "lazygit\config.yml"
+        Target = "$env:LOCALAPPDATA\lazygit\config.yml"
+        Type   = "SymbolicLink"
+        # The pager in config.yml is delta, which reads its settings from git config.
+        PostHook = {
+            $deltaConfig = (Join-Path $dotfilesRoot "git\delta.gitconfig") -replace '\\', '/'
+            if (@(git config --global --get-all include.path) -notcontains $deltaConfig) {
+                git config --global --add include.path $deltaConfig
+            }
+        }
+    }
+    @{
         App    = "powershell"
         Source = "powershell"
         Target = "$env:USERPROFILE\Documents\PowerShell"

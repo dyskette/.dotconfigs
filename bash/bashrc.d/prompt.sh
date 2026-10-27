@@ -51,6 +51,7 @@ function apply_theme() {
 		export BAT_THEME='gruvbox'
 	fi
 	export SYSTEM_COLOR_THEME="$theme"
+	export DELTA_FEATURES="+$theme"
 }
 
 # Set the pane title to the command being run

@@ -53,18 +53,20 @@ function prompt
     $ok = $?
     $loc = $executionContext.SessionState.Path.CurrentLocation
 
-    # Follow the Windows app theme for the tools that read it: bat, and
-    # psmux through SYSTEM_COLOR_THEME. A direct registry read, as
+    # Follow the Windows app theme for the tools that read it: bat, delta,
+    # and psmux through SYSTEM_COLOR_THEME. A direct registry read, as
     # Get-ItemProperty costs a provider round trip on every prompt.
     if ($IsWindows)
     {
         $light = [Microsoft.Win32.Registry]::GetValue(
             'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize', 'AppsUseLightTheme', 0)
         $theme = if ($light) { 'light' } else { 'dark' }
-        if ($theme -ne $env:SYSTEM_COLOR_THEME -or -not $env:BAT_THEME)
+        if ($theme -ne $env:SYSTEM_COLOR_THEME -or -not $env:BAT_THEME -or -not $env:DELTA_FEATURES)
         {
             $env:SYSTEM_COLOR_THEME = $theme
             $env:BAT_THEME = if ($light) { 'rose-pine-dawn' } else { 'gruvbox' }
+            # Selects the [delta "dark"] or [delta "light"] section of git/delta.gitconfig.
+            $env:DELTA_FEATURES = "+$theme"
         }
     }
 

@@ -38,6 +38,7 @@
         - tmux
         - zed
         - lazygit
+        - delta
         - azure-cli
         - tree-sitter-cli
         - jetbrains-mono-nerd-font
@@ -99,6 +100,8 @@
       tags: [bin, zed]
     - import_tasks: tasks/bin/lazygit.yml
       tags: [bin, lazygit]
+    - import_tasks: tasks/bin/delta.yml
+      tags: [bin, delta]
     - import_tasks: tasks/bin/azure-cli.yml
       tags: [bin, azure-cli]
     - import_tasks: tasks/bin/tree-sitter-cli.yml
