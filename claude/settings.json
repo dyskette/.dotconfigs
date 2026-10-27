@@ -9,7 +9,6 @@
     "defaultMode": "default"
   },
   "dialogExpiry": "5m",
-  "tui": "fullscreen",
   "timeFormat": "24-hour",
   "autoMemoryEnabled": false,
   "theme": "auto",
