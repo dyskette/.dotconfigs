@@ -510,7 +510,12 @@ return {
     -- Only load for C# and Razor files
     ft = { "cs", "razor" },
     opts = {
-      broad_search = true,
+      -- Solutions are looked for in the folders above the file only. The
+      -- broad search walks the whole git root, node_modules included, in
+      -- Lua and before the buffer is drawn, for every C# buffer: ~400 ms on
+      -- mobiik-time when the disk cache is warm, seconds when it is not.
+      -- Turn it back on for a repo whose .sln is not above its code.
+      broad_search = false,
       lock_target = true,
     },
     init = roslyn_init,
