@@ -306,17 +306,10 @@ return {
   -- Status bar
   {
     "nvim-lualine/lualine.nvim",
-    -- After the first screen. Until then show an empty bar rather than the
-    -- default statusline, so it does not flash before lualine replaces it;
-    -- lualine's globalstatus sets 'laststatus' back when it loads.
-    event = utils.events.VeryLazy,
-    init = function()
-      if vim.fn.argc(-1) > 0 then
-        vim.o.statusline = " "
-      else
-        vim.o.laststatus = 0
-      end
-    end,
+    -- At startup, so the bar is part of the first screen rather than popping
+    -- in after it. Costs ~50 ms of startup; the git and diagnostic parts
+    -- still fill in once gitsigns and the language servers have loaded.
+    lazy = false,
     opts = lualine_opts,
     dependencies = {
       "nvim-tree/nvim-web-devicons",
