@@ -13,7 +13,9 @@ local function start_treesitter(buf, lang)
     return
   end
   vim.treesitter.start(buf)
-  if vim.treesitter.query.get(lang, "indents") then
+  -- Whether an indents query exists, without compiling it (50-70 ms for
+  -- c_sharp): that waits for the first indent.
+  if #vim.treesitter.query.get_files(lang, "indents") > 0 then
     -- Evaluated on first indent, which is what loads nvim-treesitter.
     vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
   end
