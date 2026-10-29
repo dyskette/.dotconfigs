@@ -146,17 +146,23 @@ if ($tools.fnm)
 {
     # An interactive shell runs it once PowerShell is first idle, i.e. just
     # after the first prompt is drawn, so starting fnm does not delay it.
-    # Everything fnm defines is global: or $env:, so running from the event
-    # action changes nothing else. -Command/-File runs never go idle, so they
-    # load it right away.
+    # -Command/-File runs never go idle, so they load it right away.
+    #
+    # The event action runs in a module of its own, and so would every
+    # function fnm defines from it, its cd wrapper included. A module keeps
+    # its own location history, so `cd -` could not go back past a
+    # Set-Location made elsewhere (sd, sdf, y, ...). This script block
+    # belongs to the session, being written here, and so does what it
+    # defines when the action calls it.
+    $global:FnmInit = { fnm env --use-on-cd | Out-String | Invoke-Expression }
     $nonInteractive = [Environment]::GetCommandLineArgs() -match '^-(c|command|f|file|e|ec|encodedcommand)$'
     if ($nonInteractive)
     {
-        fnm env --use-on-cd | Out-String | Invoke-Expression
+        & $FnmInit
     } else
     {
         $null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
-            fnm env --use-on-cd | Out-String | Invoke-Expression
+            & $global:FnmInit
         }
     }
 }
