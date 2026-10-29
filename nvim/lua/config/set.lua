@@ -19,6 +19,40 @@ vim.api.nvim_create_autocmd(utils.events.TextYankPost, {
   end,
 })
 
+-- Copy with OSC 52 everywhere: the terminal drawing nvim owns the clipboard, so a copy lands on the machine you are
+-- looking at, locally or over SSH (where win32yank/xclip would copy to the remote machine instead).
+-- Paste can't use OSC 52, since most terminals refuse to let programs read the clipboard and nvim would hang waiting.
+-- Locally it reads the real clipboard with the native tool; over SSH (or without a tool) it reads back the last yank.
+local function clipboard_paste_commands()
+  if vim.env.SSH_CONNECTION or vim.env.SSH_TTY then
+    return nil
+  end
+  local executable = function(name)
+    return vim.fn.executable(name) == 1
+  end
+  if vim.fn.has("win32") == 1 and executable("win32yank.exe") then
+    return { ["+"] = { "win32yank.exe", "-o", "--lf" }, ["*"] = { "win32yank.exe", "-o", "--lf" } }
+  elseif vim.fn.has("mac") == 1 and executable("pbpaste") then
+    return { ["+"] = { "pbpaste" }, ["*"] = { "pbpaste" } }
+  elseif vim.env.WAYLAND_DISPLAY and executable("wl-paste") then
+    return { ["+"] = { "wl-paste", "--no-newline" }, ["*"] = { "wl-paste", "--no-newline", "--primary" } }
+  elseif vim.env.DISPLAY and executable("xclip") then
+    return { ["+"] = { "xclip", "-o", "-selection", "clipboard" }, ["*"] = { "xclip", "-o", "-selection", "primary" } }
+  end
+  return nil
+end
+
+local function paste_last_yank()
+  return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+end
+
+local osc52 = require("vim.ui.clipboard.osc52")
+vim.g.clipboard = {
+  name = "OSC 52 copy",
+  copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+  paste = clipboard_paste_commands() or { ["+"] = paste_last_yank, ["*"] = paste_last_yank },
+}
+
 -- Pretty colors
 vim.o.termguicolors = true
 vim.o.winborder = "single"
