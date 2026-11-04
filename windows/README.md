@@ -85,6 +85,7 @@ If the repo is already cloned:
 | `Install-Extensions.ps1` | VS Code and Visual Studio extensions |
 | `Install-JetBrainsFont.ps1` | Nerd Font installation |
 | `Setup-NodeLTS.ps1` | Node.js LTS via fnm |
+| `Install-Psql.ps1` | PostgreSQL command line tools (psql) only, no server |
 
 ## Running Individual Scripts
 

@@ -256,6 +256,9 @@ if (-not $SkipPackages) {
         Write-Warning "packages.jsonc not found at: $packagesJson"
     }
 
+    # psql needs a winget --override, which winget import does not support.
+    Invoke-Step -ScriptName "Install-Psql.ps1" -Description "Installing PostgreSQL command line tools (psql)"
+
     # Install or amend Visual Studio 2026 Enterprise with the workloads in vsconfig.
     #
     # The bootstrapper's `install` verb refuses with exit code 1 when the product is
