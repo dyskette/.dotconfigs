@@ -6,9 +6,8 @@
     "sessionUrl": false
   },
   "permissions": {
-    "defaultMode": "default"
+    "defaultMode": "auto"
   },
-  "dialogExpiry": "5m",
   "timeFormat": "24-hour",
   "autoMemoryEnabled": false,
   "theme": "auto",
