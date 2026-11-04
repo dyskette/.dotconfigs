@@ -71,17 +71,10 @@
                 "source": "Windows.Terminal.PowershellCore"
             },
             {
-                "commandline": "wsl.exe --distribution FedoraLinux-42",
                 "guid": "{7190bde5-14a3-564c-9d26-659cdd9e30c4}",
                 "hidden": false,
-                "name": "FedoraLinux-42"
-            },
-            {
-                "commandline": "wsl.exe --distribution Ubuntu-24.04",
-                "guid": "{505f431e-7f8d-547a-941a-7b3b1b1b2784}",
-                "hidden": false,
-                "icon": "%USERPROFILE%\\.dotconfigs\\windows_terminal\\ubuntu-icon.png",
-                "name": "Ubuntu-24.04"
+                "name": "FedoraLinux-42",
+                "source": "Microsoft.WSL"
             },
             {
                 "commandline": "%PROGRAMFILES%\\git\\usr\\bin\\bash.exe --login -i",
@@ -142,8 +135,8 @@
                 "startingDirectory": "%USERPROFILE%"
             },
             {
-                "guid": "{0ba42ec1-85f7-5f17-a35d-048575499e66}",
-                "hidden": false,
+                "guid": "{cd879ff2-bb25-5414-ba76-6fa098e1bc05}",
+                "hidden": true,
                 "name": "podman-machine-default",
                 "source": "Microsoft.WSL"
             }

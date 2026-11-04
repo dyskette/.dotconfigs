@@ -9,4 +9,4 @@ import = [
 normal = { family = "JetBrainsMonoNL Nerd Font" }
 
 [terminal]
-shell = { program = "wsl.exe ~ -d Ubuntu-24.04" }
+shell = { program = "wsl.exe ~ -d FedoraLinux-42" }
