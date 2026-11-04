@@ -19,19 +19,10 @@ set -u
 shopt -s nullglob dotglob
 export LC_COLLATE=en_US.UTF-8
 
-if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
-    win=1
-    sep='\'
-    mux=psmux
-    home="$USERPROFILE"
-    # Keep MSYS from rewriting the Windows paths handed to psmux.
-    export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
-else
-    win=0
-    sep=/
-    mux=tmux
-    home="$HOME"
-fi
+# Trimmed without dirname, which would fork: fzf calls back with a Windows
+# path (backslashes) on psmux.
+# shellcheck source=mux-lib.sh
+source "${BASH_SOURCE[0]%[\\/]*}/mux-lib.sh"
 
 hints='tab enter folder · ⌫ up · ↵ new session · type c/ ~/ ../ to jump'
 
@@ -264,7 +255,7 @@ open_session() {
     local kind name
     IFS=$'\t' read -r kind name < <(session_for "$1")
     [[ "$kind" == new ]] && "$mux" new-session -d -s "$name" -c "$1"
-    if [[ -n "${TMUX:-}" || -n "${PSMUX_POPUP:-}" ]]; then
+    if in_client; then
         "$mux" switch-client -t "=$name"
     else
         "$mux" attach -t "=$name"
