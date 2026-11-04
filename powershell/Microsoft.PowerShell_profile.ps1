@@ -424,3 +424,34 @@ function psmux {
 function tmux {
     Invoke-Psmux @args 
 }
+
+function Start-SshServer {
+    $cfg = "$env:USERPROFILE\.ssh\sshd\sshd_config"
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')
+    if ($isAdmin) {
+        throw 'Elevated window: SSH sessions would run as administrator. Use a normal window.' 
+    }
+    if (Get-NetTCPConnection -LocalPort 22 -State Listen -ErrorAction SilentlyContinue) {
+        Write-Warning 'Port 22 is already in use.'; return
+    }
+    $p = Start-Process "$env:windir\System32\OpenSSH\sshd.exe" -ArgumentList '-f', "`"$cfg`"" -WindowStyle Hidden -PassThru
+    Start-Sleep -Milliseconds 500
+    if ($p.HasExited) {
+        throw "sshd exited (code $($p.ExitCode)). Debug with: sshd -d -f `"$cfg`"" 
+    }
+    "sshd started (PID $($p.Id))"
+}
+
+function Stop-SshServer {
+    Get-Process sshd -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue
+    'sshd stopped'
+}
+
+function Get-SshServer {
+    $p = Get-Process sshd -ErrorAction SilentlyContinue
+    if ($p) {
+        $p | Select-Object Id, StartTime 
+    } else {
+        'sshd not running' 
+    }
+}
