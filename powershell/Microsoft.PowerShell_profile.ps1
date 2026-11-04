@@ -16,28 +16,34 @@ Get-Command nvim, yazi, fnm, dotnet -CommandType Application -ErrorAction Silent
 # so they follow its light/dark theme by themselves.
 & {
     $user = [Environment]::UserName
-    $isAdmin = if ($IsWindows)
-    {
+    $isAdmin = if ($IsWindows) {
         [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
             [Security.Principal.WindowsBuiltInRole]::Administrator)
-    } else
-    {
+    } else {
         $user -eq 'root'
     }
-    $global:PromptChar = if ($isAdmin) { '#' } else { '❯' }
-    $head = if ($isAdmin) { "`e[1;31m$user`e[0m" } else { "`e[32m$user`e[0m" }
+    $global:PromptChar = if ($isAdmin) {
+        '#' 
+    } else {
+        '❯' 
+    }
+    $head = if ($isAdmin) {
+        "`e[1;31m$user`e[0m" 
+    } else {
+        "`e[32m$user`e[0m" 
+    }
 
     # Domain accounts (AD, Entra ID) are domain\user, as whoami prints
     # them, and that is the name runas, ACLs and shares want. A local
     # account's domain is the machine itself, so it is left out there.
-    $domain = if ($IsWindows) { [Environment]::UserDomainName }
-    if ($domain -and $domain -ne [Environment]::MachineName)
-    {
+    $domain = if ($IsWindows) {
+        [Environment]::UserDomainName 
+    }
+    if ($domain -and $domain -ne [Environment]::MachineName) {
         $head = "`e[2m$($domain.ToLower())\`e[22m$head"
     }
 
-    if ($env:SSH_CONNECTION)
-    {
+    if ($env:SSH_CONNECTION) {
         $head = "`e[33m󰣀`e[0m $head"
     }
 
@@ -48,23 +54,28 @@ Get-Command nvim, yazi, fnm, dotnet -CommandType Application -ErrorAction Silent
 # syntax error.
 Set-PSReadLineOption -PromptText "$global:PromptChar "
 
-function prompt
-{
+function prompt {
     $ok = $?
     $loc = $executionContext.SessionState.Path.CurrentLocation
 
     # Follow the Windows app theme for the tools that read it: bat, delta,
     # and psmux through SYSTEM_COLOR_THEME. A direct registry read, as
     # Get-ItemProperty costs a provider round trip on every prompt.
-    if ($IsWindows)
-    {
+    if ($IsWindows) {
         $light = [Microsoft.Win32.Registry]::GetValue(
             'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize', 'AppsUseLightTheme', 0)
-        $theme = if ($light) { 'light' } else { 'dark' }
-        if ($theme -ne $env:SYSTEM_COLOR_THEME -or -not $env:BAT_THEME -or -not $env:DELTA_FEATURES)
-        {
+        $theme = if ($light) {
+            'light' 
+        } else {
+            'dark' 
+        }
+        if ($theme -ne $env:SYSTEM_COLOR_THEME -or -not $env:BAT_THEME -or -not $env:DELTA_FEATURES) {
             $env:SYSTEM_COLOR_THEME = $theme
-            $env:BAT_THEME = if ($light) { 'rose-pine-dawn' } else { 'gruvbox' }
+            $env:BAT_THEME = if ($light) {
+                'rose-pine-dawn' 
+            } else {
+                'gruvbox' 
+            }
             # Selects the [delta "dark"] or [delta "light"] section of git/delta.gitconfig.
             $env:DELTA_FEATURES = "+$theme"
         }
@@ -80,37 +91,45 @@ function prompt
     # Terminal, matching the guard bash/bashrc.d/prompt.sh already puts on
     # its own OSC 9;9 line.
     $osc = ""
-    if ($env:WT_SESSION)
-    {
+    if ($env:WT_SESSION) {
         $osc += "`e]9;12`a"
     }
-    if ($loc.Provider.Name -eq "FileSystem")
-    {
+    if ($loc.Provider.Name -eq "FileSystem") {
         $osc += "`e]9;9;`"$($loc.ProviderPath)`"`e\"
     }
 
     # Title at the prompt: the current folder (~ for home), as bash does,
     # so a tab or psmux window reads as where the shell is. Without it the
     # title is pwsh.exe's full path.
-    $folder = if ($loc.ProviderPath -eq $HOME) { "~" } else { Split-Path -Leaf $loc.ProviderPath }
+    $folder = if ($loc.ProviderPath -eq $HOME) {
+        "~" 
+    } else {
+        Split-Path -Leaf $loc.ProviderPath 
+    }
     $host.UI.Write("$osc`e]2;$folder`a")
 
     # ~ for home, and only the last three folders, as bash's
     # PROMPT_DIRTRIM=3: ~\...\a\b\c
-    $path = if ($loc.Provider.Name -eq "FileSystem") { $loc.ProviderPath } else { $loc.Path }
+    $path = if ($loc.Provider.Name -eq "FileSystem") {
+        $loc.ProviderPath 
+    } else {
+        $loc.Path 
+    }
     $sep = [IO.Path]::DirectorySeparatorChar
     if ($path.StartsWith($HOME, [StringComparison]::OrdinalIgnoreCase) -and
-        ($path.Length -eq $HOME.Length -or $path[$HOME.Length] -eq $sep))
-    {
+        ($path.Length -eq $HOME.Length -or $path[$HOME.Length] -eq $sep)) {
         $path = "~" + $path.Substring($HOME.Length)
     }
     $parts = $path.Split($sep)
-    if ($parts.Count -gt 4)
-    {
+    if ($parts.Count -gt 4) {
         $path = $parts[0] + $sep + "..." + $sep + ($parts[-3..-1] -join $sep)
     }
 
-    $style = if ($ok) { "`e[32m" } else { "`e[31m" }
+    $style = if ($ok) {
+        "`e[32m" 
+    } else {
+        "`e[31m" 
+    }
     "$global:PromptHead`e[36m$path`e[0m $style$global:PromptChar`e[0m "
 }
 
@@ -120,30 +139,25 @@ function prompt
 Set-PSReadLineOption -AddToHistoryHandler {
     param([string]$line)
     $command = ($line.TrimStart() -split '\s+', 2)[0]
-    if ($command)
-    {
+    if ($command) {
         [Console]::Write("$([char]27)]2;$command$([char]7)")
     }
     [Microsoft.PowerShell.PSConsoleReadLine]::GetDefaultAddToHistoryOption($line)
 }
 
-if (-not $env:SHELL)
-{
+if (-not $env:SHELL) {
     $env:SHELL = [Environment]::ProcessPath
 }
 
-if ($tools.nvim)
-{
+if ($tools.nvim) {
     $env:EDITOR = "nvim"
 }
 
-if ($tools.yazi)
-{
+if ($tools.yazi) {
     $env:YAZI_FILE_ONE = "C:\Program Files\Git\usr\bin\file.exe"
 }
 
-if ($tools.fnm)
-{
+if ($tools.fnm) {
     # An interactive shell runs it once PowerShell is first idle, i.e. just
     # after the first prompt is drawn, so starting fnm does not delay it.
     # -Command/-File runs never go idle, so they load it right away.
@@ -156,19 +170,16 @@ if ($tools.fnm)
     # defines when the action calls it.
     $global:FnmInit = { fnm env --use-on-cd | Out-String | Invoke-Expression }
     $nonInteractive = [Environment]::GetCommandLineArgs() -match '^-(c|command|f|file|e|ec|encodedcommand)$'
-    if ($nonInteractive)
-    {
+    if ($nonInteractive) {
         & $FnmInit
-    } else
-    {
+    } else {
         $null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
             & $global:FnmInit
         }
     }
 }
 
-if ($tools.dotnet)
-{
+if ($tools.dotnet) {
     # PowerShell parameter completion shim for the dotnet CLI
     Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock {
         param($wordToComplete, $commandAst, $cursorPosition)
@@ -178,13 +189,11 @@ if ($tools.dotnet)
     }
 }
 
-function glog
-{
+function glog {
     git log --decorate=full --oneline --graph
 }
 
-function sd
-{
+function sd {
     $directory_path = fd --type directory |
         fzf `
             --layout=reverse `
@@ -192,14 +201,12 @@ function sd
             --min-height=20 `
             --preview "eza --tree --git-ignore --level 2 --colour=always --icons=always {}"
 
-    if ($directory_path)
-    {
+    if ($directory_path) {
         Set-Location $directory_path
     }
 }
 
-function sf
-{
+function sf {
     $file_path = fd --type file |
         fzf `
             --layout=reverse `
@@ -207,14 +214,12 @@ function sf
             --min-height=20 `
             --preview "bat --color=always --style=plain {}"
 
-    if ($file_path)
-    {
+    if ($file_path) {
         nvim $file_path
     }
 }
 
-function sdf
-{
+function sdf {
     $file_path = fd --type file |
         fzf `
             --layout=reverse `
@@ -222,15 +227,13 @@ function sdf
             --min-height=20 `
             --preview "bat --color=always --style=plain {}"
 
-    if ($file_path)
-    {
+    if ($file_path) {
         $directory_path = Split-Path -Parent $file_path
         Set-Location $directory_path
     }
 }
 
-function sg
-{
+function sg {
     param (
         [Parameter(ValueFromRemainingArguments = $true)]
         [String[]]$searchParams = ""
@@ -255,13 +258,11 @@ function sg
         --query "$([String]::Join(" ", $searchParams))"
 }
 
-function y
-{
+function y {
     $tmp = [System.IO.Path]::GetTempFileName()
     yazi $args --cwd-file="$tmp"
     $cwd = Get-Content -Path $tmp -Encoding UTF8
-    if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path)
-    {
+    if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path) {
         Set-Location -LiteralPath ([System.IO.Path]::GetFullPath($cwd))
     }
     Remove-Item -Path $tmp
@@ -278,11 +279,9 @@ function Select-ProjectDirectory {
         [string]$Directory
     )
 
-    if ($Directory)
-    {
+    if ($Directory) {
         (Resolve-Path -LiteralPath $Directory -ErrorAction Stop).Path
-    } else
-    {
+    } else {
         fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . $HOME |
             fzf --reverse --height=50% `
                 --header="select project directory" `
@@ -299,18 +298,15 @@ function zj {
     )
 
     $dir = Select-ProjectDirectory $Directory
-    if (-not $dir)
-    {
+    if (-not $dir) {
         return
     }
 
     $name = (Split-Path -Leaf $dir) -replace '\.', '_'
 
-    if ($env:ZELLIJ)
-    {
+    if ($env:ZELLIJ) {
         zellij action switch-session $name --cwd $dir
-    } else
-    {
+    } else {
         zellij attach --create $name options --default-cwd $dir
     }
 }
@@ -327,8 +323,7 @@ function tm {
     )
 
     $dir = Select-ProjectDirectory $Directory
-    if (-not $dir)
-    {
+    if (-not $dir) {
         return
     }
 
@@ -336,16 +331,13 @@ function tm {
     $name = (Split-Path -Leaf $dir.TrimEnd('\', '/')) -replace '\.', '_'
 
     # "=" makes -t match the name exactly
-    if ($env:TMUX)
-    {
+    if ($env:TMUX) {
         psmux has-session -t "=$name" 2>$null
-        if ($LASTEXITCODE -ne 0)
-        {
+        if ($LASTEXITCODE -ne 0) {
             psmux new-session -d -s $name -c $dir
         }
         psmux switch-client -t "=$name"
-    } else
-    {
+    } else {
         psmux new-session -A -s $name -c $dir
     }
 }
@@ -372,27 +364,27 @@ function Invoke-Psmux {
         ($args[0] -in 'new-session', 'new' -and $args -notcontains '-d'))
 
     & $exe @args
-    if (-not $client)
-    {
+    if (-not $client) {
         return
     }
 
     $data = Join-Path $HOME '.psmux'
-    while ($true)
-    {
+    while ($true) {
         $last = Get-Content -LiteralPath (Join-Path $data 'last_session') -ErrorAction Ignore
-        if (-not $last -or (Test-Path -LiteralPath (Join-Path $data "$last.port")))
-        {
+        if (-not $last -or (Test-Path -LiteralPath (Join-Path $data "$last.port"))) {
             return
         }
         & $exe has-session 2>$null
-        if ($LASTEXITCODE -ne 0)
-        {
+        if ($LASTEXITCODE -ne 0) {
             return
         }
         & $exe attach-session
     }
 }
 
-function psmux { Invoke-Psmux @args }
-function tmux { Invoke-Psmux @args }
+function psmux {
+    Invoke-Psmux @args 
+}
+function tmux {
+    Invoke-Psmux @args 
+}
