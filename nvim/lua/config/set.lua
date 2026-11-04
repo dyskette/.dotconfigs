@@ -70,7 +70,7 @@ vim.o.relativenumber = true
 vim.o.list = true
 
 -- Minimum number of lines to keep above and below the cursor (keeps the cursor vertically centered)
-vim.o.scrolloff = 999
+vim.o.scrolloff = 5
 
 -- No line wrapping
 vim.o.wrap = false
