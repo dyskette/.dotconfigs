@@ -168,8 +168,44 @@ if ($tools.fnm) {
     # Set-Location made elsewhere (sd, sdf, y, ...). This script block
     # belongs to the session, being written here, and so does what it
     # defines when the action calls it.
-    $global:FnmInit = { fnm env --use-on-cd | Out-String | Invoke-Expression }
+    #
+    # fnm puts a junction of its own on PATH for every shell, pointing at the
+    # Node version in use. VS Code's server (Remote-SSH, tunnels) turns on
+    # Redirection Guard, which the shells in its terminals inherit: they
+    # refuse to follow junctions a non-admin made, so `node` is not found.
+    # The folder it points to goes first on PATH, at load time and after
+    # every `fnm` run, which covers its `fnm use` on cd. The junction stays
+    # on PATH as well, since fnm warns on every switch when it is missing.
+    $global:FnmExe = $tools.fnm
+    $global:FnmInit = {
+        & $FnmExe env --use-on-cd | Out-String | Invoke-Expression
+
+        function global:fnm {
+            & $FnmExe @args
+            Sync-FnmPath
+        }
+
+        Sync-FnmPath
+    }
+
+    function Sync-FnmPath {
+        $dir = $env:FNM_MULTISHELL_PATH
+
+        while ($dir -and ($link = Get-Item -LiteralPath $dir -Force -ErrorAction Ignore).LinkType) {
+            $dir = $link.Target
+        }
+
+        if (-not $dir -or $dir -eq $global:FnmNodeDir) {
+            return
+        }
+
+        $rest = $env:PATH -split ';' | Where-Object { $_ -and $_ -ne $global:FnmNodeDir }
+        $env:PATH = (@($dir) + $rest) -join ';'
+        $global:FnmNodeDir = $dir
+    }
+
     $nonInteractive = [Environment]::GetCommandLineArgs() -match '^-(c|command|f|file|e|ec|encodedcommand)$'
+
     if ($nonInteractive) {
         & $FnmInit
     } else {
