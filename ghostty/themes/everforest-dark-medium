@@ -2,7 +2,9 @@
 # Defined locally because Ghostty's bundled "Everforest Dark Med" uses bg_dim
 # as the background and light-palette colours for 9-15.
 # ANSI mapping mirrors colors/everforest.vim: black = bg3, white = fg, and the
-# bright colours (8-15) deliberately repeat the normal ones (0-7).
+# bright colours (9-15) deliberately repeat the normal ones (1-7). Bright black
+# (8) is grey1 instead of bg3: dim text such as prompts, suggestions and eza's
+# dashes is drawn in it, and bg3 on bg0 is nearly invisible (1.55:1).
 background = #2D353B
 foreground = #D3C6AA
 # fg-on-bg0 block cursor, like Vim's reverse-video Cursor group.
@@ -19,7 +21,7 @@ palette = 4=#7FBBB3
 palette = 5=#D699B6
 palette = 6=#83C092
 palette = 7=#D3C6AA
-palette = 8=#475258
+palette = 8=#859289
 palette = 9=#E67E80
 palette = 10=#A7C080
 palette = 11=#DBBC7F

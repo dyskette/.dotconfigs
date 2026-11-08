@@ -2,6 +2,8 @@
 # Defined locally because Ghostty's bundled "Everforest Light Med" uses
 # bg_dim/bg2 as the background instead of bg0.
 # On light backgrounds upstream swaps black and white: black = fg, white = bg3.
+# Bright black (8) is grey2 instead of fg, so dim text (prompts, suggestions)
+# stays distinct from normal text while keeping 3:1 contrast on bg0.
 background = #FDF6E3
 foreground = #5C6A72
 cursor-color = #5C6A72
@@ -16,7 +18,7 @@ palette = 4=#3A94C5
 palette = 5=#DF69BA
 palette = 6=#35A77C
 palette = 7=#E6E2CC
-palette = 8=#5C6A72
+palette = 8=#829181
 palette = 9=#F85552
 palette = 10=#8DA101
 palette = 11=#DFA000
