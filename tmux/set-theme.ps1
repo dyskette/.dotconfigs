@@ -25,7 +25,7 @@ if ($selected -notin 'dark', 'light') {
     $selected = if ($personalize.AppsUseLightTheme) { 'light' } else { 'dark' }
 }
 
-$themeFile = if ($selected -eq 'light') { 'rose-pine-dawn.conf' } else { 'gruvbox.conf' }
+$themeFile = if ($selected -eq 'light') { 'everforest-light-medium.conf' } else { 'everforest-dark-medium.conf' }
 
 # Target the session this runs for (psmux exports it to run-shell commands).
 # `psmux set-option -g` without -t does not follow PSMUX_TARGET_SESSION and
@@ -37,8 +37,9 @@ $target = if ($env:PSMUX_TARGET_SESSION) { @('-t', $env:PSMUX_TARGET_SESSION) } 
 # a time instead of `psmux source-file`, working around two psmux 3.3.8 bugs:
 # a source-file sent from the command line resets every key binding to the
 # defaults, and commands chained with ';' on the command line get dropped.
+# -q (set -gq) marks options newer tmux lacks; psmux gets them as plain -g.
 foreach ($line in Get-Content (Join-Path $PSScriptRoot $themeFile)) {
-    if ($line -match '^\s*set(?:-option)?\s+-g\s+(\S+)\s+(?:"(.*)"|(\S+))\s*$') {
+    if ($line -match '^\s*set(?:-option)?\s+-gq?\s+(\S+)\s+(?:"(.*)"|(\S+))\s*$') {
         $value = if ($null -ne $Matches[2]) { $Matches[2] } else { $Matches[3] }
         psmux set-option @target -g $Matches[1] $value 2>$null
     }
