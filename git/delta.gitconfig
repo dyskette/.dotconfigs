@@ -1,8 +1,0 @@
-# Settings for delta (https://github.com/dandavison/delta), included from the
-# global gitconfig by the installers. Delta reads its options from git config
-# even when it is not git's pager.
-
-[delta]
-    # Query the terminal background even when the output is not a terminal,
-    # as inside lazygit, which pipes delta's output into its own view.
-    detect-dark-light = always

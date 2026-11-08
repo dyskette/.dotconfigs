@@ -65,15 +65,6 @@
     - { src: "opencode", dest: "{{ config_dir }}/opencode" }
   tags: dotfiles
 
-# The lazygit pager is delta, which reads its settings from git config.
-- name: Dotfiles | Include delta settings in the global git config
-  community.general.git_config:
-    name: include.path
-    value: "{{ repository_dir }}/git/delta.gitconfig"
-    add_mode: add
-    scope: global
-  tags: dotfiles
-
 - name: Dotfiles | Install yazi packages
   ansible.builtin.command:
     cmd: $HOME/.local/bin/ya pkg install

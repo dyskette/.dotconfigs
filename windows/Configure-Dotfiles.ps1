@@ -48,13 +48,6 @@ $links = @(
         Source = "lazygit\config.yml"
         Target = "$env:LOCALAPPDATA\lazygit\config.yml"
         Type   = "SymbolicLink"
-        # The pager in config.yml is delta, which reads its settings from git config.
-        PostHook = {
-            $deltaConfig = (Join-Path $dotfilesRoot "git\delta.gitconfig") -replace '\\', '/'
-            if (@(git config --global --get-all include.path) -notcontains $deltaConfig) {
-                git config --global --add include.path $deltaConfig
-            }
-        }
     }
     @{
         App    = "powershell"
