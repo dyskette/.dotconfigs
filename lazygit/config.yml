@@ -4,11 +4,17 @@ git:
     # lazygit owns scrolling, so delta must not start a pager of its own.
     # lazygit pipes delta's output, so delta can't ask the terminal for its
     # background; lazygit asks instead and hands the answer over as
-    # {{colorScheme}}. The syntax theme is delta's own default otherwise, so
-    # it is picked here to match bat (bat/config).
+    # {{colorScheme}}. The syntax theme matches bat (bat/config), and the
+    # line backgrounds are Everforest's bg_green/bg_red, as in Vim's
+    # DiffAdd/DiffDelete; changed words get the accent in bold.
     - command: >-
         delta --paging=never --{{colorScheme}}
-        --syntax-theme={{if eq .colorScheme "light"}}rose-pine-dawn{{else}}gruvbox{{end}}
+        {{if eq .colorScheme "light"}}--syntax-theme=everforest-light-medium
+        --minus-style='syntax "#fde3da"' --minus-emph-style='bold "#f85552" "#fde3da"'
+        --plus-style='syntax "#f0f1d2"' --plus-emph-style='bold "#8da101" "#f0f1d2"'
+        {{else}}--syntax-theme=everforest-dark-medium
+        --minus-style='syntax "#514045"' --minus-emph-style='bold "#e67e80" "#514045"'
+        --plus-style='syntax "#425047"' --plus-emph-style='bold "#a7c080" "#425047"'{{end}}
 gui:
   # <c-d>/<c-u> (and the mouse wheel) scroll the diff by this many lines;
   # the default of 2 makes them feel like line-by-line scrolling.
