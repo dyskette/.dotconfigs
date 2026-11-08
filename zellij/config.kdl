@@ -315,7 +315,7 @@ themes {
             base 211 198 170
             background 71 82 88
             emphasis_0 230 126 128
-            emphasis_1 211 198 170
+            emphasis_1 79 88 94
             emphasis_2 127 187 179
             emphasis_3 214 153 182
         }
@@ -433,7 +433,7 @@ themes {
             base 92 106 114
             background 230 226 204
             emphasis_0 248 85 82
-            emphasis_1 92 106 114
+            emphasis_1 224 220 199
             emphasis_2 58 148 197
             emphasis_3 223 105 186
         }
