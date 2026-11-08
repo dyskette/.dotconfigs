@@ -22,9 +22,19 @@ gui:
   # The default selection background is ANSI blue, which is a light pastel in
   # Everforest; the line keeps its own aqua/yellow/green text and becomes
   # unreadable. Use bg3, as zellij does for selected rows.
+  # Copied (cherry-picked) commits default to blue on cyan, two pastels that
+  # are ~1:1 in Everforest; use fg on bg_blue instead.
   darkTheme:
     selectedLineBgColor:
       - "#475258"
+    cherryPickedCommitFgColor:
+      - "#d3c6aa"
+    cherryPickedCommitBgColor:
+      - "#3a515d"
   lightTheme:
     selectedLineBgColor:
       - "#e6e2cc"
+    cherryPickedCommitFgColor:
+      - "#5c6a72"
+    cherryPickedCommitBgColor:
+      - "#e9f0e9"
