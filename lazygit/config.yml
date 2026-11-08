@@ -19,3 +19,12 @@ gui:
   # <c-d>/<c-u> (and the mouse wheel) scroll the diff by this many lines;
   # the default of 2 makes them feel like line-by-line scrolling.
   scrollHeight: 15
+  # The default selection background is ANSI blue, which is a light pastel in
+  # Everforest; the line keeps its own aqua/yellow/green text and becomes
+  # unreadable. Use bg3, as zellij does for selected rows.
+  darkTheme:
+    selectedLineBgColor:
+      - "#475258"
+  lightTheme:
+    selectedLineBgColor:
+      - "#e6e2cc"
