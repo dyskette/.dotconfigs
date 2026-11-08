@@ -1,7 +1,6 @@
 {
   "extensions": [
-    "jdinhlife.gruvbox",
-    "mvllow.rose-pine",
+    "sainnhe.everforest",
     "vscodevim.vim",
     "kahole.magit",
     "haphazarddev.oil-code"

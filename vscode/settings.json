@@ -7,8 +7,16 @@
 
   // ── Theme (auto light/dark) ───────────────────────────────────────────────────
   "window.autoDetectColorScheme": true,
-  "workbench.preferredDarkColorTheme": "Gruvbox Dark Medium",
-  "workbench.preferredLightColorTheme": "Rosé Pine Dawn",
+  "workbench.preferredDarkColorTheme": "Everforest Dark",
+  "workbench.preferredLightColorTheme": "Everforest Light",
+  "everforest.darkContrast": "medium",
+  "everforest.lightContrast": "medium",
+  // Upstream light bright black equals fg; use grey2 like ghostty/windows_terminal.
+  "workbench.colorCustomizations": {
+    "[Everforest Light]": {
+      "terminal.ansiBrightBlack": "#829181"
+    }
+  },
 
   // ── Editor ────────────────────────────────────────────────────────────────────
   "editor.fontSize": 14,
