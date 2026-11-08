@@ -1,0 +1,26 @@
+# Everforest light medium. Palette: sainnhe/everforest palette.md (MIT).
+# Defined locally because Ghostty's bundled "Everforest Light Med" uses
+# bg_dim/bg2 as the background instead of bg0.
+# On light backgrounds upstream swaps black and white: black = fg, white = bg3.
+background = #FDF6E3
+foreground = #5C6A72
+cursor-color = #5C6A72
+cursor-text = #FDF6E3
+selection-background = #EAEDC8
+selection-foreground = #5C6A72
+palette = 0=#5C6A72
+palette = 1=#F85552
+palette = 2=#8DA101
+palette = 3=#DFA000
+palette = 4=#3A94C5
+palette = 5=#DF69BA
+palette = 6=#35A77C
+palette = 7=#E6E2CC
+palette = 8=#5C6A72
+palette = 9=#F85552
+palette = 10=#8DA101
+palette = 11=#DFA000
+palette = 12=#3A94C5
+palette = 13=#DF69BA
+palette = 14=#35A77C
+palette = 15=#E6E2CC

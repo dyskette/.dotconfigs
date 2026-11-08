@@ -1,7 +1,17 @@
-# Everforest dark medium theme for Ghostty
-## name: everforest-dark-medium
-
-palette = 0=#4B565C
+# Everforest dark medium. Palette: sainnhe/everforest palette.md (MIT).
+# Defined locally because Ghostty's bundled "Everforest Dark Med" uses bg_dim
+# as the background and light-palette colours for 9-15.
+# ANSI mapping mirrors colors/everforest.vim: black = bg3, white = fg, and the
+# bright colours (8-15) deliberately repeat the normal ones (0-7).
+background = #2D353B
+foreground = #D3C6AA
+# fg-on-bg0 block cursor, like Vim's reverse-video Cursor group.
+cursor-color = #D3C6AA
+cursor-text = #2D353B
+# bg_visual, Everforest's selection colour (Vim's Visual group).
+selection-background = #543A48
+selection-foreground = #D3C6AA
+palette = 0=#475258
 palette = 1=#E67E80
 palette = 2=#A7C080
 palette = 3=#DBBC7F
@@ -9,7 +19,7 @@ palette = 4=#7FBBB3
 palette = 5=#D699B6
 palette = 6=#83C092
 palette = 7=#D3C6AA
-palette = 8=#4B565C
+palette = 8=#475258
 palette = 9=#E67E80
 palette = 10=#A7C080
 palette = 11=#DBBC7F
@@ -17,9 +27,3 @@ palette = 12=#7FBBB3
 palette = 13=#D699B6
 palette = 14=#83C092
 palette = 15=#D3C6AA
-
-background=#2D353B
-foreground=#D3C6AA
-cursor-color=#D3C6AA
-selection-foreground=#272E33
-selection-background=#4C3743
