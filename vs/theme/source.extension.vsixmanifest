@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="DotfilesThemes.4b860ce7-87ee-4ef3-8dbe-baae892cd138" Version="1.0.4" Language="en-US" Publisher="Eddy Castillo" />
+        <Identity Id="DotfilesThemes.4b860ce7-87ee-4ef3-8dbe-baae892cd138" Version="1.1.0" Language="en-US" Publisher="Eddy Castillo" />
         <DisplayName>Dotfiles Theme Pack</DisplayName>
-        <Description xml:space="preserve">Gruvbox Dark and Rose Pine Dawn for Visual Studio 2026, ported from the VS Code themes of the same names.</Description>
+        <Description xml:space="preserve">Gruvbox Dark, Rose Pine Dawn and Everforest Medium (dark and light) for Visual Studio 2026.</Description>
         <Icon>Resources\Icon.png</Icon>
-        <Tags>theme, gruvbox, rose pine, dark, light</Tags>
+        <Tags>theme, gruvbox, rose pine, everforest, dark, light</Tags>
     </Metadata>
     <Installation>
         <!-- Visual Studio 2026 judges compatibility from the lower bound only,

@@ -25,7 +25,7 @@
     },
     {
       "path": "vs/theme/dist/DotfilesThemes.vsix",
-      "name": "Dotfiles Theme Pack (Gruvbox Dark, Rose Pine Dawn)"
+      "name": "Dotfiles Theme Pack (Gruvbox Dark, Rose Pine Dawn, Everforest Medium)"
     },
     {
       // Built from github.com/dyskette/vs-nerdx at 9d6e24f, branch
