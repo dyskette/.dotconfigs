@@ -10,9 +10,11 @@ local utils = require("config.utils")
 -- the same TermResponse event, and the poll then finds nothing new to do.
 local THEME_POLL_MS = 2000
 
+-- One colorscheme for both: everforest picks its dark or light palette from
+-- 'background'. bat_theme names the matching bat/themes file.
 local themes = {
-  dark = { colorscheme = "gruvbox", bat_theme = "gruvbox" },
-  light = { colorscheme = "rose-pine-dawn", bat_theme = "rose-pine-dawn" },
+  dark = { colorscheme = "everforest", bat_theme = "everforest-dark-medium" },
+  light = { colorscheme = "everforest", bat_theme = "everforest-light-medium" },
 }
 
 -- Last theme handed to apply_theme(), so repeated polls don't reload the
@@ -29,7 +31,7 @@ local apply_theme = function(name)
   end
   current_theme = name
 
-  -- gruvbox.nvim picks its variant from vim.o.background, so that has to be set
+  -- everforest picks its palette from vim.o.background, so that has to be set
   -- before the colorscheme rather than left to whatever nvim inferred.
   vim.o.background = name
   vim.cmd.colorscheme(theme.colorscheme)
@@ -128,26 +130,27 @@ local tabby_opts = function()
   local is_dark = vim.o.background == "dark"
   local theme = {}
 
+  -- Everforest medium, matching tmux/everforest-*-medium.conf so the tab line
+  -- and the tmux status line read as one bar: head and tail are the session
+  -- and host blocks, tabs the window list, windows the date block.
   if is_dark then
-    -- Gruvbox dark medium, matching tmux/gruvbox.conf so the tab line and
-    -- the tmux status line read as one bar.
     theme = {
-      fill = { fg = "#EBDBB2", bg = "#282828" },
-      head = { fg = "#282828", bg = "#EBDBB2", style = "bold" },
-      current_tab = { fg = "#282828", bg = "#928374", style = "bold" },
-      tab = { fg = "#EBDBB2", bg = "#3C3836" },
-      win = { fg = "#282828", bg = "#A89984" },
-      tail = { fg = "#282828", bg = "#83A598", style = "bold" },
+      fill = { fg = "#D3C6AA", bg = "#343F44" },
+      head = { fg = "#2D353B", bg = "#A7C080", style = "bold" },
+      current_tab = { fg = "#D3C6AA", bg = "#425047", style = "bold" },
+      tab = { fg = "#9DA9A0", bg = "#3D484D" },
+      win = { fg = "#D3C6AA", bg = "#475258" },
+      tail = { fg = "#2D353B", bg = "#A7C080", style = "bold" },
     }
   else
-    -- Rose Pine Dawn colors from your tmux config
+    -- Inverted fg blocks: text on the light greens would be 2.7:1 at best.
     theme = {
-      fill = { fg = "#575279", bg = "#faf4ed" },
-      head = { fg = "#f2e9e1", bg = "#907aa9", style = "bold" },
-      current_tab = { fg = "#575279", bg = "#d7827e", style = "bold" },
-      tab = { fg = "#575279", bg = "#f2e9e1" },
-      win = { fg = "#f2e9e1", bg = "#56949f" },
-      tail = { fg = "#f2e9e1", bg = "#ea9d34", style = "bold" },
+      fill = { fg = "#5C6A72", bg = "#F4F0D9" },
+      head = { fg = "#FDF6E3", bg = "#5C6A72", style = "bold" },
+      current_tab = { fg = "#5C6A72", bg = "#F0F1D2", style = "bold" },
+      tab = { fg = "#5C6A72", bg = "#EFEBD4" },
+      win = { fg = "#5C6A72", bg = "#E6E2CC" },
+      tail = { fg = "#FDF6E3", bg = "#5C6A72", style = "bold" },
     }
   end
 
@@ -278,21 +281,17 @@ return {
   -- Color schemes. Which one is active follows the terminal background colour;
   -- see the theme tracking at the top of this file.
   {
-    "ellisonleao/gruvbox.nvim",
+    "sainnhe/everforest",
     lazy = false,
     priority = 1000,
-    -- setup() has to run before the colorscheme command for opts to apply,
-    -- so the theme is only applied once the plugin is configured.
-    opts = {},
-    config = function(_, opts)
-      require("gruvbox").setup(opts)
+    config = function()
+      -- Read when the colorscheme loads, so they are set before theme_config()
+      -- runs :colorscheme. Medium is the default; spelled out to match the
+      -- terminals and tmux.
+      vim.g.everforest_background = "medium"
+      vim.g.everforest_better_performance = 1
       theme_config()
     end,
-  },
-  {
-    "rose-pine/neovim",
-    name = "rose-pine",
-    -- Loaded on demand by lazy.nvim when apply_theme() picks rose-pine-dawn.
   },
   -- tab bar
   {
