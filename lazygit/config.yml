@@ -23,7 +23,8 @@ gui:
   # Everforest; the line keeps its own aqua/yellow/green text and becomes
   # unreadable. Use bg3, as zellij does for selected rows.
   # Copied (cherry-picked) commits default to blue on cyan, two pastels that
-  # are ~1:1 in Everforest; use fg on bg_blue instead.
+  # are ~1:1 in Everforest; use fg on bg_blue instead. The rebase base commit
+  # defaults to blue on yellow, same problem; use fg on bg_yellow.
   darkTheme:
     selectedLineBgColor:
       - "#475258"
@@ -31,6 +32,10 @@ gui:
       - "#d3c6aa"
     cherryPickedCommitBgColor:
       - "#3a515d"
+    markedBaseCommitFgColor:
+      - "#d3c6aa"
+    markedBaseCommitBgColor:
+      - "#4d4c43"
   lightTheme:
     selectedLineBgColor:
       - "#e6e2cc"
@@ -38,3 +43,7 @@ gui:
       - "#5c6a72"
     cherryPickedCommitBgColor:
       - "#e9f0e9"
+    markedBaseCommitFgColor:
+      - "#5c6a72"
+    markedBaseCommitBgColor:
+      - "#faedcd"
