@@ -2,12 +2,7 @@
 # global gitconfig by the installers. Delta reads its options from git config
 # even when it is not git's pager.
 
-# Delta cannot query the terminal background from inside lazygit, and the
-# light syntax theme (rose-pine-dawn) is not one it recognizes as light. The
-# shell prompts export DELTA_FEATURES=+dark or +light next to BAT_THEME, which
-# delta also reads, so both follow the system theme.
-[delta "dark"]
-    dark = true
-
-[delta "light"]
-    light = true
+[delta]
+    # Query the terminal background even when the output is not a terminal,
+    # as inside lazygit, which pipes delta's output into its own view.
+    detect-dark-light = always

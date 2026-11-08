@@ -2,7 +2,7 @@
 git:
   diffRenderers:
     # lazygit owns scrolling, so delta must not start a pager of its own.
-    # Light/dark comes from DELTA_FEATURES, see git/delta.gitconfig.
+    # Light/dark is detected by delta itself, see git/delta.gitconfig.
     - command: delta --paging=never
 gui:
   # <c-d>/<c-u> (and the mouse wheel) scroll the diff by this many lines;

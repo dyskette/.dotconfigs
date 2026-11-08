@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Set the psmux theme (Windows counterpart of set-theme.sh).
+    Set the psmux theme.
 
 .DESCRIPTION
     Sources the dark or light theme file and records the choice in the psmux
     global environment so toggle-theme.ps1 can read it back.
 
-    Unlike set-theme.sh there is no synthetic OSC 11 response: psmux has no
-    mode 2031 support and #{client_tty} is not a writable device.
+    psmux has no theme detection of its own (tmux 3.6+ does, see tmux.conf),
+    so the theme comes from here instead.
 
 .PARAMETER Theme
     'dark' or 'light'. When omitted, falls back to $env:SYSTEM_COLOR_THEME

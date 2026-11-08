@@ -1,7 +1,6 @@
 <#
 .SYNOPSIS
-    Toggle the psmux theme between dark and light (Windows counterpart of
-    toggle-theme.sh).
+    Toggle the psmux theme between dark and light.
 #>
 
 # Explicit target for the same reason as in set-theme.ps1: psmux CLI calls

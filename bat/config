@@ -1,1 +1,5 @@
---theme="gruvbox"
+# Pick the theme from the terminal background, even when the output is piped
+# (fzf previews, lazygit), instead of falling back to the dark theme there.
+--theme=auto:always
+--theme-dark="gruvbox"
+--theme-light="rose-pine-dawn"
