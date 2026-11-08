@@ -18,8 +18,17 @@
     "buffer_font_size": 14,
     "theme": {
         "mode": "system",
-        "light": "Rosé Pine Dawn",
-        "dark": "Gruvbox Dark"
+        "light": "Everforest Light Medium (regular)",
+        "dark": "Everforest Dark Medium (regular)"
+    },
+    "auto_install_extensions": {
+        "everforest": true
+    },
+    // Upstream light bright black is grey1; use grey2 like ghostty/windows_terminal.
+    "theme_overrides": {
+        "Everforest Light Medium (regular)": {
+            "terminal.ansi.bright_black": "#829181"
+        }
     },
 
     // Vim mode configuration
