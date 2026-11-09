@@ -55,6 +55,7 @@
         - aspire
         - vscode-cli
         - zig
+        - opencode
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -137,6 +138,8 @@
       tags: [bin, rust]
     - import_tasks: tasks/bin/zig.yml
       tags: [bin, zig]
+    - import_tasks: tasks/bin/opencode.yml
+      tags: [bin, opencode]
 
     - name: Dotnet
       tags: dotnet

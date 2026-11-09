@@ -39,7 +39,10 @@ param(
     [switch]$SkipWindowsSettings,
 
     [Parameter(HelpMessage="Skip GitHub release package installation")]
-    [switch]$SkipGitHubPackages
+    [switch]$SkipGitHubPackages,
+
+    [Parameter(HelpMessage="Skip the OpenCode CLI installation")]
+    [switch]$SkipOpenCode
 )
 
 # ── Admin elevation ─────────────────────────────────────────────────────────
@@ -446,6 +449,17 @@ if (-not $SkipPackages -and -not $SkipGitHubPackages) {
     Invoke-Step -ScriptName "Install-GitHubReleases.ps1" -Description "Installing GitHub release packages"
 } else {
     Write-Host "Skipping GitHub release packages." -ForegroundColor Yellow
+}
+
+# ── 2.6. OpenCode CLI ──────────────────────────────────────────────────────
+
+# OpenCode 2 is on neither winget nor the sst/opencode GitHub releases, so it
+# comes from its own update API.
+if (-not $SkipPackages -and -not $SkipOpenCode) {
+    Write-Host ""
+    Invoke-Step -ScriptName "Install-OpenCode.ps1" -Description "Installing OpenCode CLI"
+} else {
+    Write-Host "Skipping OpenCode CLI." -ForegroundColor Yellow
 }
 
 # ── 3. Dotfile configuration ───────────────────────────────────────────────

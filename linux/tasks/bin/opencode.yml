@@ -1,0 +1,80 @@
+---
+# Standalone OpenCode CLI (v2). The npm/bun/pnpm packages (@opencode/cli) place
+# the binary under the active fnm Node version, so it disappears when the
+# default Node changes; the tarball is self-contained and lives in ~/.local/opt
+# like the rest of the bin recipes.
+#
+# The sst/opencode GitHub releases still carry the v1 line, so the update API is
+# the source of truth. It reports the current version plus a sha256 per asset,
+# which makes this task idempotent and lets get_url verify the download.
+- name: OpenCode | Install CLI
+  vars:
+    opencode_dir: "{{ ansible_facts['env']['HOME'] }}/.local/opt/opencode"
+    opencode_bin: "{{ ansible_facts['env']['HOME'] }}/.local/bin"
+    # glibc x86_64 build, matching the Fedora and Ubuntu hosts in inventory.yml.
+    # The API also publishes -musl, arm64 and -baseline variants.
+    opencode_asset: opencode-linux-x64.tar.gz
+  block:
+    - name: OpenCode | Fetch release manifest
+      ansible.builtin.uri:
+        url: https://opencode.ai/update/api/latest/cli/opencode
+        return_content: true
+      register: opencode_manifest
+      check_mode: false  # Read-only request; needed to resolve the version in --check
+
+    - name: OpenCode | Select release
+      ansible.builtin.set_fact:
+        opencode_version: "{{ opencode_manifest.json.version }}"
+        opencode_file: "{{ opencode_manifest.json.metadata.files[opencode_asset] }}"
+
+    - name: OpenCode | Read installed version
+      ansible.builtin.command:
+        cmd: "{{ opencode_dir }}/opencode --version"
+      register: opencode_installed
+      changed_when: false
+      failed_when: false
+
+    # `opencode --version` prints "opencode v2.2.6"; the manifest reports "2.2.6".
+    - name: OpenCode | Install OpenCode {{ opencode_version }}
+      when: >-
+        (opencode_installed.stdout | default('') | regex_search('[0-9]+\.[0-9]+\.[0-9]+'))
+        != opencode_version
+      block:
+        - name: OpenCode | Download tarball
+          ansible.builtin.get_url:
+            url: "{{ opencode_file.url }}"
+            dest: "/tmp/{{ opencode_asset }}"
+            # Fails the task when the download does not match the published hash.
+            checksum: "sha256:{{ opencode_file.sha256 }}"
+            mode: "0644"
+
+        - name: OpenCode | Remove existing installation
+          ansible.builtin.file:
+            path: "{{ opencode_dir }}"
+            state: absent
+
+        - name: OpenCode | Create installation directory
+          ansible.builtin.file:
+            path: "{{ opencode_dir }}"
+            state: directory
+            mode: "0755"
+
+        # The tarball holds a single executable at its root, so no strip-components.
+        - name: OpenCode | Extract binary
+          ansible.builtin.unarchive:
+            src: "/tmp/{{ opencode_asset }}"
+            dest: "{{ opencode_dir }}"
+            remote_src: true
+
+      always:
+        - name: OpenCode | Clean up downloaded tarball
+          ansible.builtin.file:
+            path: "/tmp/{{ opencode_asset }}"
+            state: absent
+
+    - name: OpenCode | Link opencode binary
+      ansible.builtin.file:
+        src: "{{ opencode_dir }}/opencode"
+        dest: "{{ opencode_bin }}/opencode"
+        state: link
+        force: yes
