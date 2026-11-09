@@ -60,7 +60,7 @@ If the repo is already cloned:
 | bash | `bash/bashrc` | `$HOME\.bashrc` | Symlink |
 | bash | `bash/bashrc.d/` | `$HOME\.bashrc.d` | Junction |
 | claude | `claude/settings.json` | `$HOME\.claude\settings.json` | Symlink |
-| opencode | `opencode/` | `$APPDATA\opencode` | Junction |
+| opencode | `opencode/` | `$HOME\.config\opencode` | Junction |
 | tmux | `tmux/psmux.conf` | `$HOME\.psmux.conf` | Symlink |
 | vs | `vs/vsvimrc` | `$HOME\.vsvimrc` | Symlink |
 | vscode | `vscode/settings.json` | `$APPDATA\Code\User\settings.json` | Symlink |
