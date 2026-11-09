@@ -135,6 +135,32 @@ Set-PSReadLineOption -AddToHistoryHandler {
     [Microsoft.PowerShell.PSConsoleReadLine]::GetDefaultAddToHistoryOption($line)
 }
 
+<#
+.SYNOPSIS
+    Switch this shell back to PowerShell's stock prompt (PS C:\path>), e.g. for
+    screenshots, recordings or pasting a session somewhere.
+.DESCRIPTION
+    Also undoes what the custom prompt relies on: PSReadLine's error colouring
+    goes back to the stock "> ", and the window title stops following the
+    folder and the running command. The theme variables (BAT_THEME,
+    DELTA_FEATURES, SYSTEM_COLOR_THEME) keep their last values but no longer
+    follow the Windows theme. Only this session is affected; a new shell
+    starts with the custom prompt again.
+#>
+function Disable-Prompt {
+    function global:prompt {
+        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
+    }
+
+    Set-PSReadLineOption -PromptText '> '
+    # Keeps the stock history filtering (e.g. of secrets), only without the title.
+    Set-PSReadLineOption -AddToHistoryHandler {
+        param([string]$line)
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetDefaultAddToHistoryOption($line)
+    }
+    $host.UI.RawUI.WindowTitle = [Environment]::ProcessPath
+}
+
 if (-not $env:SHELL) {
     $env:SHELL = [Environment]::ProcessPath
 }
