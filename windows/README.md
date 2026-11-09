@@ -54,15 +54,26 @@ If the repo is already cloned:
 | App | Source | Target | Type |
 |-----|--------|--------|------|
 | nvim | `nvim/` | `$LOCALAPPDATA\nvim` | Junction |
+| lazygit | `lazygit/config.yml` | `$LOCALAPPDATA\lazygit\config.yml` | Symlink |
 | powershell | `powershell/` | `$HOME\Documents\PowerShell` | Junction |
 | bat | `bat/` | `$APPDATA\bat` | Junction |
 | bash | `bash/bashrc` | `$HOME\.bashrc` | Symlink |
 | bash | `bash/bashrc.d/` | `$HOME\.bashrc.d` | Junction |
+| claude | `claude/settings.json` | `$HOME\.claude\settings.json` | Symlink |
 | opencode | `opencode/` | `$APPDATA\opencode` | Junction |
+| tmux | `tmux/psmux.conf` | `$HOME\.psmux.conf` | Symlink |
 | vs | `vs/vsvimrc` | `$HOME\.vsvimrc` | Symlink |
-| vscode | `vscode/*.json` | `$APPDATA\Code\User\` | Symlink |
-| windows-terminal | `windows_terminal/settings.json` | Terminal LocalState | Symlink |
-| zed | `zed/*.json` | `$APPDATA\Zed\` | Symlink |
+| vscode | `vscode/settings.json` | `$APPDATA\Code\User\settings.json` | Symlink |
+| vscode | `vscode/keybindings.json` | `$APPDATA\Code\User\keybindings.json` | Symlink |
+| windows-terminal | `windows_terminal/settings.json` | `$LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json` | Symlink |
+| yazi | `yazi/` | `$APPDATA\yazi\config` | Junction |
+| zellij | `zellij/` | `$APPDATA\zellij\config` | Junction |
+| zed | `zed/settings.json` | `$APPDATA\Zed\settings.json` | Hard link |
+| zed | `zed/keymap.json` | `$APPDATA\Zed\keymap.json` | Hard link |
+
+`Configure-Dotfiles.ps1` also creates `$HOME\.local\bin` and adds it to the user
+PATH, under the `localbin` filter name. Linking `bat` rebuilds its theme cache
+and linking `yazi` restores its packages with `ya pkg install`.
 
 ## Parameters
 
