@@ -11,9 +11,25 @@
           update_cache: true
           upgrade: true
 
+      # Legacy one-line .list files left by apt_repository/add-apt-repository
+      # would duplicate the deb822 source below and make apt warn.
+      - name: Ubuntu | Remove legacy git-core PPA source files
+        ansible.builtin.file:
+          path: "{{ item }}"
+          state: absent
+        loop: "{{ query('ansible.builtin.fileglob', '/etc/apt/sources.list.d/*git*core*ppa*.list') }}"
+
       - name: Ubuntu | Add git-core PPA repository for the latest git
-        ansible.builtin.apt_repository:
-          repo: ppa:git-core/ppa
+        ansible.builtin.deb822_repository:
+          name: git-core-ppa
+          types: deb
+          uris: https://ppa.launchpadcontent.net/git-core/ppa/ubuntu
+          suites: "{{ ansible_facts['distribution_release'] }}"
+          components: main
+          # Fingerprint from the Launchpad API (~git-core/+archive/ubuntu/ppa)
+          signed_by: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF911AB184317630C59970973E363C90F8F1B6217
+          # Module depends on python3-debian, which minimal installs may lack
+          install_python_debian: true
           state: present
 
       - name: Ubuntu | Update cache
