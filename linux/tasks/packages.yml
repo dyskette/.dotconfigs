@@ -89,6 +89,7 @@
             - com.visualstudio.code
 
       - name: VS Code extensions
+        tags: vscode-extensions
         block:
           - name: VS Code extensions | Set common facts
             ansible.builtin.set_fact:
