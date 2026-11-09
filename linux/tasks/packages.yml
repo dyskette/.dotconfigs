@@ -100,6 +100,7 @@
           state: present
           name:
             - com.visualstudio.code
+            - com.microsoft.Edge
 
       - name: VS Code extensions
         tags: vscode-extensions
@@ -138,3 +139,6 @@
             - dbus-tools
             - gtk4
             - socat
+            - make
+            # Fedora's own build; the full ffmpeg package needs RPM Fusion
+            - ffmpeg-free

@@ -132,6 +132,8 @@
       tags: [bin, aspire]
     - import_tasks: tasks/bin/vscode-cli.yml
       tags: [bin, vscode-cli]
+    - import_tasks: tasks/bin/rust.yml
+      tags: [bin, rust]
 
     - name: Dotnet
       tags: dotnet

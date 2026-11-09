@@ -1,0 +1,35 @@
+---
+# rustup installs to ~/.cargo, which bash/bashrc.d/rust.sh puts on PATH, and
+# matches the Rustlang.Rustup winget package on Windows. Distro rustc/cargo
+# packages lag behind (Ubuntu 24.04 ships 1.75). Not on Fedora Silverblue,
+# which is kept free of development toolchains.
+- name: Rust | Install with rustup
+  when: is_ubuntu or is_fedora
+  block:
+    - name: Rust | Check if rustup is already installed
+      ansible.builtin.stat:
+        path: "{{ ansible_facts['env']['HOME'] }}/.cargo/bin/rustup"
+      register: rustup_installed
+
+    - name: Rust | Install stable toolchain
+      when: not rustup_installed.stat.exists
+      block:
+        - name: Rust | Download rustup-init
+          ansible.builtin.get_url:
+            url: https://sh.rustup.rs
+            dest: /tmp/rustup-init.sh
+            mode: "0755"
+
+        - name: Rust | Run rustup-init
+          ansible.builtin.command:
+            argv:
+              - /tmp/rustup-init.sh
+              - -y
+              - --no-modify-path  # bash/bashrc.d/rust.sh already sets PATH
+              - --default-toolchain
+              - stable
+
+        - name: Rust | Clean up rustup-init
+          ansible.builtin.file:
+            path: /tmp/rustup-init.sh
+            state: absent
