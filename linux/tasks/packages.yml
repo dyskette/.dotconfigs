@@ -66,6 +66,25 @@
           path: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:pgdev:ghostty.repo
           state: absent
 
+      # Every rpm-ostree operation refreshes all enabled repos, so unused ones only
+      # add network calls and failure points. Disabled rather than deleted: the
+      # Fedora third-party ones are recreated by fedora-workstation-repositories.
+      # Debuginfo/source sections are already off and untouched by the regexp.
+      - name: Fedora Silverblue | Disable unused third-party repositories
+        become: true
+        ansible.builtin.replace:
+          path: "/etc/yum.repos.d/{{ item }}"
+          regexp: '^enabled\s*=\s*1\s*$'
+          replace: enabled=0
+        loop:
+          - google-chrome.repo  # Chrome is not installed
+          - "_copr:copr.fedorainfracloud.org:phracek:PyCharm.repo"  # PyCharm is not installed
+          - rpmfusion-nonfree-nvidia-driver.repo  # No NVIDIA GPU
+          - rpmfusion-nonfree-steam.repo  # Steam is not installed
+          - vscode.repo  # VS Code comes from Flatpak
+          - netbird.repo  # NetBird is not installed
+        when: ("/etc/yum.repos.d/" ~ item) is file
+
       - name: Fedora Silverblue | Enable scottames/ghostty copr repository
         become: true
         ansible.builtin.get_url:
@@ -76,15 +95,10 @@
       - name: Fedora Silverblue | Install rpm-ostree packages
         community.general.rpm_ostree_pkg:
           state: present
+          # Only what cannot live in $HOME, a toolbx or a Flatpak. git-core,
+          # wl-clipboard, 7zip, xz and unzip already ship in the base image, tmux
+          # is built in a toolbx, and Zig stands in for gcc (tasks/bin/zig.yml).
           name:
-            - git
-            - gcc
-            - glib2-devel
-            - tmux
-            - wl-clipboard
-            - p7zip
-            - p7zip-plugins
-            - xz
             - ghostty
 
       - name: Fedora Silverblue | Add flathub repository

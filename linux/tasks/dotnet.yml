@@ -21,15 +21,8 @@
               - libstdc++6
               - zlib1g
 
-        - name: Dotnet | Fedora Silverblue | Install dependencies
-          when: is_fedora_silverblue
-          community.general.rpm_ostree_pkg:
-            state: present
-            name:
-              - krb5-libs
-              - libicu
-              - openssl-libs
-              - zlib
+        # Fedora Silverblue needs nothing here: krb5-libs, libicu, openssl-libs
+        # and zlib-ng-compat all ship in the base image.
 
         - name: Dotnet | Fedora | Install dependencies
           when: is_fedora
