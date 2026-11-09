@@ -18,6 +18,9 @@ if grep -qi "silverblue" /etc/os-release; then
     "$ANSIBLE_VENV/bin/pip" install --quiet --upgrade ansible-core jmespath || exit 1
     export PATH="$ANSIBLE_VENV/bin:$PATH"
     INSTALL_COLLECTIONS=1
+    # Lets ansible-playbook be run directly; the venv's shebang finds its own python.
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$ANSIBLE_VENV/bin/ansible-playbook" "$HOME/.local/bin/ansible-playbook"
 elif grep -qi "fedora" /etc/os-release; then
     echo "You are using Fedora"
     if ! command -v ansible &>/dev/null; then
