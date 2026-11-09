@@ -1,6 +1,9 @@
 .claude/
 nul
 
+# Holds the OpenCode service password, generated per machine.
+opencode/service.json
+
 # Third-party yazi packages are restored from yazi/package.toml via
 # `ya pkg install`. First-party plugins in this repo are tracked; the glob
 # (rather than a bare directory) is what lets the negation below apply.
