@@ -13,11 +13,47 @@
   become: true
   when: is_fedora
 
-- name: PostgreSQL | Install client (Fedora Silverblue)
-  community.general.rpm_ostree_pkg:
-    state: present
-    name:
-      - postgresql
+# On Silverblue psql lives in a dedicated toolbx container instead of being layered
+# on the host; ~/.local/bin/psql forwards to it. toolbx shares $HOME, the network
+# and the working directory, so the wrapper behaves like a host psql.
+- name: PostgreSQL | Install client in a toolbx container (Fedora Silverblue)
   when: is_fedora_silverblue
+  vars:
+    psql_container: psql
+  block:
+    - name: PostgreSQL | Check for the psql toolbx container
+      ansible.builtin.command:
+        cmd: podman container exists {{ psql_container }}
+      register: psql_container_stat
+      changed_when: false
+      failed_when: false
+
+    - name: PostgreSQL | Create the psql toolbx container
+      ansible.builtin.command:
+        cmd: toolbox create --assumeyes {{ psql_container }}
+      when: psql_container_stat.rc != 0
+
+    - name: PostgreSQL | Start the psql toolbx container
+      ansible.builtin.command:
+        cmd: podman start {{ psql_container }}
+      changed_when: false
+
+    # toolbx has no passwordless sudo, so the install runs as root over podman exec.
+    - name: PostgreSQL | Install client in the psql toolbx container
+      ansible.builtin.command:
+        cmd: podman exec --user root {{ psql_container }} dnf install -y postgresql
+      register: psql_install
+      changed_when: "'Nothing to do' not in psql_install.stdout"
+
+    - name: PostgreSQL | Install psql wrapper
+      ansible.builtin.copy:
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/psql"
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          # Managed by linux/tasks/bin/postgresql.yml: runs psql from its toolbx container.
+          # The absolute path matters: the container shares $HOME and PATH, so a bare
+          # `psql` resolves back to this wrapper and recurses until fork fails.
+          exec toolbox run --container {{ psql_container }} /usr/bin/psql "$@"
 
 

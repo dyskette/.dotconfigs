@@ -1,0 +1,87 @@
+---
+# Fedora Silverblue only: Zig's bundled clang replaces a layered gcc. The `cc`
+# and `c++` wrappers in ~/.local/bin let tools that call the default compiler
+# (nvim-treesitter building parsers through tree-sitter) work unchanged.
+# Ubuntu and Fedora install gcc from their package lists instead.
+- name: Zig | Install toolchain (Fedora Silverblue)
+  when: is_fedora_silverblue
+  vars:
+    zig_dir: "{{ ansible_facts['env']['HOME'] }}/.local/opt/zig"
+    zig_bin: "{{ ansible_facts['env']['HOME'] }}/.local/bin"
+  block:
+    - name: Zig | Fetch release index
+      ansible.builtin.uri:
+        url: https://ziglang.org/download/index.json
+        return_content: true
+      register: zig_index
+      check_mode: false  # Read-only request; needed to resolve the version in --check
+
+    # The index keys are release versions plus "master"; the highest numeric key
+    # is the latest stable release.
+    - name: Zig | Select latest stable release
+      ansible.builtin.set_fact:
+        zig_version: >-
+          {{ zig_index.json.keys() | reject('equalto', 'master')
+             | community.general.version_sort | last }}
+
+    - name: Zig | Read installed version
+      ansible.builtin.command:
+        cmd: "{{ zig_dir }}/zig version"
+      register: zig_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Zig | Install Zig {{ zig_version }}
+      when: zig_installed.stdout | default('') != zig_version
+      block:
+        - name: Zig | Remove existing installation
+          ansible.builtin.file:
+            path: "{{ zig_dir }}"
+            state: absent
+
+        - name: Zig | Create installation directory
+          ansible.builtin.file:
+            path: "{{ zig_dir }}"
+            state: directory
+            mode: "0755"
+
+        - name: Zig | Download and extract
+          ansible.builtin.unarchive:
+            src: "{{ zig_index.json[zig_version][ansible_facts['architecture'] ~ '-linux'].tarball }}"
+            dest: "{{ zig_dir }}"
+            remote_src: true
+            extra_opts: [--strip-components=1]
+
+    - name: Zig | Link zig binary
+      ansible.builtin.file:
+        src: "{{ zig_dir }}/zig"
+        dest: "{{ zig_bin }}/zig"
+        state: link
+
+    - name: Zig | Install cc and c++ wrappers
+      ansible.builtin.copy:
+        dest: "{{ zig_bin }}/{{ item.name }}"
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          # Managed by linux/tasks/bin/zig.yml: Zig's clang as the default compiler.
+          # Rust's cc crate (used by tree-sitter build) passes a Rust target triple
+          # such as --target=x86_64-unknown-linux-gnu, which Zig rejects with
+          # UnknownOperatingSystem. Zig builds for the host by default, so any
+          # --target/-target flag is dropped.
+          skip=
+          for arg do
+              shift
+              if [ -n "$skip" ]; then skip=; continue; fi
+              case $arg in
+                  --target=*) continue ;;
+                  -target|--target) skip=1; continue ;;
+              esac
+              set -- "$@" "$arg"
+          done
+          exec zig {{ item.subcommand }} "$@"
+      loop:
+        - { name: cc, subcommand: cc }
+        - { name: c++, subcommand: c++ }
+      loop_control:
+        label: "{{ item.name }}"

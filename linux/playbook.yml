@@ -54,6 +54,7 @@
         - azure-functions-core-tools
         - aspire
         - vscode-cli
+        - zig
       block:
         - name: Create local bin
           ansible.builtin.file:
@@ -134,6 +135,8 @@
       tags: [bin, vscode-cli]
     - import_tasks: tasks/bin/rust.yml
       tags: [bin, rust]
+    - import_tasks: tasks/bin/zig.yml
+      tags: [bin, zig]
 
     - name: Dotnet
       tags: dotnet
