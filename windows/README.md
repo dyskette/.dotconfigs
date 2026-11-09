@@ -58,6 +58,7 @@ If the repo is already cloned:
 | bat | `bat/` | `$APPDATA\bat` | Junction |
 | bash | `bash/bashrc` | `$HOME\.bashrc` | Symlink |
 | bash | `bash/bashrc.d/` | `$HOME\.bashrc.d` | Junction |
+| opencode | `opencode/` | `$APPDATA\opencode` | Junction |
 | vs | `vs/vsvimrc` | `$HOME\.vsvimrc` | Symlink |
 | vscode | `vscode/*.json` | `$APPDATA\Code\User\` | Symlink |
 | windows-terminal | `windows_terminal/settings.json` | Terminal LocalState | Symlink |

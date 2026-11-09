@@ -81,6 +81,17 @@ $links = @(
         Type   = "SymbolicLink"
     }
     @{
+        # Junction over the whole directory, mirroring linux/tasks/dotfiles.yml.
+        # OpenCode resolves its config directory through %APPDATA% (data too;
+        # cache and state use %LOCALAPPDATA%), unless XDG_CONFIG_HOME is set.
+        # It also writes generated state next to the tracked files, which the
+        # repo's .gitignore keeps untracked.
+        App    = "opencode"
+        Source = "opencode"
+        Target = "$env:APPDATA\opencode"
+        Type   = "Junction"
+    }
+    @{
         # psmux (tmux for Windows) reads ~/.psmux.conf before ~/.tmux.conf
         App    = "tmux"
         Source = "tmux\psmux.conf"
