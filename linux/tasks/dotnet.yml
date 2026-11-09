@@ -1,7 +1,8 @@
 ---
 - name: Dotnet
   vars:
-    dotnet_script: "{{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet/dotnet-install.sh"
+    dotnet_dir: "{{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet"
+    dotnet_script: "{{ dotnet_dir }}/dotnet-install.sh"
   block:
     - name: Dotnet | Dependencies
       tags: dependencies
@@ -62,13 +63,60 @@
             mode: "0755"
           when: not dotnet_install_script.stat.exists
 
-    - name: Dotnet | Check if version {{ dotnet_version }} already installed
-      ansible.builtin.find:
-        path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet/sdk/"
-        patterns: "{{ dotnet_version }}.*"
-      register: dotnet_sdk_dir
+    # Microsoft's release index gives the latest SDK and runtime per channel.
+    - name: Dotnet | Fetch .NET release index
+      ansible.builtin.uri:
+        url: https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json
+        return_content: true
+      register: dotnet_releases_index
+      check_mode: false  # Read-only request; needed to resolve versions in --check
 
-    - name: Dotnet | Install .NET {{ dotnet_version }}
-      ansible.builtin.shell: |
-        {{ dotnet_script }} --no-path --install-dir {{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet --channel {{ dotnet_version }}
-      when: dotnet_sdk_dir.matched == 0
+    - name: Dotnet | Select latest {{ dotnet_version }} release
+      ansible.builtin.set_fact:
+        dotnet_release: >-
+          {{ dotnet_releases_index.json['releases-index']
+             | selectattr('channel-version', 'equalto', dotnet_version | string)
+             | first }}
+
+    - name: Dotnet | Install .NET SDK {{ dotnet_release['latest-sdk'] }}
+      ansible.builtin.command:
+        argv:
+          - "{{ dotnet_script }}"
+          - --no-path
+          - --install-dir
+          - "{{ dotnet_dir }}"
+          - --version
+          - "{{ dotnet_release['latest-sdk'] }}"
+        creates: "{{ dotnet_dir }}/sdk/{{ dotnet_release['latest-sdk'] }}"
+
+    # dotnet-install.sh only adds versions, and dotnet-core-uninstall does not
+    # support Linux, so older patches of this channel are deleted here. Apps
+    # roll forward to the newest installed patch of their runtime version.
+    - name: Dotnet | Check that runtime {{ dotnet_release['latest-runtime'] }} is installed
+      ansible.builtin.stat:
+        path: "{{ dotnet_dir }}/shared/Microsoft.NETCore.App/{{ dotnet_release['latest-runtime'] }}"
+      register: dotnet_latest_runtime
+
+    - name: Dotnet | Find outdated {{ dotnet_version }} SDKs and runtimes
+      ansible.builtin.find:
+        paths:
+          - "{{ dotnet_dir }}/sdk"
+          - "{{ dotnet_dir }}/shared/Microsoft.NETCore.App"
+          - "{{ dotnet_dir }}/shared/Microsoft.AspNetCore.App"
+        file_type: directory
+        patterns: "{{ dotnet_version }}.*"
+        excludes:
+          - "{{ dotnet_release['latest-sdk'] }}"
+          - "{{ dotnet_release['latest-runtime'] }}"
+      register: dotnet_outdated
+      # Fail safe: if the index's runtime is not what the SDK installed,
+      # skip pruning rather than delete the runtime the SDK needs.
+      when: dotnet_latest_runtime.stat.exists
+
+    - name: Dotnet | Remove outdated {{ dotnet_version }} SDKs and runtimes
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ dotnet_outdated.files | default([]) }}"
+      loop_control:
+        label: "{{ item.path | relpath(dotnet_dir) }}"
