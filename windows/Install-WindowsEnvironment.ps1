@@ -259,6 +259,9 @@ if (-not $SkipPackages) {
     # psql needs a winget --override, which winget import does not support.
     Invoke-Step -ScriptName "Install-Psql.ps1" -Description "Installing PostgreSQL command line tools (psql)"
 
+    # SQL*Plus has no winget package; Oracle.InstantClient.Basic lacks sqlplus.exe.
+    Invoke-Step -ScriptName "Install-SqlPlus.ps1" -Description "Installing Oracle SQL*Plus"
+
     # Install or amend Visual Studio 2026 Enterprise with the workloads in vsconfig.
     #
     # The bootstrapper's `install` verb refuses with exit code 1 when the product is

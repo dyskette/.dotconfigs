@@ -19,6 +19,11 @@
         { "PackageIdentifier": "GoLang.Go" },
         { "PackageIdentifier": "DenoLand.Deno" },
         { "PackageIdentifier": "Microsoft.OpenJDK.21" },
+        // .NET 10 comes with Visual Studio (vs/vsconfig.jsonc)
+        { "PackageIdentifier": "Microsoft.DotNet.SDK.6" },
+        { "PackageIdentifier": "Microsoft.DotNet.SDK.7" },
+        { "PackageIdentifier": "Microsoft.DotNet.SDK.8" },
+        { "PackageIdentifier": "Microsoft.DotNet.SDK.9" },
 
         // Version control and build tools
         { "PackageIdentifier": "Git.Git" },
@@ -27,8 +32,15 @@
         { "PackageIdentifier": "ezwinports.make" },
 
         // Database CLIs
+        // SQL*Plus has no winget package; see Install-SqlPlus.ps1
         { "PackageIdentifier": "Microsoft.Sqlcmd" },
-        { "PackageIdentifier": "Oracle.InstantClient.Basic" },
+        { "PackageIdentifier": "Oracle.SQLcl" },
+
+        // Cloud and infrastructure CLIs
+        { "PackageIdentifier": "Microsoft.AzureCLI" },
+        { "PackageIdentifier": "Microsoft.Azure.FunctionsCoreTools" },
+        { "PackageIdentifier": "Microsoft.Aspire" },
+        { "PackageIdentifier": "Hashicorp.Terraform" },
 
         // Data processing and network CLIs
         { "PackageIdentifier": "ImageMagick.ImageMagick.Q16" },

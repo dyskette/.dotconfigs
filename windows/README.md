@@ -33,6 +33,9 @@ If the repo is already cloned:
 | **Languages** | Python 3.12, Deno, fnm (Node.js) |
 | **Compilers** | WinLibs (GCC/MinGW-w64 + GDB + Make + CMake) |
 | **CLI Tools** | make, wget, jq, yq, fzf, fd, eza, ripgrep, bat, less, yazi, ffmpeg |
+| **.NET** | SDK 6, 7, 8, 9 (SDK 10 comes with Visual Studio) |
+| **Databases** | sqlcmd, SQLcl, psql (`Install-Psql.ps1`), SQL*Plus (`Install-SqlPlus.ps1`) |
+| **Cloud** | Azure CLI, Azure Functions Core Tools, Aspire CLI, Terraform |
 | **Shell** | PowerShell Core |
 | **Terminals** | Windows Terminal |
 | **Apps** | Firefox, Obsidian, KeePassXC, Dropbox |
@@ -86,6 +89,7 @@ If the repo is already cloned:
 | `Install-JetBrainsFont.ps1` | Nerd Font installation |
 | `Setup-NodeLTS.ps1` | Node.js LTS via fnm |
 | `Install-Psql.ps1` | PostgreSQL command line tools (psql) only, no server |
+| `Install-SqlPlus.ps1` | Oracle SQL*Plus from the Instant Client zips (not on winget) |
 
 ## Running Individual Scripts
 
