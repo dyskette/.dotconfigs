@@ -7,14 +7,17 @@ git:
     # {{colorScheme}}. The syntax theme matches bat (bat/config), and the
     # line backgrounds are Everforest's bg_green/bg_red, as in Vim's
     # DiffAdd/DiffDelete; changed words get the accent in bold.
+    # Styles are double-quoted only: on Windows lazygit runs this through
+    # cmd.exe, which does not treat single quotes as quotes and would split
+    # 'syntax "#514045"' into two arguments. Hex colours need no inner quotes.
     - command: >-
         delta --paging=never --{{colorScheme}}
         {{if eq .colorScheme "light"}}--syntax-theme=everforest-light-medium
-        --minus-style='syntax "#fde3da"' --minus-emph-style='bold "#f85552" "#fde3da"'
-        --plus-style='syntax "#f0f1d2"' --plus-emph-style='bold "#8da101" "#f0f1d2"'
+        --minus-style="syntax #fde3da" --minus-emph-style="bold #f85552 #fde3da"
+        --plus-style="syntax #f0f1d2" --plus-emph-style="bold #8da101 #f0f1d2"
         {{else}}--syntax-theme=everforest-dark-medium
-        --minus-style='syntax "#514045"' --minus-emph-style='bold "#e67e80" "#514045"'
-        --plus-style='syntax "#425047"' --plus-emph-style='bold "#a7c080" "#425047"'{{end}}
+        --minus-style="syntax #514045" --minus-emph-style="bold #e67e80 #514045"
+        --plus-style="syntax #425047" --plus-emph-style="bold #a7c080 #425047"{{end}}
 gui:
   # <c-d>/<c-u> (and the mouse wheel) scroll the diff by this many lines;
   # the default of 2 makes them feel like line-by-line scrolling.
