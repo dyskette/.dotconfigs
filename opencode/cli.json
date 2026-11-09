@@ -6,5 +6,8 @@
   "animations": true,
   "terminal": {
     "copy": "select"
+  },
+  "attention": {
+    "notifications": true
   }
 }
