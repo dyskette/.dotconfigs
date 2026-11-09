@@ -43,7 +43,16 @@ local function ensure_essential_parsers()
   end
 end
 
-local function treesitter_init()
+--- Set up treesitter highlighting before the plugin loads.
+---@param plugin LazyPlugin
+local function treesitter_init(plugin)
+  -- Installed queries are junctions from stdpath("data")/site/queries into the
+  -- plugin. Under Redirection Guard (SSH sessions, VS Code Remote-SSH) Windows
+  -- refuses to follow junctions a non-admin made, so every language but the
+  -- ones nvim bundles loses its queries. Reading them from the plugin itself
+  -- skips the junctions; appended, so the site and config queries still win.
+  vim.opt.runtimepath:append(plugin.dir .. "/runtime")
+
   vim.cmd.syntax("off")
 
   vim.api.nvim_create_autocmd("User", {
