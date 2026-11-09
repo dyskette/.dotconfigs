@@ -38,5 +38,3 @@ if [ -d ~/.bashrc.d ]; then
 
 	unset rc
 fi
-
-export OPENCODE_DISABLE_DEFAULT_PLUGINS=1
