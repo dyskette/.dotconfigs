@@ -4,7 +4,9 @@
 # Fedora, Fedora toolbox containers, and Ubuntu get this standalone CLI.
 - name: Download VS Code CLI tarball
   ansible.builtin.get_url:
-    url: https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64
+    # The update server, not code.visualstudio.com/sha/download: the latter
+    # stopped serving cli-linux-x64 (404) while still serving other platforms.
+    url: https://update.code.visualstudio.com/latest/cli-linux-x64/stable
     dest: /tmp/vscode_cli.tar.gz
     mode: "0644"
   register: download_status
