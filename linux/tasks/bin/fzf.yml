@@ -25,27 +25,27 @@
 
 - name: Remove existing fzf installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/fzf"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/fzf"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
 - name: Create fzf directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/fzf"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/fzf"
     state: directory
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Extract fzf files to /tmp
   ansible.builtin.unarchive:
     src: "/tmp/{{ fzf_directory }}.tar.gz"
-    dest: "{{ ansible_env.HOME }}/.local/opt/fzf/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/fzf/"
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/fzf/fzf"
-    dest: "{{ ansible_env.HOME }}/.local/bin/fzf"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/fzf/fzf"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/fzf"
     state: link
     force: yes
 

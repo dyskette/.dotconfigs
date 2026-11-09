@@ -1,7 +1,7 @@
 ---
 - name: Dotnet
   vars:
-    dotnet_script: "{{ ansible_env.HOME }}/.local/opt/dotnet/dotnet-install.sh"
+    dotnet_script: "{{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet/dotnet-install.sh"
   block:
     - name: Dotnet | Dependencies
       tags: dependencies
@@ -50,7 +50,7 @@
 
         - name: Dotnet | Create directory for dotnet-install.sh
           ansible.builtin.file:
-            path: "{{ ansible_env.HOME }}/.local/opt/dotnet"
+            path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet"
             state: directory
             mode: "0755"
           when: not dotnet_install_script.stat.exists
@@ -64,11 +64,11 @@
 
     - name: Dotnet | Check if version {{ dotnet_version }} already installed
       ansible.builtin.find:
-        path: "{{ ansible_env.HOME }}/.local/opt/dotnet/sdk/"
+        path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet/sdk/"
         patterns: "{{ dotnet_version }}.*"
       register: dotnet_sdk_dir
 
     - name: Dotnet | Install .NET {{ dotnet_version }}
       ansible.builtin.shell: |
-        {{ dotnet_script }} --no-path --install-dir {{ ansible_env.HOME }}/.local/opt/dotnet --channel {{ dotnet_version }}
+        {{ dotnet_script }} --no-path --install-dir {{ ansible_facts['env']['HOME'] }}/.local/opt/dotnet --channel {{ dotnet_version }}
       when: dotnet_sdk_dir.matched == 0

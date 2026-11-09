@@ -8,7 +8,7 @@
 
 - name: Remove existing SQLcl installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/sqlcl"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/sqlcl"
     state: absent
   when: download_status.changed # Remove only if the zip was re-downloaded
 
@@ -22,20 +22,20 @@
 - name: Install SQLcl files to ~/.local/opt
   ansible.builtin.copy:
     src: /tmp/sqlcl/
-    dest: "{{ ansible_env.HOME }}/.local/opt/sqlcl/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/sqlcl/"
     remote_src: yes
     mode: preserve
   when: download_status.changed # Install only if the zip was re-downloaded
 
 - name: Make SQLcl binary executable
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/sqlcl/bin/sql"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/sqlcl/bin/sql"
     mode: "0755"
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/sqlcl/bin/sql"
-    dest: "{{ ansible_env.HOME }}/.local/bin/sqlcl"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/sqlcl/bin/sql"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlcl"
     state: link
     force: yes
 

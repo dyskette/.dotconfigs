@@ -25,7 +25,7 @@
 
 - name: Remove existing bat installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/bat/"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/bat/"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
@@ -39,14 +39,14 @@
 - name: Install bat files
   copy:
     src: "/tmp/{{ bat_directory }}/"
-    dest: "{{ ansible_env.HOME }}/.local/opt/bat/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/bat/"
     remote_src: yes
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/bat/bat"
-    dest: "{{ ansible_env.HOME }}/.local/bin/bat"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/bat/bat"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/bat"
     state: link
     force: yes
 

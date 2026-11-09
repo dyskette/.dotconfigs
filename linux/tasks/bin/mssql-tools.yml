@@ -58,14 +58,14 @@
     - name: Create symlink to sqlcmd
       ansible.builtin.file:
         src: /opt/mssql-tools18/bin/sqlcmd
-        dest: "{{ ansible_env.HOME }}/.local/bin/sqlcmd"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlcmd"
         state: link
         force: yes
 
     - name: Create symlink to bcp
       ansible.builtin.file:
         src: /opt/mssql-tools18/bin/bcp
-        dest: "{{ ansible_env.HOME }}/.local/bin/bcp"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/bcp"
         state: link
         force: yes
 
@@ -96,13 +96,13 @@
     - name: Create symlink to sqlcmd
       ansible.builtin.file:
         src: /opt/mssql-tools18/bin/sqlcmd
-        dest: "{{ ansible_env.HOME }}/.local/bin/sqlcmd"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlcmd"
         state: link
         force: yes
 
     - name: Create symlink to bcp
       ansible.builtin.file:
         src: /opt/mssql-tools18/bin/bcp
-        dest: "{{ ansible_env.HOME }}/.local/bin/bcp"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/bcp"
         state: link
         force: yes

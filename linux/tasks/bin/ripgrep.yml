@@ -25,7 +25,7 @@
 
 - name: Remove existing ripgrep installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/ripgrep"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/ripgrep"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
@@ -39,14 +39,14 @@
 - name: Install ripgrep files
   ansible.builtin.copy:
     src: "/tmp/{{ ripgrep_directory }}/"
-    dest: "{{ ansible_env.HOME }}/.local/opt/ripgrep/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/ripgrep/"
     remote_src: yes
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/ripgrep/rg"
-    dest: "{{ ansible_env.HOME }}/.local/bin/rg"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/ripgrep/rg"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/rg"
     state: link
     force: yes
 

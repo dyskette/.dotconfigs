@@ -27,7 +27,7 @@
 
 - name: Remove existing OpenJDK installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/openjdk"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/openjdk"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
@@ -49,28 +49,28 @@
 - name: Install OpenJDK files to ~/.local/opt
   ansible.builtin.copy:
     src: "{{ openjdk_extracted_dir.files[0].path }}/"
-    dest: "{{ ansible_env.HOME }}/.local/opt/openjdk/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/openjdk/"
     remote_src: yes
   when: download_status.changed # Install only if the tarball was re-downloaded
 
 - name: Create symlink to java binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/openjdk/bin/java"
-    dest: "{{ ansible_env.HOME }}/.local/bin/java"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/openjdk/bin/java"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/java"
     state: link
     force: yes
 
 - name: Create symlink to javac binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/openjdk/bin/javac"
-    dest: "{{ ansible_env.HOME }}/.local/bin/javac"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/openjdk/bin/javac"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/javac"
     state: link
     force: yes
 
 - name: Create symlink to jar binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/openjdk/bin/jar"
-    dest: "{{ ansible_env.HOME }}/.local/bin/jar"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/openjdk/bin/jar"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/jar"
     state: link
     force: yes
 

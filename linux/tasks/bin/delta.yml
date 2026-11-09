@@ -24,7 +24,7 @@
 
 - name: Remove existing delta installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/delta/"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/delta/"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
@@ -38,19 +38,19 @@
 - name: Install delta files
   copy:
     src: "/tmp/{{ delta_directory }}/"
-    dest: "{{ ansible_env.HOME }}/.local/opt/delta/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/delta/"
     remote_src: yes
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Make delta executable
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/delta/delta"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/delta/delta"
     mode: "0755"
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/delta/delta"
-    dest: "{{ ansible_env.HOME }}/.local/bin/delta"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/delta/delta"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/delta"
     state: link
     force: yes
 

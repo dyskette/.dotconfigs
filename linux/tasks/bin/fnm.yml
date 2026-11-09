@@ -3,12 +3,12 @@
   ansible.builtin.shell: |
     curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$HOME/.local/opt/fnm" --skip-shell
   args:
-    creates: "{{ ansible_env.HOME }}/.local/opt/fnm"
+    creates: "{{ ansible_facts['env']['HOME'] }}/.local/opt/fnm"
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/fnm/fnm"
-    dest: "{{ ansible_env.HOME }}/.local/bin/fnm"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/fnm/fnm"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/fnm"
     state: link
     force: yes
 

@@ -21,19 +21,19 @@
 
 - name: Create fonts directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/share/fonts/NerdFontsSymbolsOnly"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/share/fonts/NerdFontsSymbolsOnly"
     state: directory
     mode: '0755'
 
 - name: Remove existing font files
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/share/fonts/NerdFontsSymbolsOnly"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/share/fonts/NerdFontsSymbolsOnly"
     state: absent
   when: download_status.changed # Remove only if the archive was re-downloaded
 
 - name: Recreate fonts directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/share/fonts/NerdFontsSymbolsOnly"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/share/fonts/NerdFontsSymbolsOnly"
     state: directory
     mode: '0755'
   when: download_status.changed # Create only if the archive was re-downloaded
@@ -41,7 +41,7 @@
 - name: Extract NerdFontsSymbolsOnly
   ansible.builtin.unarchive:
     src: /tmp/NerdFontsSymbolsOnly.tar.xz
-    dest: "{{ ansible_env.HOME }}/.local/share/fonts/NerdFontsSymbolsOnly/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/share/fonts/NerdFontsSymbolsOnly/"
     remote_src: yes
   when: download_status.changed # Extract only if the archive was re-downloaded
 

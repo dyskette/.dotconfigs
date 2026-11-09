@@ -21,26 +21,26 @@
 
 - name: Remove existing tree-sitter-cli installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/tree-sitter"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/tree-sitter"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
 - name: Create tree-sitter-cli directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/tree-sitter"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/tree-sitter"
     state: directory
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Extract tree-sitter-cli binary
   ansible.builtin.shell: |
-    gunzip -c /tmp/tree-sitter-linux-x64.gz > {{ ansible_env.HOME }}/.local/opt/tree-sitter/tree-sitter
-    chmod +x {{ ansible_env.HOME }}/.local/opt/tree-sitter/tree-sitter
+    gunzip -c /tmp/tree-sitter-linux-x64.gz > {{ ansible_facts['env']['HOME'] }}/.local/opt/tree-sitter/tree-sitter
+    chmod +x {{ ansible_facts['env']['HOME'] }}/.local/opt/tree-sitter/tree-sitter
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/tree-sitter/tree-sitter"
-    dest: "{{ ansible_env.HOME }}/.local/bin/tree-sitter"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/tree-sitter/tree-sitter"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/tree-sitter"
     state: link
     force: yes
 

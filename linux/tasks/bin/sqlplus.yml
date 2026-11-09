@@ -1,7 +1,7 @@
 ---
 - name: SQL*Plus | Check if SQL*Plus is already installed
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.local/bin/sqlplus"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlplus"
   register: sqlplus_installed
 
 - name: SQL*Plus | Show installation status
@@ -89,29 +89,29 @@
     # "Find extracted instant client directory" lookup below.
     - name: SQL*Plus | Remove existing instant client installation
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.local/opt/oracle"
+        path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/oracle"
         state: absent
 
     - name: SQL*Plus | Create installation directory
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.local/opt/oracle"
+        path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/oracle"
         state: directory
 
     - name: SQL*Plus | Extract Instant Client Basic
       ansible.builtin.unarchive:
         src: /tmp/instantclient-basic-linuxx64.zip
-        dest: "{{ ansible_env.HOME }}/.local/opt/oracle/"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/oracle/"
         remote_src: yes
 
     - name: SQL*Plus | Extract Instant Client SQL*Plus
       ansible.builtin.unarchive:
         src: /tmp/instantclient-sqlplus-linuxx64.zip
-        dest: "{{ ansible_env.HOME }}/.local/opt/oracle/"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/oracle/"
         remote_src: yes
 
     - name: SQL*Plus | Find extracted instant client directory
       ansible.builtin.find:
-        paths: "{{ ansible_env.HOME }}/.local/opt/oracle"
+        paths: "{{ ansible_facts['env']['HOME'] }}/.local/opt/oracle"
         patterns: 'instantclient_*'
         file_type: directory
       register: instantclient_dir
@@ -123,20 +123,20 @@
     - name: SQL*Plus | Create symlink to sqlplus binary
       ansible.builtin.file:
         src: "{{ oracle_home }}/sqlplus"
-        dest: "{{ ansible_env.HOME }}/.local/bin/sqlplus"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlplus"
         state: link
         force: yes
 
     - name: SQL*Plus | Create symlink to sqlplus64 binary
       ansible.builtin.file:
         src: "{{ oracle_home }}/sqlplus"
-        dest: "{{ ansible_env.HOME }}/.local/bin/sqlplus64"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlplus64"
         state: link
         force: yes
 
     - name: SQL*Plus | Verify installation
       ansible.builtin.command:
-        cmd: "{{ ansible_env.HOME }}/.local/bin/sqlplus -version"
+        cmd: "{{ ansible_facts['env']['HOME'] }}/.local/bin/sqlplus -version"
       register: sqlplus_version
       environment:
         LD_LIBRARY_PATH: "{{ oracle_home }}"

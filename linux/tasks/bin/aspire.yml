@@ -16,7 +16,7 @@
   ansible.builtin.set_fact:
     aspire_version: "13.5.3"
     aspire_sha512: "fb59ffee6ce8220dec42201cd712ea2aa7a7e64dac03839f84da253ca750ce062be87859c8d915899afd4fe208f4b127c22a80d5420e29a9724edffd50df71d6"
-    aspire_dir: "{{ ansible_env.HOME }}/.local/opt/aspire"
+    aspire_dir: "{{ ansible_facts['env']['HOME'] }}/.local/opt/aspire"
 
 - name: Check installed Aspire CLI version
   ansible.builtin.stat:
@@ -63,6 +63,6 @@
 - name: Create symlink to aspire binary
   ansible.builtin.file:
     src: "{{ aspire_dir }}/aspire"
-    dest: "{{ ansible_env.HOME }}/.local/bin/aspire"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/aspire"
     state: link
     force: yes

@@ -21,27 +21,27 @@
 
 - name: Remove existing lazygit installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/lazygit/"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/lazygit/"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
 - name: Create lazygit directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/lazygit"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/lazygit"
     state: directory
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Extract lazygit files
   ansible.builtin.unarchive:
     src: "/tmp/lazygit.tar.gz"
-    dest: "{{ ansible_env.HOME }}/.local/opt/lazygit/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/lazygit/"
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/lazygit/lazygit"
-    dest: "{{ ansible_env.HOME }}/.local/bin/lazygit"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/lazygit/lazygit"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/lazygit"
     state: link
     force: yes
 

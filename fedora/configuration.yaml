@@ -5,13 +5,13 @@
     - name: Install RPM Fusion free repository
       become: yes
       ansible.builtin.dnf:
-        name: https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm
+        name: https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm
         state: present
 
     - name: Install RPM Fusion non-free repository
       become: yes
       ansible.builtin.dnf:
-        name: https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm
+        name: https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm
         state: present
 
     - name: Add Microsoft GPG key
@@ -25,7 +25,7 @@
       ansible.builtin.dnf_repository:
         name: packages-microsoft-com
         description: Microsoft repository
-        baseurl: https://packages.microsoft.com/rhel/{{ ansible_distribution_major_version }}/prod/
+        baseurl: https://packages.microsoft.com/rhel/{{ ansible_facts['distribution_major_version'] }}/prod/
         gpgcheck: yes
         gpgkey: https://packages.microsoft.com/keys/microsoft.asc
         state: present

@@ -8,7 +8,7 @@
 
 - name: Remove existing yazi installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/yazi/"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/yazi/"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
@@ -22,22 +22,22 @@
 - name: Install yazi files to /opt
   copy:
     src: /tmp/yazi-x86_64-unknown-linux-gnu/
-    dest: "{{ ansible_env.HOME }}/.local/opt/yazi/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/yazi/"
     mode: "0755"
     remote_src: yes
   when: download_status.changed # Create only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/yazi/yazi"
-    dest: "{{ ansible_env.HOME }}/.local/bin/yazi"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/yazi/yazi"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/yazi"
     state: link
     force: yes
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/yazi/ya"
-    dest: "{{ ansible_env.HOME }}/.local/bin/ya"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/yazi/ya"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/ya"
     state: link
     force: yes
 

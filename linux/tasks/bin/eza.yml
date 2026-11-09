@@ -7,13 +7,13 @@
 
 - name: Remove existing eza installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/eza"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/eza"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
 - name: Create a new directory for eza
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/eza"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/eza"
     state: directory
     mode: '0755'
   when: download_status.changed # Create only if the tarball was re-downloaded
@@ -21,14 +21,14 @@
 - name: Extract eza install files
   ansible.builtin.unarchive:
     src: /tmp/eza_x86_64-unknown-linux-gnu.tar.gz
-    dest: "{{ ansible_env.HOME }}/.local/opt/eza"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/eza"
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/eza/eza"
-    dest: "{{ ansible_env.HOME }}/.local/bin/eza"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/eza/eza"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/eza"
     state: link
     force: yes
 

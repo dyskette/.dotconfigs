@@ -57,11 +57,11 @@
       block:
         - name: Create local bin
           ansible.builtin.file:
-            path: "{{ ansible_env.HOME }}/.local/bin"
+            path: "{{ ansible_facts['env']['HOME'] }}/.local/bin"
             state: directory
         - name: Create local opt
           ansible.builtin.file:
-            path: "{{ ansible_env.HOME }}/.local/opt"
+            path: "{{ ansible_facts['env']['HOME'] }}/.local/opt"
             state: directory
 
     - import_tasks: tasks/bin/fd.yml

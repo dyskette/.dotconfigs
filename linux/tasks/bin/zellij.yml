@@ -7,13 +7,13 @@
 
 - name: Remove existing zellij installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/zellij"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/zellij"
     state: absent
   when: download_status.changed # Remove only if the tarball was re-downloaded
 
 - name: Create a new directory for zellij
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/zellij"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/zellij"
     state: directory
     mode: '0755'
   when: download_status.changed # Create only if the tarball was re-downloaded
@@ -21,14 +21,14 @@
 - name: Extract zellij install files
   ansible.builtin.unarchive:
     src: /tmp/zellij-x86_64-unknown-linux-musl.tar.gz
-    dest: "{{ ansible_env.HOME }}/.local/opt/zellij"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/zellij"
     remote_src: yes
   when: download_status.changed # Extract only if the tarball was re-downloaded
 
 - name: Create symlink to binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/zellij/zellij"
-    dest: "{{ ansible_env.HOME }}/.local/bin/zellij"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/zellij/zellij"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/zellij"
     state: link
     force: yes
 

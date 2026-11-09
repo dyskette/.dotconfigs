@@ -19,34 +19,34 @@
 
 - name: Remove existing Go installation
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/go/"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/go/"
     state: absent
   when: download_status.changed
 
 - name: Create Go directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/opt/go"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/opt/go"
     state: directory
   when: download_status.changed
 
 - name: Extract Go files
   ansible.builtin.unarchive:
     src: "/tmp/go.tar.gz"
-    dest: "{{ ansible_env.HOME }}/.local/opt/"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/opt/"
     remote_src: yes
   when: download_status.changed
 
 - name: Create symlink to go binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/go/bin/go"
-    dest: "{{ ansible_env.HOME }}/.local/bin/go"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/go/bin/go"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/go"
     state: link
     force: yes
 
 - name: Create symlink to gofmt binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/go/bin/gofmt"
-    dest: "{{ ansible_env.HOME }}/.local/bin/gofmt"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/go/bin/gofmt"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/gofmt"
     state: link
     force: yes
 

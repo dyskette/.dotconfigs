@@ -3,11 +3,11 @@
   ansible.builtin.shell: |
     curl -sSL https://install.python-poetry.org | POETRY_HOME="$HOME/.local/opt/poetry" python3 -
   args:
-    creates: "{{ ansible_env.HOME }}/.local/opt/poetry/venv/bin/poetry"
+    creates: "{{ ansible_facts['env']['HOME'] }}/.local/opt/poetry/venv/bin/poetry"
 
 - name: Create symlink to Poetry binary
   ansible.builtin.file:
-    src: "{{ ansible_env.HOME }}/.local/opt/poetry/venv/bin/poetry"
-    dest: "{{ ansible_env.HOME }}/.local/bin/poetry"
+    src: "{{ ansible_facts['env']['HOME'] }}/.local/opt/poetry/venv/bin/poetry"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/poetry"
     state: link
     force: yes
