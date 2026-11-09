@@ -109,6 +109,12 @@ local function setup_language_servers()
       "1.0.0",
       "-LogLevel",
       "Warning",
+      -- Without these, PSES writes PowerShellEditorServices.json (and its
+      -- logs) into nvim's working directory, i.e. every project's root.
+      "-SessionDetailsPath",
+      vim.fn.stdpath("cache") .. "/powershell_es.session.json",
+      "-LogPath",
+      vim.fn.stdpath("cache") .. "/powershell_es.log",
       "-Stdio",
     },
     filetypes = { "ps1", "psm1", "psd1" },
