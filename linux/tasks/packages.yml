@@ -44,21 +44,18 @@
   - name: Fedora Silverblue
     when: is_fedora_silverblue
     block:
-      - name: Fedora Silverblue | Enable pgdev:ghostty copr repository
+      - name: Fedora Silverblue | Remove defunct pgdev/ghostty copr repository
         become: true
-        ansible.builtin.copy:
-          dest: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:pgdev:ghostty.repo
-          content: |
-            [copr:copr.fedorainfracloud.org:pgdev:ghostty]
-            name=Copr repo for Ghostty owned by pgdev
-            baseurl=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/fedora-$releasever-$basearch/
-            type=rpm-md
-            skip_if_unavailable=True
-            gpgcheck=1
-            gpgkey=https://download.copr.fedorainfracloud.org/results/pgdev/ghostty/pubkey.gpg
-            repo_gpgcheck=0
-            enabled=1
-            enabled_metadata=1
+        ansible.builtin.file:
+          path: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:pgdev:ghostty.repo
+          state: absent
+
+      - name: Fedora Silverblue | Enable scottames/ghostty copr repository
+        become: true
+        ansible.builtin.get_url:
+          url: "https://copr.fedorainfracloud.org/coprs/scottames/ghostty/repo/fedora-{{ ansible_facts['distribution_major_version'] }}/scottames-ghostty-fedora-{{ ansible_facts['distribution_major_version'] }}.repo"
+          dest: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:scottames:ghostty.repo
+          mode: "0644"
 
       - name: Fedora Silverblue | Install rpm-ostree packages
         community.general.rpm_ostree_pkg:
