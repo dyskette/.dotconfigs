@@ -257,6 +257,17 @@ Describe 'Install-OpenCode.ps1' {
         Should -Invoke Invoke-Download -Times 1 -Exactly
     }
 
+    It 'removes an old install left behind by an earlier upgrade, even when up to date' {
+        Invoke-StepScript 'Install-OpenCode.ps1' $parameters 3>$null | Out-Null
+        $leftover = "$($parameters.InstallDirectory).old-835eaf4e"
+        New-Item -ItemType Directory -Path $leftover | Out-Null
+
+        $result = Invoke-StepScript 'Install-OpenCode.ps1' $parameters 3>$null
+        $result.Status | Should -Be 'Skipped'
+        $result.Message | Should -BeLike '*Removed 1 leftover*'
+        $leftover | Should -Not -Exist
+    }
+
     It 'upgrades an older install' {
         $env:DOTCONFIGS_TEST_ZIP = Build-OpenCodeZip '1.0.0'
         Mock Invoke-RestMethod { [pscustomobject]@{ version = '1.0.0'; metadata = [pscustomobject]@{ files = [pscustomobject]@{ 'opencode-windows-x64.zip' = [pscustomobject]@{ url = 'u'; sha256 = 'a' * 64 } } } } }

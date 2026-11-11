@@ -604,6 +604,18 @@ Describe 'Link helpers' {
         (Get-Item $file).LinkType | Should -Be 'SymbolicLink'
     }
 
+    It 'New-BinLink leaves an identical copy alone' {
+        $bin = Join-Path $root 'bin'
+        New-Item -ItemType Directory -Path $bin | Out-Null
+        $copy = Join-Path $bin 'keep.txt'
+        Copy-Item (Join-Path $source 'keep.txt') $copy
+        $before = [datetime]::new(2000, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)
+        (Get-Item $copy).LastWriteTimeUtc = $before
+
+        New-BinLink -Source (Join-Path $source 'keep.txt') -BinDirectory $bin | Should -Be 'Unchanged'
+        (Get-Item $copy).LastWriteTimeUtc | Should -Be $before
+    }
+
     It 'New-BinLink links or copies, replacing an existing file' {
         $bin = Join-Path $root 'bin'
         New-Item -ItemType Directory -Path $bin | Out-Null
@@ -649,6 +661,32 @@ Describe 'Install-DirectoryAtomic' {
             $lock.Dispose()
         }
         Get-Content (Join-Path $dest 'version.txt') | Should -Be '1'
+    }
+
+    It 'removes leftovers of earlier runs, and only those' {
+        Install-DirectoryAtomic -Source (Build-Payload '1') -Destination $dest
+        $leftovers = 'install.old-0123abcd', 'install.staging-89abcdef'
+        $unrelated = 'install.old-keep', 'install.backup', 'installer.old-0123abcd'
+        foreach ($name in $leftovers + $unrelated) { New-Item -ItemType Directory -Path (Join-Path $root $name) | Out-Null }
+
+        Install-DirectoryAtomic -Source (Build-Payload '2') -Destination $dest
+
+        foreach ($name in $leftovers) { Join-Path $root $name | Should -Not -Exist }
+        foreach ($name in $unrelated) { Join-Path $root $name | Should -Exist }
+    }
+
+    It 'reports a leftover that is still in use and leaves it' {
+        $busy = Join-Path $root 'install.old-0123abcd'
+        New-Item -ItemType Directory -Path $busy -Force | Out-Null
+        Set-Content (Join-Path $busy 'app.exe') 'x'
+        $lock = [IO.File]::Open((Join-Path $busy 'app.exe'), 'Open', 'Read', 'Read')
+        try {
+            Remove-InstallLeftover -Destination $dest | Should -Be $busy
+        } finally {
+            $lock.Dispose()
+        }
+        Remove-InstallLeftover -Destination $dest | Should -BeNullOrEmpty
+        $busy | Should -Not -Exist
     }
 
     It 'throws when the source does not exist' {

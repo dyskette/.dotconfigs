@@ -101,6 +101,8 @@ foreach ($package in $packages) {
 
         if (-not $Force -and $record -and $record.version -eq $tag -and (Test-Path -LiteralPath $installPath)) {
             Publish-Binary -Package $package -InstallPath $installPath -LinkDirectory $BinDirectory | ForEach-Object { $copied.Add($_) }
+            # An earlier upgrade may have left the old version behind while it ran.
+            Remove-InstallLeftover -Destination $installPath -WhatIf:$WhatIfPreference | Out-Null
             $current.Add("$name $tag")
             continue
         }
@@ -145,7 +147,7 @@ foreach ($package in $packages) {
 }
 
 if ($copied.Count -gt 0) {
-    Write-Warning "Copied instead of linked (needs Developer Mode or Administrator): $($copied -join ', ')."
+    Write-Warning "Copied instead of linked (needs Developer Mode or Administrator): $($copied -join ', '). Identical copies are left alone on later runs."
 }
 $data = @{ Installed = $installed.ToArray(); UpToDate = $current.ToArray(); Failed = $failed.ToArray(); Copied = $copied.ToArray() }
 if ($failed.Count -gt 0) {

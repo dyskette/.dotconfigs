@@ -968,8 +968,12 @@ function Set-Link {
 .SYNOPSIS
 Links an executable into a bin directory, falling back to a copy.
 
+.DESCRIPTION
+A symlink already pointing at Source, or a copy identical to it, is left alone,
+so re-runs without symlink rights do not rewrite the copy every time.
+
 .OUTPUTS
-'Symlink' or 'Copy', or nothing under -WhatIf.
+'Unchanged', 'Symlink' or 'Copy', or nothing under -WhatIf.
 #>
 function New-BinLink {
     [CmdletBinding(SupportsShouldProcess)]
@@ -980,10 +984,17 @@ function New-BinLink {
         [string]$LinkName = (Split-Path $Source -Leaf)
     )
 
-    if (-not $PSCmdlet.ShouldProcess((Join-Path $BinDirectory $LinkName), "Link to $Source")) { return }
+    $linkPath = Join-Path $BinDirectory $LinkName
+    if (Test-IsLink $linkPath) {
+        if (@((Get-Item -LiteralPath $linkPath -Force).Target) -contains $Source) { return 'Unchanged' }
+    } elseif ((Test-Path -LiteralPath $linkPath -PathType Leaf) -and
+        (Get-FileHash -LiteralPath $linkPath).Hash -eq (Get-FileHash -LiteralPath $Source).Hash) {
+        return 'Unchanged'
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($linkPath, "Link to $Source")) { return }
 
     New-Item -ItemType Directory -Path $BinDirectory -Force | Out-Null
-    $linkPath = Join-Path $BinDirectory $LinkName
 
     if (Test-IsLink $linkPath) {
         Remove-LinkOnly -Path $linkPath
@@ -1003,12 +1014,46 @@ function New-BinLink {
 
 <#
 .SYNOPSIS
+Removes '<Destination>.old-*' and '<Destination>.staging-*' folders left by an
+earlier Install-DirectoryAtomic whose cleanup was blocked by a running program.
+
+.DESCRIPTION
+Only names Install-DirectoryAtomic generates are touched (the destination plus
+the suffix and 8 hex characters). A folder still in use is left for later.
+Install-DirectoryAtomic calls this itself; steps call it on runs that install
+nothing, so a leftover does not wait for the next release.
+
+.OUTPUTS
+Paths that could not be removed.
+#>
+function Remove-InstallLeftover {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$Destination)
+
+    $parent = Split-Path $Destination -Parent
+    if (-not (Test-Path -LiteralPath $parent)) { return }
+    $leaf = [regex]::Escape((Split-Path $Destination -Leaf))
+    foreach ($leftover in Get-ChildItem -LiteralPath $parent -Directory -Force |
+            Where-Object { $_.Name -match "^$leaf\.(old|staging)-[0-9a-f]{8}$" }) {
+        if (-not $PSCmdlet.ShouldProcess($leftover.FullName, 'Remove leftover')) { continue }
+        Remove-Item -LiteralPath $leftover.FullName -Recurse -Force -ErrorAction SilentlyContinue # safe: a leftover of Install-DirectoryAtomic, matched by its generated name
+        if (Test-Path -LiteralPath $leftover.FullName) { $leftover.FullName }
+    }
+}
+<#
+.SYNOPSIS
 Replaces a directory with a prepared one, restoring the old one on failure.
 
 .DESCRIPTION
 The old install is renamed aside first, so nothing is lost if the swap fails
 (for example when a file in it is locked by a running process). It is deleted
 only after the new one is in place.
+
+A running program can keep the renamed-aside folder from being deleted (Windows
+allows renaming the folder of a running exe, not deleting the exe). Such
+leftovers, '<Destination>.old-*' and '<Destination>.staging-*', are removed at
+the start of the next call, once nothing holds them any more.
 
 .PARAMETER Source
 Fully prepared directory (already downloaded, verified and extracted).
@@ -1028,7 +1073,13 @@ function Install-DirectoryAtomic {
     }
     if (-not $PSCmdlet.ShouldProcess($Destination, 'Replace install')) { return }
 
-    New-Item -ItemType Directory -Path (Split-Path $Destination -Parent) -Force | Out-Null
+    $parent = Split-Path $Destination -Parent
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+
+    foreach ($busy in Remove-InstallLeftover -Destination $Destination) {
+        Write-Warning "Could not remove $busy; it is still in use."
+    }
+
 
     # Move-Item cannot move a directory across volumes (%TEMP% on another
     # drive), so the source is first copied next to the destination.
@@ -1065,7 +1116,7 @@ function Install-DirectoryAtomic {
     if ($backup) {
         Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue # safe: the old install this function renamed; PS7 does not follow junctions
         if (Test-Path -LiteralPath $backup) {
-            Write-Warning "Could not remove the previous install at $backup; delete it manually."
+            Write-Warning "The previous install at $backup is still in use; it will be removed on a later run."
         }
     }
 }
@@ -1101,6 +1152,6 @@ Export-ModuleMember -Function @(
     'Get-InstalledVersion', 'Set-InstalledVersion',
     'Invoke-Native', 'ConvertTo-CommandLineArgument', 'Invoke-Winget', 'Invoke-Download', 'Expand-ArchiveChecked', 'Get-ChecksumEntry',
     'New-WorkDirectory', 'Test-IsLink', 'Remove-LinkOnly', 'Backup-Path', 'Set-Link', 'New-BinLink',
-    'Install-DirectoryAtomic',
+    'Install-DirectoryAtomic', 'Remove-InstallLeftover',
     'Read-Jsonc'
 )

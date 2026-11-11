@@ -57,14 +57,9 @@ function Update-OpenCodeLink {
         Justification = 'Internal helper of a step script; the step itself is the unit of change.')]
     param()
 
-    $linkPath = Join-Path $BinDirectory 'opencode.exe'
-    if (Test-IsLink $linkPath) {
-        if (@((Get-Item -LiteralPath $linkPath).Target) -contains $binaryPath) { return $null }
-    } elseif ((Test-Path -LiteralPath $linkPath) -and
-        (Get-FileHash -LiteralPath $linkPath).Hash -eq (Get-FileHash -LiteralPath $binaryPath).Hash) {
-        return $null
-    }
+    # New-BinLink leaves an up-to-date link or identical copy alone.
     $kind = New-BinLink -Source $binaryPath -BinDirectory $BinDirectory
+    if ($kind -eq 'Unchanged') { return $null }
     if ($kind -eq 'Copy') {
         Write-Warning "Copied opencode.exe into ${BinDirectory}: creating a symlink needs Developer Mode or Administrator."
     }
@@ -86,6 +81,10 @@ $installed = Get-OpenCodeVersion $binaryPath
 if ($installed -eq $latest -and -not $Force) {
     $linked = Update-OpenCodeLink
     $note = if ($linked) { " Re-linked into $BinDirectory ($linked)." } else { '' }
+    # An earlier upgrade may have left the old version behind while it ran.
+    $removed = @(Get-ChildItem -LiteralPath (Split-Path $InstallDirectory -Parent) -Directory -Filter "$(Split-Path $InstallDirectory -Leaf).old-*" -ErrorAction SilentlyContinue)
+    $busy = @(Remove-InstallLeftover -Destination $InstallDirectory)
+    if ($removed.Count -gt $busy.Count) { $note += " Removed $($removed.Count - $busy.Count) leftover old install(s)." }
     return New-StepResult Skipped "OpenCode $latest is already installed.$note" -Data @{ Version = $latest }
 }
 
