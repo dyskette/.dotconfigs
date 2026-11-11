@@ -2,9 +2,13 @@
 
 ## Windows
 
+In PowerShell, as your normal user:
+
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iwr 'https://raw.githubusercontent.com/dyskette/.dotconfigs/master/windows/Bootstrap.ps1' -UseBasicParsing | iex
+irm https://raw.githubusercontent.com/dyskette/.dotconfigs/master/windows/Bootstrap.ps1 | iex
 ```
+
+Details, re-running, troubleshooting and development: [windows/README.md](windows/README.md).
 
 ## Linux
 
