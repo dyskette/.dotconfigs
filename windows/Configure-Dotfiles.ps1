@@ -97,7 +97,8 @@ foreach ($link in $links | Where-Object { & $selected $_.app }) {
         continue
     }
 
-    $post = @($link.PSObject.Properties['post']?.Value)
+    # Filtered: for a link without 'post', @($null) would be one $null element, not empty.
+    $post = @($link.PSObject.Properties['post']?.Value | Where-Object { $_ })
     if ($post.Count -gt 0 -and $PSCmdlet.ShouldProcess($post -join ' ', 'Run')) {
         if (-not (Get-Command $post[0] -ErrorAction SilentlyContinue)) {
             $failures.Add("[$($link.app)] post command: $($post[0]) is not on PATH")
