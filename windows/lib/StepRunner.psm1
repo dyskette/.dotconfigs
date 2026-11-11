@@ -158,44 +158,18 @@ function Split-StepBatch {
 Turns whatever a step script emitted into one StepResult.
 
 .DESCRIPTION
-The last StepResult in the output wins. Scripts not yet rewritten (todo.md
-Phase 5) return hashtables with lowercase ad-hoc statuses; those are mapped
-here. Remove the legacy branch once no script returns a hashtable.
-
-Output that is neither (leaked native output, New-Item objects) is ignored.
+The last StepResult in the output wins; anything else a step leaked (native
+output, New-Item objects) is ignored. A step that produced no StepResult is a
+bug in the step and counts as Failed.
 #>
 function ConvertTo-StepResult {
     [CmdletBinding()]
     param([AllowNull()][AllowEmptyCollection()][object[]]$Output)
 
-    $items = @($Output | Where-Object { $null -ne $_ })
-
-    $stepResult = $items | Where-Object { $_.PSObject.TypeNames -like '*Dotconfigs.StepResult' } | Select-Object -Last 1
+    $stepResult = @($Output | Where-Object { $null -ne $_ -and $_.PSObject.TypeNames -like '*Dotconfigs.StepResult' }) |
+        Select-Object -Last 1
     if ($stepResult) { return $stepResult }
-
-    $legacy = $items | Where-Object { $_ -is [hashtable] -and $_.ContainsKey('status') } | Select-Object -Last 1
-    if (-not $legacy) {
-        return New-StepResult Failed 'The step returned no result (it may have exited early or failed to start).'
-    }
-
-    $message = [string]$legacy['message']
-    $data = @{ LegacyStatus = $legacy.status }
-    if ($legacy['restart_required'] -eq $true) {
-        return New-StepResult RestartRequired ($message ? $message : 'A restart is required.') -Data $data
-    }
-    if ($legacy['restart_recommended'] -eq $true) { $data.RestartRecommended = $true }
-
-    $status = switch ($legacy.status) {
-        { $_ -in 'success', 'installed' } { 'Success' }
-        { $_ -in 'skipped', 'already_installed', 'features_ready' } { 'Skipped' }
-        'partial' { 'Partial' }
-        { $_ -in 'error', 'failed' } { 'Failed' }
-        default { $null }
-    }
-    if (-not $status) {
-        return New-StepResult Failed "Unknown legacy status '$($legacy.status)'. $message".Trim() -Data $data
-    }
-    return New-StepResult $status $message -Data $data
+    return New-StepResult Failed 'The step returned no StepResult (it may have exited early or failed to start).'
 }
 
 <#
@@ -265,13 +239,8 @@ function Invoke-Step {
     $timer = [Diagnostics.Stopwatch]::StartNew()
     try {
         $parameters = $Step.Parameters
-        $output = & {
-            # Legacy scripts were written for the default error behaviour and no
-            # strict mode; rewritten scripts set both themselves.
-            Set-StrictMode -Off
-            $ErrorActionPreference = 'Continue'
-            & $scriptPath @parameters
-        }
+        # Every step script sets its own strict mode and ErrorActionPreference.
+        $output = & $scriptPath @parameters
         $result = ConvertTo-StepResult $output
     } catch {
         $result = New-StepResult Failed $_.Exception.Message

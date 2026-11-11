@@ -152,34 +152,8 @@ Describe 'ConvertTo-StepResult' {
         $result.Message | Should -Be 'last'
     }
 
-    It 'maps legacy status <Legacy> to <Status>' -TestCases @(
-        @{ Legacy = 'success';           Status = 'Success' }
-        @{ Legacy = 'installed';         Status = 'Success' }
-        @{ Legacy = 'skipped';           Status = 'Skipped' }
-        @{ Legacy = 'already_installed'; Status = 'Skipped' }
-        @{ Legacy = 'features_ready';    Status = 'Skipped' }
-        @{ Legacy = 'partial';           Status = 'Partial' }
-        @{ Legacy = 'error';             Status = 'Failed' }
-        @{ Legacy = 'failed';            Status = 'Failed' }
-        @{ Legacy = 'something_new';     Status = 'Failed' }
-    ) {
-        $result = ConvertTo-StepResult @(@{ status = $Legacy; message = 'm' })
-        $result.Status | Should -Be $Status
-        $result.Data.LegacyStatus | Should -Be $Legacy
-    }
-
-    It 'maps restart_required to RestartRequired whatever the status' {
-        (ConvertTo-StepResult @(@{ status = 'features_enabled'; restart_required = $true })).Status |
-            Should -Be 'RestartRequired'
-    }
-
-    It 'keeps restart_recommended as data' {
-        (ConvertTo-StepResult @(@{ status = 'success'; restart_recommended = $true })).Data.RestartRecommended |
-            Should -BeTrue
-    }
-
-    It 'finds a legacy hashtable after leaked output' {
-        (ConvertTo-StepResult @('Ubuntu set as default', @{ status = 'installed' })).Status | Should -Be 'Success'
+    It 'fails a result in the old hashtable shape' {
+        (ConvertTo-StepResult @(@{ status = 'success'; message = 'm' })).Status | Should -Be 'Failed'
     }
 
     It 'fails when the step returned nothing' {
@@ -227,22 +201,22 @@ New-StepResult Success "hello `$Who"
         (Invoke-Step -Step $step -ScriptRoot $TestDrive).Result.Message | Should -BeLike '*not found*'
     }
 
-    It 'fails a legacy step that exits early without a result' {
+    It 'fails a step that exits early without a result' {
         $step = Build-TestStep -Name 'exits' -Body "Write-Warning 'needs admin'; exit 1"
-        (Invoke-Step -Step $step -ScriptRoot $TestDrive).Result.Status | Should -Be 'Failed'
+        (Invoke-Step -Step $step -ScriptRoot $TestDrive).Result.Status | Should -Be 'Failed' 3>$null
     }
 
-    It 'runs legacy steps without strict mode and with non-terminating errors' {
-        # Reads an unset variable (strict mode would throw) and writes a
-        # non-terminating error (Stop would throw), as the old scripts do.
-        $step = Build-TestStep -Name 'legacy' -Body @'
-if ($undefinedVariable) { 'unreachable' }
-Write-Error 'non-terminating' 2>$null
-return @{ status = 'installed'; message = 'ok' }
-'@
+    It 'fails a step whose terminating error escapes it' {
+        $step = Build-TestStep -Name 'strict' -Body @"
+Set-StrictMode -Version Latest
+`$ErrorActionPreference = 'Stop'
+$commonImport
+if (`$undefinedVariable) { 'unreachable' }
+New-StepResult Success
+"@
         $outcome = Invoke-Step -Step $step -ScriptRoot $TestDrive
-        $outcome.Result.Status | Should -Be 'Success'
-        $outcome.Result.Message | Should -Be 'ok'
+        $outcome.Result.Status | Should -Be 'Failed'
+        $outcome.Result.Message | Should -BeLike '*undefinedVariable*'
     }
 }
 
