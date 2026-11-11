@@ -139,11 +139,15 @@ function Start-DotconfigsLog {
     param(
         [string]$LogDirectory = (Join-Path $env:USERPROFILE '.local\state\dotconfigs\logs'),
         [ValidateRange(1, 1000)]
-        [int]$Keep = 10
+        [int]$Keep = 10,
+
+        # Appended to the file name, e.g. 'elevated' gives 20261111-120000-elevated.log.
+        [string]$Suffix
     )
 
     New-Item -ItemType Directory -Path $LogDirectory -Force | Out-Null
-    $logPath = Join-Path $LogDirectory ('{0:yyyyMMdd-HHmmss}.log' -f (Get-Date))
+    $name = '{0:yyyyMMdd-HHmmss}{1}.log' -f (Get-Date), ($Suffix ? "-$Suffix" : '')
+    $logPath = Join-Path $LogDirectory $name
     Start-Transcript -Path $logPath | Out-Null
 
     Get-ChildItem -Path $LogDirectory -Filter '*.log' -File |
@@ -365,6 +369,10 @@ Runs an external program and throws when it exits with an unexpected code.
 try/catch does not see native failures and $ErrorActionPreference does not apply
 to them, so every external call goes through here.
 
+Pass the program's flags through -Arguments or a splatted array. Flags typed
+inline can bind to this function's own parameters by prefix: in
+'Invoke-Native foo -q', '-q' becomes -Quiet.
+
 .PARAMETER AllowedExitCodes
 Exit codes treated as success (e.g. 3010 for "reboot required").
 
@@ -411,6 +419,103 @@ function Invoke-Native {
         Output    = @($output)
         Succeeded = $succeeded
     }
+}
+
+<#
+.SYNOPSIS
+Quotes one argument for a Windows command line (CommandLineToArgvW rules).
+
+.DESCRIPTION
+Start-Process joins -ArgumentList with spaces and does not quote, so arguments
+holding spaces or quotes must be quoted here. Backslashes are only special
+before a quote, where they are doubled.
+#>
+function ConvertTo-CommandLineArgument {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Value)
+
+    if ($Value -eq '') { return '""' }
+    if ($Value -notmatch '[\s"]') { return $Value }
+
+    $builder = [Text.StringBuilder]::new('"')
+    $backslashes = 0
+    foreach ($char in $Value.ToCharArray()) {
+        if ($char -eq '\') {
+            $backslashes++
+            continue
+        }
+        if ($char -eq '"') {
+            [void]$builder.Append('\', $backslashes * 2 + 1).Append('"')
+        } else {
+            [void]$builder.Append('\', $backslashes).Append($char)
+        }
+        $backslashes = 0
+    }
+    [void]$builder.Append('\', $backslashes * 2).Append('"')
+    return $builder.ToString()
+}
+
+<#
+.SYNOPSIS
+Runs winget, retrying when Windows Installer is busy or the source is corrupt.
+
+.DESCRIPTION
+winget runs through Start-Process rather than Invoke-Native so it keeps the
+console and renders its own progress; only the exit code comes back.
+
+Retried by default:
+  1618         ERROR_INSTALL_ALREADY_RUNNING. winget can start the next MSI
+               before the previous one released the machine-wide mutex.
+  -1978335217  0x8A15000F, source data missing or corrupt. 'source reset' alone
+               keeps the corrupt index.db, so the cached state is wiped first.
+
+.PARAMETER Arguments
+Arguments for winget. Each is quoted as needed.
+
+.PARAMETER RetryOnAnyExitCode
+Retry every non-zero exit. For 'winget import', whose aggregate exit code hides
+which package failed and why; a re-run skips what is already installed.
+
+.OUTPUTS
+System.Int32. Exit code of the last attempt.
+#>
+function Invoke-Winget {
+    [CmdletBinding()]
+    [OutputType([int])]
+    param(
+        [Parameter(Mandatory)][string[]]$Arguments,
+        [ValidateRange(1, 10)][int]$MaxAttempts = 3,
+        [int]$DelaySeconds = 20,
+        [switch]$RetryOnAnyExitCode
+    )
+
+    $sourceCorrupt = -1978335217
+    $retryable = @(1618, $sourceCorrupt)
+    $commandLine = ($Arguments | ForEach-Object { ConvertTo-CommandLineArgument $_ }) -join ' '
+
+    $exitCode = 0
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $process = Start-Process -FilePath 'winget' -ArgumentList $commandLine -NoNewWindow -Wait -PassThru
+        $exitCode = $process.ExitCode
+        if ($exitCode -eq 0) { return 0 }
+        if (-not $RetryOnAnyExitCode -and $exitCode -notin $retryable) { return $exitCode }
+        if ($attempt -eq $MaxAttempts) { break }
+
+        Write-Action ('winget exited with {0} (0x{0:X8}). Retrying in {1}s (attempt {2} of {3})...' -f
+            $exitCode, $DelaySeconds, ($attempt + 1), $MaxAttempts)
+
+        if ($exitCode -eq $sourceCorrupt) {
+            Write-Action 'Clearing the winget source cache and resetting sources...'
+            Remove-Item -Path (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\State') -Recurse -Force -ErrorAction SilentlyContinue # safe: winget's own cache directory
+            Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState') `
+                -Filter '*source*' -ErrorAction SilentlyContinue |
+                Remove-Item -Recurse -Force -ErrorAction SilentlyContinue # safe: winget's own source index files
+            Start-Process -FilePath 'winget' -ArgumentList 'source reset --force' -NoNewWindow -Wait | Out-Null
+        }
+        Start-Sleep -Seconds $DelaySeconds
+    }
+    return $exitCode
 }
 
 # ── Downloads and archives ──────────────────────────────────────────────────
@@ -477,8 +582,8 @@ function Expand-ArchiveChecked {
 
     switch -Regex ($name) {
         '\.zip$'             { Expand-Archive -Path $ArchivePath -DestinationPath $DestinationPath -Force }
-        '\.(tar\.gz|tgz)$'   { Invoke-Native tar -xzf $ArchivePath -C $DestinationPath -Quiet | Out-Null }
-        '\.tar\.xz$'         { Invoke-Native tar -xf $ArchivePath -C $DestinationPath -Quiet | Out-Null }
+        '\.(tar\.gz|tgz)$'   { Invoke-Native -FilePath tar -Arguments @('-xzf', $ArchivePath, '-C', $DestinationPath) -Quiet | Out-Null }
+        '\.tar\.xz$'         { Invoke-Native -FilePath tar -Arguments @('-xf', $ArchivePath, '-C', $DestinationPath) -Quiet | Out-Null }
         default              { throw "Unsupported archive format: $name" }
     }
 
@@ -776,7 +881,7 @@ Export-ModuleMember -Function @(
     'Start-DotconfigsLog',
     'Test-IsAdministrator', 'Test-CanCreateSymlink',
     'Update-SessionPath', 'Get-PathEntry', 'Add-PathEntry', 'Remove-PathEntry', 'Send-EnvironmentChange',
-    'Invoke-Native', 'Invoke-Download', 'Expand-ArchiveChecked', 'Get-ChecksumEntry',
+    'Invoke-Native', 'ConvertTo-CommandLineArgument', 'Invoke-Winget', 'Invoke-Download', 'Expand-ArchiveChecked', 'Get-ChecksumEntry',
     'New-WorkDirectory', 'Test-IsLink', 'Remove-LinkOnly', 'Backup-Path', 'Set-Link', 'New-BinLink',
     'Install-DirectoryAtomic',
     'Read-Jsonc'

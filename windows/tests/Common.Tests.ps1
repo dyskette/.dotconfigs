@@ -91,6 +91,113 @@ Describe 'Invoke-Native' {
     It 'throws when the program does not exist' {
         { Invoke-Native 'dotconfigs-no-such-program' } | Should -Throw '*not found*'
     }
+
+    It 'passes flags through -Arguments literally, even ones that prefix its own parameters' {
+        (Invoke-Native -FilePath cmd -Arguments @('/c', 'echo', '-q', '-n') -Quiet).Output | Should -Contain '-q -n'
+    }
+
+    It 'captures stderr without throwing under ErrorActionPreference Stop' {
+        $ErrorActionPreference = 'Stop'
+        $result = Invoke-Native -FilePath cmd -Arguments @('/c', 'echo oops 1>&2') -Quiet
+        $result.Succeeded | Should -BeTrue
+        $result.Output | Should -Contain 'oops '
+    }
+}
+
+Describe 'ConvertTo-CommandLineArgument' {
+    It 'quotes <Case>' -TestCases @(
+        @{ Case = 'nothing plain';               Value = 'plain';            Expected = 'plain' }
+        @{ Case = 'an empty string';             Value = '';                 Expected = '""' }
+        @{ Case = 'spaces';                      Value = 'C:\Program Files'; Expected = '"C:\Program Files"' }
+        @{ Case = 'embedded quotes';             Value = 'say "hi"';         Expected = '"say \"hi\""' }
+        @{ Case = 'a trailing backslash';        Value = 'C:\a b\';          Expected = '"C:\a b\\"' }
+        @{ Case = 'backslashes before a quote';  Value = 'a\"b c';           Expected = '"a\\\"b c"' }
+        @{ Case = 'backslashes elsewhere as-is'; Value = 'C:\x y\z';         Expected = '"C:\x y\z"' }
+    ) {
+        ConvertTo-CommandLineArgument $Value | Should -BeExactly $Expected
+    }
+
+    It 'round-trips through a real process' {
+        $values = @('C:\Program Files\x\', 'say "hi"', '', 'a\\"b', 'plain')
+        $line = ($values | ForEach-Object { ConvertTo-CommandLineArgument $_ }) -join ' '
+        $pwsh = (Get-Process -Id $PID).Path
+        $script = Join-Path $TestDrive 'echo-args.ps1'
+        Set-Content $script '$args | ConvertTo-Json -Compress'
+        $out = Join-Path $TestDrive 'echo-args.json'
+        # Start-Process hands the line to CreateProcess as-is, as Invoke-Winget does.
+        Start-Process -FilePath $pwsh -ArgumentList "-NoProfile -File `"$script`" $line" `
+            -NoNewWindow -Wait -RedirectStandardOutput $out
+        $parsed = @(Get-Content $out -Raw | ConvertFrom-Json)
+        $parsed | Should -Be $values
+    }
+}
+
+Describe 'Invoke-Winget' {
+    BeforeEach {
+        Mock Start-Sleep -ModuleName Common { }
+        Mock Remove-Item -ModuleName Common { }
+        Mock Get-ChildItem -ModuleName Common { }
+        $env:DOTCONFIGS_TEST_CODES = ''
+    }
+
+    AfterEach {
+        Remove-Item Env:\DOTCONFIGS_TEST_CODES -ErrorAction SilentlyContinue
+    }
+
+    BeforeAll {
+        # Exit codes to return, consumed one per winget call (comma-separated).
+        function Initialize-FakeWingetExitCode([int[]]$Codes) { $env:DOTCONFIGS_TEST_CODES = $Codes -join ',' }
+        $mockWinget = {
+            if ($ArgumentList -like 'source reset*') { return [pscustomobject]@{ ExitCode = 0 } }
+            $codes = $env:DOTCONFIGS_TEST_CODES -split ','
+            $env:DOTCONFIGS_TEST_CODES = ($codes | Select-Object -Skip 1) -join ','
+            [pscustomobject]@{ ExitCode = [int]$codes[0] }
+        }
+    }
+
+    It 'returns 0 without retrying on success' {
+        Mock Start-Process -ModuleName Common $mockWinget
+        Initialize-FakeWingetExitCode 0
+        Invoke-Winget -Arguments 'install', 'x' | Should -Be 0
+        Should -Invoke Start-Process -ModuleName Common -Times 1 -Exactly
+    }
+
+    It 'retries when Windows Installer is busy (1618)' {
+        Mock Start-Process -ModuleName Common $mockWinget
+        Initialize-FakeWingetExitCode 1618, 0
+        Invoke-Winget -Arguments 'install', 'x' | Should -Be 0
+        Should -Invoke Start-Process -ModuleName Common -Times 2 -Exactly
+    }
+
+    It 'does not retry other failures by default' {
+        Mock Start-Process -ModuleName Common $mockWinget
+        Initialize-FakeWingetExitCode 5, 0
+        Invoke-Winget -Arguments 'install', 'x' | Should -Be 5
+        Should -Invoke Start-Process -ModuleName Common -Times 1 -Exactly
+    }
+
+    It 'retries any failure with -RetryOnAnyExitCode and returns the last code' {
+        Mock Start-Process -ModuleName Common $mockWinget
+        Initialize-FakeWingetExitCode 5, 6, 7
+        Invoke-Winget -Arguments 'import' -RetryOnAnyExitCode -MaxAttempts 3 | Should -Be 7
+        Should -Invoke Start-Process -ModuleName Common -Times 3 -Exactly
+    }
+
+    It 'resets the sources when the index is corrupt' {
+        Mock Start-Process -ModuleName Common $mockWinget
+        Initialize-FakeWingetExitCode -1978335217, 0
+        Invoke-Winget -Arguments 'install', 'x' | Should -Be 0
+        Should -Invoke Start-Process -ModuleName Common -Times 1 -Exactly -ParameterFilter { $ArgumentList -like 'source reset*' }
+    }
+
+    It 'quotes arguments that contain spaces' {
+        Mock Start-Process -ModuleName Common $mockWinget
+        Initialize-FakeWingetExitCode 0
+        Invoke-Winget -Arguments 'import', '--import-file', 'C:\a b\packages.jsonc' | Out-Null
+        Should -Invoke Start-Process -ModuleName Common -ParameterFilter {
+            $ArgumentList -eq 'import --import-file "C:\a b\packages.jsonc"'
+        }
+    }
 }
 
 Describe 'Read-Jsonc' {
@@ -481,6 +588,12 @@ Describe 'Start-DotconfigsLog' {
         $remaining = Get-ChildItem $logs -Filter '*.log'
         $remaining | Should -HaveCount 3
         $remaining.FullName | Should -Contain $path
+    }
+
+    It 'adds the suffix to the file name' {
+        $path = Start-DotconfigsLog -LogDirectory (Join-Path $TestDrive 'suffixed') -Suffix 'elevated'
+        Stop-Transcript | Out-Null
+        Split-Path $path -Leaf | Should -Match '^\d{8}-\d{6}-elevated\.log$'
     }
 }
 
