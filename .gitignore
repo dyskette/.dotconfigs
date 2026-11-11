@@ -1,6 +1,11 @@
 .claude/
 nul
 
+# Documents\PowerShell is a junction to powershell/, so CurrentUser-scope
+# module and script installs (Install-PSResource, Install-Module) land here.
+powershell/Modules/
+powershell/Scripts/
+
 # Holds the OpenCode service password, generated per machine.
 opencode/service.json
 
