@@ -56,7 +56,7 @@ Describe 'Step result contract' {
         Test-StepFailed $null | Should -BeTrue
     }
 
-    It 'treats a legacy hashtable result as failed' {
+    It 'treats a hashtable result as failed' {
         Test-StepFailed @{ status = 'success' } | Should -BeTrue
     }
 

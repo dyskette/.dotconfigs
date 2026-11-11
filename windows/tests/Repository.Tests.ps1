@@ -2,12 +2,8 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.6' }
 <#
 .SYNOPSIS
-Repository-wide checks: every script parses, and rewritten scripts follow the
-conventions from todo.md.
-
-.DESCRIPTION
-Convention tests skip files listed in QualityBaseline.psd1. Taking a file off
-that list switches them on for it.
+Repository-wide checks: every PowerShell file parses and follows the
+conventions in windows/README.md (Development).
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '',
     Justification = 'Variables set in BeforeDiscovery/BeforeAll are read in It blocks; the analyzer cannot see Pester scoping.')]
@@ -17,18 +13,14 @@ BeforeDiscovery {
     Import-Module (Join-Path $PSScriptRoot 'TestSupport.psm1') -Force
 
     $root = Get-RepoRoot
-    $legacy = @(Get-LegacyScript)
 
     $allFiles = Get-PowerShellFile | ForEach-Object {
-        @{ Name = $_; Path = Join-Path $root $_; Legacy = $_ -in $legacy }
+        @{ Name = $_; Path = Join-Path $root $_ }
     }
     # Scripts and modules; .psd1 data files have no #Requires header.
     $codeFiles = $allFiles | Where-Object { $_.Name -match '\.ps(m)?1$' }
 
-    $bootstrap = @{
-        Path   = Join-Path $root 'windows\Bootstrap.ps1'
-        Legacy = 'windows/Bootstrap.ps1' -in $legacy
-    }
+    $bootstrap = @{ Path = Join-Path $root 'windows\Bootstrap.ps1' }
     $hasWindowsPowerShell = [bool](Get-Command powershell.exe -ErrorAction SilentlyContinue)
     $hasAnalyzer = [bool](Get-Module -ListAvailable PSScriptAnalyzer)
 
@@ -41,14 +33,6 @@ BeforeAll {
     Import-Module (Join-Path $PSScriptRoot '..\lib\Common.psm1') -Force
 }
 
-Describe 'Quality baseline' {
-    It 'lists only files that exist' {
-        $root = Get-RepoRoot
-        foreach ($file in Get-LegacyScript) {
-            Join-Path $root $file | Should -Exist -Because "$file is listed in QualityBaseline.psd1"
-        }
-    }
-}
 
 Describe '<Name>' -ForEach $allFiles {
     It 'parses without errors in PowerShell 7' {
@@ -67,11 +51,11 @@ Describe '<Name> conventions' -ForEach $codeFiles {
         $text = Get-Content -LiteralPath $Path -Raw
     }
 
-    It 'requires PowerShell 7' -Skip:($Legacy -or $Name -eq 'windows/Bootstrap.ps1') {
+    It 'requires PowerShell 7' -Skip:($Name -eq 'windows/Bootstrap.ps1') {
         $text | Should -Match '(?m)^#Requires -Version 7'
     }
 
-    It 'never writes PATH through [Environment]::SetEnvironmentVariable' -Skip:$Legacy {
+    It 'never writes PATH through [Environment]::SetEnvironmentVariable' {
         # It flattens REG_EXPAND_SZ and expands %VARS%; use Add-PathEntry / Remove-PathEntry.
         $ast = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$null)
         $offending = $ast.FindAll({
@@ -86,7 +70,7 @@ Describe '<Name> conventions' -ForEach $codeFiles {
         $offending | Should -BeNullOrEmpty
     }
 
-    It 'never removes a path recursively without a guard against links' -Skip:$Legacy {
+    It 'never removes a path recursively without a guard against links' {
         # Remove-Item -Recurse follows junctions on Windows PowerShell 5.1. Rewritten
         # scripts use Remove-LinkOnly for links; a recursive delete must name the
         # reason on the same line with a '# safe:' comment.
@@ -118,7 +102,7 @@ Describe 'Bootstrap.ps1 (runs on Windows PowerShell 5.1)' {
         [int]($count | Select-Object -Last 1) | Should -Be 0
     }
 
-    It 'uses only syntax and commands that exist in 5.1' -Skip:($bootstrap.Legacy -or -not $hasAnalyzer) -TestCases @($bootstrap) {
+    It 'uses only syntax and commands that exist in 5.1' -Skip:(-not $hasAnalyzer) -TestCases @($bootstrap) {
         $settings = @{
             IncludeRules = @('PSUseCompatibleSyntax', 'PSUseCompatibleCommands')
             Rules        = @{
@@ -134,7 +118,7 @@ Describe 'Bootstrap.ps1 (runs on Windows PowerShell 5.1)' {
         $findings | Should -BeNullOrEmpty
     }
 
-    It 'is ASCII-only, since 5.1 reads BOM-less files as Windows-1252' -Skip:$bootstrap.Legacy -TestCases @($bootstrap) {
+    It 'is ASCII-only, since 5.1 reads BOM-less files as Windows-1252' -TestCases @($bootstrap) {
         $bytes = [IO.File]::ReadAllBytes($Path)
         @($bytes | Where-Object { $_ -gt 0x7F }).Count | Should -Be 0
     }

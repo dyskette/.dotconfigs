@@ -41,17 +41,5 @@ function Get-PowerShellFile {
     $files | Where-Object { Test-Path -LiteralPath (Join-Path $root $_) } | Sort-Object -Unique
 }
 
-<#
-.SYNOPSIS
-Repo-relative paths of scripts still exempt from the conventions.
-#>
-function Get-LegacyScript {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param()
 
-    $baseline = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'QualityBaseline.psd1')
-    $baseline.Legacy
-}
-
-Export-ModuleMember -Function Get-RepoRoot, Get-PowerShellFile, Get-LegacyScript
+Export-ModuleMember -Function Get-RepoRoot, Get-PowerShellFile
