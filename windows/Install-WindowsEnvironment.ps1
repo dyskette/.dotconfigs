@@ -1,5 +1,3 @@
-#!/usr/bin/env pwsh
-
 <#
 .SYNOPSIS
     Automated Windows development environment setup

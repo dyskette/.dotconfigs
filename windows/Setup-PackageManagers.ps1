@@ -1,5 +1,3 @@
-#!/usr/bin/env pwsh
-
 <#
 .SYNOPSIS
     Sets up winget package manager

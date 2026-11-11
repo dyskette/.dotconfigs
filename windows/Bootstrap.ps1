@@ -1,5 +1,3 @@
-#!/usr/bin/env pwsh
-
 <#
 .SYNOPSIS
     Bootstrap script for setting up the dotfiles on a fresh Windows install

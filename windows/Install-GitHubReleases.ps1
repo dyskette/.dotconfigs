@@ -1,5 +1,3 @@
-#!/usr/bin/env pwsh
-
 <#
 .SYNOPSIS
     Installs tools from GitHub releases to ~/.local/opt/

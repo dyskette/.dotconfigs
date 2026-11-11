@@ -1,5 +1,3 @@
-#!/usr/bin/env pwsh
-
 <#
 .SYNOPSIS
     Data-driven dotfiles configuration via symlinks and junctions

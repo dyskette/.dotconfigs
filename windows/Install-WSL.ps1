@@ -1,5 +1,3 @@
-#!/usr/bin/env pwsh
-
 <#
 .SYNOPSIS
     Installs and configures WSL with Ubuntu 24.04 LTS
