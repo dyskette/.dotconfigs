@@ -1,0 +1,32 @@
+{
+  // Links created by Configure-Dotfiles.ps1.
+  //
+  // source  repo-relative path
+  // target  absolute path; %VARIABLES% are expanded
+  // type    "Junction" for folders (no Developer Mode or Administrator needed),
+  //         "SymbolicLink" for files (needs either)
+  // post    optional command run after linking: [program, arguments...]
+  "links": [
+    { "app": "nvim", "source": "nvim", "target": "%LOCALAPPDATA%\\nvim", "type": "Junction" },
+    // A file link, not a junction: lazygit keeps state.yml in this folder.
+    { "app": "lazygit", "source": "lazygit\\config.yml", "target": "%LOCALAPPDATA%\\lazygit\\config.yml", "type": "SymbolicLink" },
+    { "app": "powershell", "source": "powershell", "target": "%USERPROFILE%\\Documents\\PowerShell", "type": "Junction" },
+    { "app": "bat", "source": "bat", "target": "%APPDATA%\\bat", "type": "Junction", "post": ["bat", "cache", "--build"] },
+    { "app": "bash", "source": "bash\\bashrc", "target": "%USERPROFILE%\\.bashrc", "type": "SymbolicLink" },
+    { "app": "bash", "source": "bash\\bashrc.d", "target": "%USERPROFILE%\\.bashrc.d", "type": "Junction" },
+    { "app": "claude", "source": "claude\\settings.json", "target": "%USERPROFILE%\\.claude\\settings.json", "type": "SymbolicLink" },
+    { "app": "opencode", "source": "opencode", "target": "%USERPROFILE%\\.config\\opencode", "type": "Junction" },
+    // psmux (tmux for Windows) reads ~/.psmux.conf before ~/.tmux.conf.
+    { "app": "tmux", "source": "tmux\\psmux.conf", "target": "%USERPROFILE%\\.psmux.conf", "type": "SymbolicLink" },
+    { "app": "vs", "source": "vs\\vsvimrc", "target": "%USERPROFILE%\\.vsvimrc", "type": "SymbolicLink" },
+    { "app": "vscode", "source": "vscode\\settings.json", "target": "%APPDATA%\\Code\\User\\settings.json", "type": "SymbolicLink" },
+    { "app": "vscode", "source": "vscode\\keybindings.json", "target": "%APPDATA%\\Code\\User\\keybindings.json", "type": "SymbolicLink" },
+    { "app": "windows-terminal", "source": "windows_terminal\\settings.json", "target": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json", "type": "SymbolicLink" },
+    { "app": "yazi", "source": "yazi", "target": "%APPDATA%\\yazi\\config", "type": "Junction", "post": ["ya", "pkg", "install"] },
+    { "app": "zellij", "source": "zellij", "target": "%APPDATA%\\zellij\\config", "type": "Junction" },
+    // Symbolic links, not hard links: editors and git replace files on save,
+    // which silently cuts a hard link.
+    { "app": "zed", "source": "zed\\settings.json", "target": "%APPDATA%\\Zed\\settings.json", "type": "SymbolicLink" },
+    { "app": "zed", "source": "zed\\keymap.json", "target": "%APPDATA%\\Zed\\keymap.json", "type": "SymbolicLink" }
+  ]
+}

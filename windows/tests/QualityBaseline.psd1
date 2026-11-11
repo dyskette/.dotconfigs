@@ -12,9 +12,5 @@
         'tmux/scripts/session-helpers.ps1'
         'tmux/set-theme.ps1'
         'tmux/toggle-theme.ps1'
-        'windows/Configure-Dotfiles.ps1'
-        'windows/Install-Extensions.ps1'
-        'windows/Install-GitHubReleases.ps1'
-        'windows/Install-WSL.ps1'
     )
 }

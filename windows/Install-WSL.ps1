@@ -1,220 +1,186 @@
+#Requires -Version 7
 <#
 .SYNOPSIS
-    Installs and configures WSL with Ubuntu 24.04 LTS
+Enables WSL, or installs a WSL distribution. Opt-in (Install-WindowsEnvironment.ps1 -InstallWSL).
 
 .DESCRIPTION
-    This script enables the required Windows features for WSL, handles restarts,
-    and installs Ubuntu 24.04 LTS distribution. It's designed to be called from
-    the main installation script but can also be run independently.
+Run twice by the orchestrator:
 
-.NOTES
-    Requirements:
-    - Windows 10 version 2004+ (Build 19041+) or Windows 11
-    - Administrator privileges
-    - Internet connection
+-FeaturesOnly   Enables the Microsoft-Windows-Subsystem-Linux and
+                VirtualMachinePlatform features. Returns RestartRequired when
+                Windows needs a reboot before a distribution can install; the
+                orchestrator stops there and the same command continues after
+                the restart. Never reboots on its own.
+
+(default)       Updates WSL itself ('wsl --update'), installs the distribution
+                when it is missing (no first launch), and makes it the default.
+
+Both write the WSLg settings into ~/.wslconfig and ~/.wslgconfig by merging
+keys: other settings in those files are kept, and the file is backed up once
+before its first change.
+
+wsl.exe prints UTF-16 by default; WSL_UTF8=1 makes its output parseable.
+
+.PARAMETER Distribution
+Name as listed by 'wsl --list --online'.
+
+.OUTPUTS
+Dotconfigs.StepResult
 #>
-
+[CmdletBinding()]
 param(
-    [Parameter(HelpMessage="Skip WSL installation and only enable features")]
     [switch]$FeaturesOnly,
-    
-    [Parameter(HelpMessage="Force restart after enabling features")]
-    [switch]$ForceRestart
+    [string]$Distribution = 'Ubuntu-24.04',
+    [string]$WslConfigPath = (Join-Path $env:USERPROFILE '.wslconfig'),
+    [string]$WslgConfigPath = (Join-Path $env:USERPROFILE '.wslgconfig')
 )
 
-# Check if running as Administrator
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "This script requires Administrator privileges. Please run as Administrator."
-    exit 1
-}
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
-Write-Host "=== WSL Installation Script ===" -ForegroundColor Cyan
-Write-Host "Setting up Windows Subsystem for Linux with Ubuntu 24.04..." -ForegroundColor White
+Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
 
-# Helper: Write .wslgconfig for HiDPI support
-function Write-WSLgConfig {
-    $wslgConfigFile = "$env:USERPROFILE\.wslgconfig"
-    try {
-        $wslgConfig = @"
-[system-distro-env]
-WESTON_RDP_DISABLE_FRACTIONAL_HI_DPI_SCALING=true
-WESTON_RDP_FRACTIONAL_HI_DPI_SCALING=false
-"@
-        Set-Content -Path $wslgConfigFile -Value $wslgConfig -Force
-        Write-Host "Created .wslgconfig with HiDPI scaling support" -ForegroundColor Green
-    } catch {
-        Write-Warning "Failed to create .wslgconfig: $_"
+<#
+.SYNOPSIS
+Sets key=value in an INI section, keeping everything else. Returns $true when the file changed.
+#>
+function Set-IniValue {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([bool])]
+    param([string]$Path, [string]$Section, [string]$Key, [string]$Value)
+
+    $lines = [Collections.Generic.List[string]]::new()
+    if (Test-Path -LiteralPath $Path) { $lines.AddRange([string[]]@(Get-Content -LiteralPath $Path)) }
+
+    $start = -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].Trim() -eq "[$Section]") { $start = $i; break }
     }
-}
-
-# Helper: Write .wslconfig with WSLg (GUI + audio + mic) enabled
-function Write-WSLConfig {
-    $wslConfigFile = "$env:USERPROFILE\.wslconfig"
-    try {
-        $wslConfig = @"
-[wsl2]
-guiApplications=true
-"@
-        Set-Content -Path $wslConfigFile -Value $wslConfig -Force
-        Write-Host "Created .wslconfig with GUI applications enabled" -ForegroundColor Green
-    } catch {
-        Write-Warning "Failed to create .wslconfig: $_"
-    }
-}
-
-# Enable WSL features before installing distributions
-Write-Host "Ensuring WSL features are enabled..." -ForegroundColor Yellow
-
-$needsRestart = $false
-
-# Check and enable Windows Subsystem for Linux feature
-try {
-    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-    if ($wslFeature.State -ne "Enabled") {
-        Write-Host "Enabling Windows Subsystem for Linux feature..." -ForegroundColor Yellow
-        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
-        Write-Host "WSL feature enabled." -ForegroundColor Green
-        $needsRestart = $true
+    if ($start -lt 0) {
+        if ($lines.Count -gt 0 -and $lines[-1].Trim()) { $lines.Add('') }
+        $lines.Add("[$Section]")
+        $lines.Add("$Key=$Value")
     } else {
-        Write-Host "Windows Subsystem for Linux feature is already enabled." -ForegroundColor Green
+        $end = $lines.Count
+        for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i].Trim() -match '^\[.+\]$') { $end = $i; break }
+        }
+        $found = $false
+        for ($i = $start + 1; $i -lt $end; $i++) {
+            if ($lines[$i] -match "^\s*$([regex]::Escape($Key))\s*=\s*(.*?)\s*$") {
+                if ($Matches[1] -eq $Value) { return $false }
+                $lines[$i] = "$Key=$Value"
+                $found = $true
+                break
+            }
+        }
+        if (-not $found) { $lines.Insert($end, "$Key=$Value") }
     }
-} catch {
-    Write-Warning "Could not check or enable WSL feature: $_"
+
+    if (-not $PSCmdlet.ShouldProcess($Path, "Set [$Section] $Key=$Value")) { return $false }
+    if ((Test-Path -LiteralPath $Path) -and -not (Test-Path -LiteralPath "$Path.dotconfigs-backup")) {
+        Copy-Item -LiteralPath $Path -Destination "$Path.dotconfigs-backup"
+    }
+    Set-Content -LiteralPath $Path -Value $lines -Encoding utf8NoBOM
+    return $true
 }
 
-# Check and enable Virtual Machine Platform feature (required for WSL 2)
-try {
-    $vmFeature = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
-    if ($vmFeature.State -ne "Enabled") {
-        Write-Host "Enabling Virtual Machine Platform feature..." -ForegroundColor Yellow
-        Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
-        Write-Host "Virtual Machine Platform feature enabled." -ForegroundColor Green
-        $needsRestart = $true
-    } else {
-        Write-Host "Virtual Machine Platform feature is already enabled." -ForegroundColor Green
-    }
-} catch {
-    Write-Warning "Could not check or enable Virtual Machine Platform feature: $_"
+<#
+.SYNOPSIS
+Writes the WSLg settings; returns the names of files that changed.
+#>
+function Set-WslgConfig {
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param([string]$WslConfig, [string]$WslgConfig)
+
+    $changed = @(
+        Set-IniValue -Path $WslConfig -Section 'wsl2' -Key 'guiApplications' -Value 'true'
+        # HiDPI: let Windows scale WSLg windows instead of fractional RDP scaling.
+        Set-IniValue -Path $WslgConfig -Section 'system-distro-env' -Key 'WESTON_RDP_DISABLE_FRACTIONAL_HI_DPI_SCALING' -Value 'true'
+        Set-IniValue -Path $WslgConfig -Section 'system-distro-env' -Key 'WESTON_RDP_FRACTIONAL_HI_DPI_SCALING' -Value 'false'
+    )
+    $names = @()
+    if ($changed[0]) { $names += Split-Path $WslConfig -Leaf }
+    if ($changed[1] -or $changed[2]) { $names += Split-Path $WslgConfig -Leaf }
+    return $names
 }
 
-# If only enabling features, exit here
+<#
+.SYNOPSIS
+Runs wsl.exe with UTF-8 output.
+#>
+function Invoke-Wsl([string[]]$Arguments, [switch]$NoThrow) {
+    $previous = $env:WSL_UTF8
+    $env:WSL_UTF8 = '1'
+    try {
+        return Invoke-Native -FilePath wsl.exe -Arguments $Arguments -Quiet -NoThrow:$NoThrow
+    } finally {
+        $env:WSL_UTF8 = $previous
+    }
+}
+
+<#
+.SYNOPSIS
+Installed distribution names.
+#>
+function Get-WslDistribution {
+    $result = Invoke-Wsl -Arguments @('--list', '--quiet') -NoThrow
+    # Exit code is non-zero when no distribution is installed yet.
+    @($result.Output | ForEach-Object { ($_ -replace "`0", '').Trim() } | Where-Object { $_ })
+}
+
+if (-not (Test-IsAdministrator)) {
+    return New-StepResult Failed 'WSL setup needs Administrator (the WSL steps are marked Admin in steps.psd1).'
+}
+
 if ($FeaturesOnly) {
-    if ($needsRestart) {
-        Write-Host "WSL features have been enabled. A restart is required for changes to take effect." -ForegroundColor Yellow
-        if ($ForceRestart) {
-            Write-Host "Restarting computer..." -ForegroundColor Yellow
-            Restart-Computer -Force
-        }
-        return @{ 
-            status = "features_enabled"
-            restart_required = $true 
-        }
-    } else {
-        Write-Host "All WSL features are already enabled." -ForegroundColor Green
-        return @{ 
-            status = "features_ready"
-            restart_required = $false 
-        }
+    $enabled = @()
+    $restart = $false
+    foreach ($feature in 'Microsoft-Windows-Subsystem-Linux', 'VirtualMachinePlatform') {
+        $state = Get-WindowsOptionalFeature -Online -FeatureName $feature
+        if ($state.State -eq 'Enabled') { continue }
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart -All
+        $enabled += $feature
+        if ($result.RestartNeeded) { $restart = $true }
     }
+    $configs = @(Set-WslgConfig -WslConfig $WslConfigPath -WslgConfig $WslgConfigPath)
+
+    if ($restart) {
+        return New-StepResult RestartRequired "Enabled $($enabled -join ', '). Restart Windows, then run the same command again." -Data @{ Enabled = $enabled }
+    }
+    if ($enabled.Count -gt 0 -or $configs.Count -gt 0) {
+        return New-StepResult Success "Enabled: $(@($enabled + $configs) -join ', ')." -Data @{ Enabled = $enabled; Configs = $configs }
+    }
+    return New-StepResult Skipped 'The WSL features are enabled.'
 }
 
-# Check if restart is needed before proceeding with WSL installation
-if ($needsRestart) {
-    Write-Host ""
-    Write-Host "=== RESTART REQUIRED ===" -ForegroundColor Cyan
-    Write-Host "WSL features have been enabled but require a restart to take effect." -ForegroundColor White
-    Write-Host ""
-    Write-Host "Please:" -ForegroundColor Yellow
-    Write-Host "1. Restart your computer" -ForegroundColor White
-    Write-Host "2. Run this script again to continue with Ubuntu installation" -ForegroundColor White
-    Write-Host ""
-    
-    if ($ForceRestart) {
-        Write-Host "Auto-restarting in 5 seconds..." -ForegroundColor Yellow
-        Start-Sleep -Seconds 5
-        Restart-Computer -Force
-        exit 0
-    } else {
-        Write-Host "Press any key to restart now, or Ctrl+C to restart manually later..."
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        Restart-Computer -Force
-        exit 0
-    }
+$changes = @()
+$update = Invoke-Wsl -Arguments @('--update') -NoThrow
+if (-not $update.Succeeded) {
+    Write-Warning "wsl --update exited with $($update.ExitCode): $(($update.Output | Select-Object -Last 3) -join ' / ')"
 }
 
-# Install WSL with Ubuntu 24.04
-Write-Host "Installing WSL with Ubuntu 24.04..." -ForegroundColor Yellow
-
-# Check if Ubuntu 24.04 is already installed
-$wslDistributions = wsl --list --quiet 2>$null
-if ($wslDistributions.Split() -contains "Ubuntu-24.04") {
-    Write-Host "Ubuntu 24.04 is already installed in WSL." -ForegroundColor Green
-    
-    # Set it as default if it's not
-    try {
-        $defaultDist = wsl --list --verbose 2>$null | Where-Object { $_ -match "\*" } | ForEach-Object { ($_ -split '\s+')[1] }
-        if ($defaultDist -ne "Ubuntu-24.04") {
-            Write-Host "Setting Ubuntu 24.04 as default WSL distribution..." -ForegroundColor Yellow
-            wsl --set-default Ubuntu-24.04
-            Write-Host "Ubuntu 24.04 set as default." -ForegroundColor Green
-        }
-    } catch {
-        Write-Warning "Could not set Ubuntu 24.04 as default: $_"
+if ($Distribution -notin (Get-WslDistribution)) {
+    Write-Action "Installing $Distribution (no first launch; run 'wsl -d $Distribution' to create your user)..."
+    Invoke-Wsl -Arguments @('--install', '--distribution', $Distribution, '--no-launch') | Out-Null
+    if ($Distribution -notin (Get-WslDistribution)) {
+        return New-StepResult Failed "wsl --install reported success but $Distribution is not listed. Try: wsl --install -d $Distribution"
     }
-    
-    Write-WSLConfig
-    Write-WSLgConfig
-
-    return @{
-        status = "already_installed"
-        message = "Ubuntu 24.04 is already installed and configured"
-    }
+    $changes += "installed $Distribution"
 }
 
-# Install Ubuntu 24.04
-try {
-    Write-Host "Downloading and installing Ubuntu 24.04..." -ForegroundColor Yellow
-    wsl --install -d Ubuntu-24.04 --no-launch
-    
-    # Verify installation
-    Start-Sleep -Seconds 3
-    if ((wsl --list --quiet 2>&1) | Select-String "Ubuntu-24.04") {
-        Write-Host "Ubuntu 24.04 installed successfully!" -ForegroundColor Green
-        
-        # Set as default distribution
-        try {
-            wsl --set-default Ubuntu-24.04
-            Write-Host "Ubuntu 24.04 set as default WSL distribution." -ForegroundColor Green
-        } catch {
-            Write-Warning "Could not set Ubuntu 24.04 as default: $_"
-        }
-        
-        Write-Host ""
-        Write-Host "WSL Setup Complete!" -ForegroundColor Green
-        Write-Host "Ubuntu 24.04 is ready for use (not launched automatically)." -ForegroundColor White
-        Write-Host "To access Ubuntu: wsl or ubuntu2404.exe" -ForegroundColor Gray
-        
-        Write-WSLConfig
-        Write-WSLgConfig
+$default = Invoke-Wsl -Arguments @('--set-default', $Distribution) -NoThrow
+if (-not $default.Succeeded) {
+    return New-StepResult Failed "Could not make $Distribution the default distribution (exit $($default.ExitCode))."
+}
+$changes += @(Set-WslgConfig -WslConfig $WslConfigPath -WslgConfig $WslgConfigPath | ForEach-Object { "updated $_" })
 
-        return @{
-            status = "installed"
-            message = "Ubuntu 24.04 installed and configured successfully"
-        }
-    } else {
-        throw "Installation verification failed"
-    }
-    
-} catch {
-    Write-Warning "Failed to install Ubuntu 24.04 via WSL: $_"
-    Write-Host ""
-    Write-Host "Alternative installation methods:" -ForegroundColor Yellow
-    Write-Host "1. Install from Microsoft Store: ms-windows-store://pdp/?ProductId=9NZ3KLHXDJP5" -ForegroundColor White
-    Write-Host "2. Manual WSL setup: wsl --install" -ForegroundColor White
-    
-    return @{
-        status = "failed"
-        message = "Ubuntu 24.04 installation failed: $_"
-        manual_install_required = $true
-    }
-} 
+$data = @{ Changes = $changes; UpdateExitCode = $update.ExitCode }
+if (-not $update.Succeeded) {
+    return New-StepResult Partial "$Distribution is ready, but 'wsl --update' failed (exit $($update.ExitCode))." -Data $data
+}
+if ($changes.Count -eq 0) {
+    return New-StepResult Skipped "$Distribution is installed and the default." -Data $data
+}
+return New-StepResult Success "$($changes -join '; ')." -Data $data

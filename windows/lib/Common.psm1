@@ -933,7 +933,9 @@ function Set-Link {
             (@($existing.Target) -contains $Source)) {
             return 'Unchanged'
         }
-        if ($existing.LinkType) {
+        # A hard link is a second name for real data, not a pointer: it is moved
+        # aside like a regular file rather than removed.
+        if ($existing.LinkType -and $existing.LinkType -ne 'HardLink') {
             Remove-LinkOnly -Path $Target
             $outcome = 'Replaced'
         } else {

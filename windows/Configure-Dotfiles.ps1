@@ -1,295 +1,124 @@
+#Requires -Version 7
 <#
 .SYNOPSIS
-    Data-driven dotfiles configuration via symlinks and junctions
+Links the dotfiles into the locations applications read them from.
 
 .DESCRIPTION
-    Creates symbolic links and directory junctions from dotfiles to their
-    expected application config locations. Handles post-link hooks and
-    environment variable setup.
+Reads links.jsonc and, for each entry, creates a junction (folders) or a
+symbolic link (files) at the target pointing into this repository:
 
-.NOTES
-    Requirements:
-    - Administrator privileges (required for symlinks on Windows)
+- a correct link is left alone;
+- a link pointing elsewhere is replaced (only the link is removed);
+- a real file or folder, or a hard link, is moved aside to
+  <name>.bak-<timestamp>, never deleted.
+
+Junctions need no special rights. Symbolic links need Administrator or
+Developer Mode; without either, those entries fail with that reason. The
+Dotfiles step runs elevated for this reason (steps.psd1).
+
+Also creates ~/.local/bin and puts it on the user PATH, and runs each entry's
+post command (e.g. 'bat cache --build') after linking.
+
+.PARAMETER Filter
+Only process these app names (and 'localbin' for ~/.local/bin).
+
+.OUTPUTS
+Dotconfigs.StepResult: Skipped when nothing changed, Success, or Partial /
+Failed when some entries could not be linked or their post command failed.
 #>
-
+[CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(HelpMessage="Only configure specific apps (e.g. 'nvim','vscode','bat')")]
-    [string[]]$Filter = @()
+    [string[]]$Filter = @(),
+    [string]$ManifestPath = (Join-Path $PSScriptRoot 'links.jsonc'),
+    [string]$RepositoryRoot = (Split-Path $PSScriptRoot -Parent),
+    [string]$LocalBin = (Join-Path $env:USERPROFILE '.local\bin')
 )
 
-# Check if running as Administrator
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "This script requires Administrator privileges. Please run as Administrator."
-    exit 1
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
+
+$links = @((Read-Jsonc $ManifestPath).links)
+$apps = @($links.app | Sort-Object -Unique) + 'localbin'
+$unknown = @($Filter | Where-Object { $_ -notin $apps })
+if ($unknown) {
+    return New-StepResult Failed "Unknown app(s) in -Filter: $($unknown -join ', '). Known: $($apps -join ', ')."
 }
+$selected = { param($app) $Filter.Count -eq 0 -or $app -in $Filter }
 
-$dotfilesRoot = Split-Path -Parent $PSScriptRoot
+$changes = [Collections.Generic.List[string]]::new()
+$backups = [Collections.Generic.List[string]]::new()
+$failures = [Collections.Generic.List[string]]::new()
+$canSymlink = Test-CanCreateSymlink
+$linked = 0
 
-# Refresh PATH so newly-installed tools are available
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-
-# ── Link table ──────────────────────────────────────────────────────────────
-# Each entry: App (for filtering), Source (relative to dotfiles root),
-# Target (absolute path), Type (Junction or SymbolicLink), and optional
-# PostHook / EnvVar.
-
-$links = @(
-    @{
-        App    = "nvim"
-        Source = "nvim"
-        Target = "$env:LOCALAPPDATA\nvim"
-        Type   = "Junction"
-    }
-    @{
-        # A file link, not a junction: lazygit keeps state.yml in this folder.
-        App    = "lazygit"
-        Source = "lazygit\config.yml"
-        Target = "$env:LOCALAPPDATA\lazygit\config.yml"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "powershell"
-        Source = "powershell"
-        Target = "$env:USERPROFILE\Documents\PowerShell"
-        Type   = "Junction"
-    }
-    @{
-        App    = "bat"
-        Source = "bat"
-        Target = "$env:APPDATA\bat"
-        Type   = "Junction"
-        PostHook = { bat cache --build 2>&1 | Out-Null }
-    }
-    @{
-        App    = "bash"
-        Source = "bash\bashrc"
-        Target = "$env:USERPROFILE\.bashrc"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "bash"
-        Source = "bash\bashrc.d"
-        Target = "$env:USERPROFILE\.bashrc.d"
-        Type   = "Junction"
-    }
-    @{
-        App    = "claude"
-        Source = "claude\settings.json"
-        Target = "$env:USERPROFILE\.claude\settings.json"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "opencode"
-        Source = "opencode"
-        Target = "$env:USERPROFILE\.config\opencode"
-        Type   = "Junction"
-    }
-    @{
-        # psmux (tmux for Windows) reads ~/.psmux.conf before ~/.tmux.conf
-        App    = "tmux"
-        Source = "tmux\psmux.conf"
-        Target = "$env:USERPROFILE\.psmux.conf"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "vs"
-        Source = "vs\vsvimrc"
-        Target = "$env:USERPROFILE\.vsvimrc"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "vscode"
-        Source = "vscode\settings.json"
-        Target = "$env:APPDATA\Code\User\settings.json"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "vscode"
-        Source = "vscode\keybindings.json"
-        Target = "$env:APPDATA\Code\User\keybindings.json"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "windows-terminal"
-        Source = "windows_terminal\settings.json"
-        Target = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
-        Type   = "SymbolicLink"
-    }
-    @{
-        App    = "yazi"
-        Source = "yazi"
-        Target = "$env:APPDATA\yazi\config"
-        Type   = "Junction"
-        PostHook = { ya pkg install 2>&1 | Out-Null }
-    }
-    @{
-        App    = "zellij"
-        Source = "zellij"
-        Target = "$env:APPDATA\zellij\config"
-        Type   = "Junction"
-    }
-    @{
-        App    = "zed"
-        Source = "zed\settings.json"
-        Target = "$env:APPDATA\Zed\settings.json"
-        Type   = "HardLink"
-    }
-    @{
-        App    = "zed"
-        Source = "zed\keymap.json"
-        Target = "$env:APPDATA\Zed\keymap.json"
-        Type   = "HardLink"
-    }
-)
-
-
-# ── LocalBin (special: creates dir + adds to PATH) ─────────────────────────
-
-$localBinPath = "$env:USERPROFILE\.local\bin"
-
-# ── Helper functions ────────────────────────────────────────────────────────
-
-function New-Link {
-    param(
-        [string]$Source,
-        [string]$Target,
-        [string]$Type
-    )
-
-    $parentDir = Split-Path $Target -Parent
-    if (-not (Test-Path $parentDir)) {
-        New-Item -Path $parentDir -ItemType Directory -Force | Out-Null
-    }
-
-    if (Test-Path $Target) {
-        Remove-Item -Path $Target -Force -Recurse
-    }
-
-    if ($Type -eq "Junction") {
-        New-Item -Path $Target -Value $Source -ItemType Junction | Out-Null
-    } elseif ($Type -eq "HardLink") {
-        New-Item -Path $Target -Value $Source -ItemType HardLink | Out-Null
-    } else {
-        New-Item -Path $Target -Target $Source -ItemType SymbolicLink | Out-Null
-    }
-}
-
-# ── Main ────────────────────────────────────────────────────────────────────
-
-Write-Host "=== Dotfiles Configuration ===" -ForegroundColor Cyan
-
-$successCount = 0
-$failedCount = 0
-$skippedCount = 0
-
-# Process LocalBin
-$shouldProcessLocalBin = ($Filter.Count -eq 0) -or ($Filter -contains "localbin")
-if ($shouldProcessLocalBin) {
+if (& $selected 'localbin') {
     try {
-        Write-Host "Configuring local bin directory..." -ForegroundColor Yellow
-        if (-not (Test-Path -Path $localBinPath)) {
-            New-Item -Path $localBinPath -ItemType Directory -Force | Out-Null
-            Write-Host "  Created $localBinPath" -ForegroundColor Green
+        if (-not (Test-Path -LiteralPath $LocalBin)) {
+            New-Item -ItemType Directory -Path $LocalBin -Force | Out-Null
+            $changes.Add("created $LocalBin")
         }
-
-        $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-        if (-not ($userPath -split ";" | Where-Object { $_ -eq $localBinPath })) {
-            [Environment]::SetEnvironmentVariable("Path", "$userPath;$localBinPath", "User")
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-            Write-Host "  Added $localBinPath to user PATH" -ForegroundColor Green
-        } else {
-            Write-Host "  $localBinPath already in PATH" -ForegroundColor Cyan
-        }
-        $successCount++
+        if (Add-PathEntry -Path $LocalBin) { $changes.Add("added $LocalBin to PATH") }
     } catch {
-        Write-Warning "  Failed to configure local bin: $_"
-        $failedCount++
+        $failures.Add("localbin: $($_.Exception.Message)")
     }
 }
 
-# Process link table
-foreach ($link in $links) {
-    # Apply filter
-    if ($Filter.Count -gt 0 -and $Filter -notcontains $link.App) {
-        $skippedCount++
+foreach ($link in $links | Where-Object { & $selected $_.app }) {
+    $label = "[$($link.app)] $($link.source)"
+    $source = Join-Path $RepositoryRoot $link.source
+    $target = [Environment]::ExpandEnvironmentVariables($link.target)
+    try {
+        if ($link.type -notin 'Junction', 'SymbolicLink') { throw "unknown link type '$($link.type)'" }
+        if (-not (Test-Path -LiteralPath $source)) { throw "source not found: $source" }
+        $isFolder = Test-Path -LiteralPath $source -PathType Container
+        if ($link.type -eq 'Junction' -and -not $isFolder) { throw 'a junction needs a folder source' }
+        if ($link.type -eq 'SymbolicLink' -and -not $canSymlink) {
+            $current = Get-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+            $alreadyOk = $current -and $current.LinkType -eq 'SymbolicLink' -and (@($current.Target) -contains $source)
+            if (-not $alreadyOk) { throw 'symbolic links need Administrator or Developer Mode' }
+        }
+
+        $outcome = Set-Link -Source $source -Target $target -Type $link.type
+        switch ($outcome) {
+            'Unchanged' { }
+            'BackedUp' {
+                $backups.Add($target)
+                $changes.Add("$label (existing $target moved to a .bak-* backup)")
+            }
+            default { if ($outcome) { $changes.Add("$label $($outcome.ToLower())") } }
+        }
+        if ($outcome -and $outcome -ne 'Unchanged') { Write-Info "$label -> $target ($outcome)" }
+        $linked++
+    } catch {
+        Write-Warning "$label : $($_.Exception.Message)"
+        $failures.Add("$label ($($_.Exception.Message))")
         continue
     }
 
-    $sourcePath = Join-Path $dotfilesRoot $link.Source
-
-    try {
-        # Handle Directory type (glob pattern — symlink each matching file)
-        if ($link.Type -eq "Directory") {
-            $sourceFiles = Get-ChildItem -Path $sourcePath -ErrorAction Stop
-            if ($sourceFiles.Count -eq 0) {
-                Write-Warning "  No files matched: $sourcePath"
-                $failedCount++
-                continue
-            }
-
-            $targetDir = $link.Target
-            if (-not (Test-Path $targetDir)) {
-                New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-            }
-
-            foreach ($file in $sourceFiles) {
-                $fileTarget = Join-Path $targetDir $file.Name
-                if (Test-Path $fileTarget) {
-                    Remove-Item -Path $fileTarget -Force
-                }
-                New-Item -Path $fileTarget -Target $file.FullName -ItemType SymbolicLink | Out-Null
-            }
-
-            Write-Host "  [$($link.App)] Linked $($sourceFiles.Count) files -> $targetDir" -ForegroundColor Green
-            $successCount++
-        } else {
-            # Junction or SymbolicLink
-            if (-not (Test-Path $sourcePath)) {
-                Write-Warning "  [$($link.App)] Source not found: $sourcePath"
-                $failedCount++
-                continue
-            }
-
-            New-Link -Source $sourcePath -Target $link.Target -Type $link.Type
-            Write-Host "  [$($link.App)] $($link.Type): $($link.Source) -> $($link.Target)" -ForegroundColor Green
-            $successCount++
+    $post = @($link.PSObject.Properties['post']?.Value)
+    if ($post.Count -gt 0 -and $PSCmdlet.ShouldProcess($post -join ' ', 'Run')) {
+        if (-not (Get-Command $post[0] -ErrorAction SilentlyContinue)) {
+            $failures.Add("[$($link.app)] post command: $($post[0]) is not on PATH")
+            continue
         }
-
-        # Run post-hook if defined
-        if ($link.PostHook) {
-            try {
-                & $link.PostHook
-                Write-Host "  [$($link.App)] Post-hook completed" -ForegroundColor Gray
-            } catch {
-                Write-Warning "  [$($link.App)] Post-hook failed: $_"
-            }
+        $result = Invoke-Native -FilePath $post[0] -Arguments @($post | Select-Object -Skip 1) -Quiet -NoThrow
+        if (-not $result.Succeeded) {
+            $tail = ($result.Output | Select-Object -Last 5) -join ' / '
+            Write-Warning "[$($link.app)] '$($post -join ' ')' exited with $($result.ExitCode): $tail"
+            $failures.Add("[$($link.app)] '$($post -join ' ')' exited with $($result.ExitCode)")
         }
-
-        # Set environment variable if defined
-        if ($link.EnvVar) {
-            [Environment]::SetEnvironmentVariable($link.EnvVar.Name, $link.EnvVar.Value, $link.EnvVar.Scope)
-            Write-Host "  [$($link.App)] Set $($link.EnvVar.Name) = $($link.EnvVar.Value)" -ForegroundColor Gray
-        }
-
-    } catch {
-        Write-Warning "  [$($link.App)] Failed: $_"
-        $failedCount++
     }
 }
 
-# Summary
-Write-Host ""
-Write-Host "Dotfiles Configuration Summary:" -ForegroundColor Cyan
-Write-Host "  Succeeded: $successCount" -ForegroundColor Green
-Write-Host "  Failed: $failedCount" -ForegroundColor $(if ($failedCount -gt 0) { "Red" } else { "Green" })
-Write-Host "  Skipped (filtered): $skippedCount" -ForegroundColor Gray
-
-$status = if ($failedCount -eq 0) { "success" } elseif ($successCount -gt 0) { "partial" } else { "error" }
-
-return @{
-    status = $status
-    message = "Configured $successCount links, $failedCount failed"
-    succeeded = $successCount
-    failed = $failedCount
-    skipped = $skippedCount
+$data = @{ Changes = $changes.ToArray(); BackedUp = $backups.ToArray(); Failures = $failures.ToArray() }
+if ($failures.Count -gt 0) {
+    $status = if ($linked -gt 0) { 'Partial' } else { 'Failed' }
+    return New-StepResult $status "Failed: $($failures -join '; ')." -Data $data
 }
+if ($changes.Count -eq 0) {
+    return New-StepResult Skipped 'All links were already in place.' -Data $data
+}
+$note = if ($backups.Count -gt 0) { " Existing files were moved aside: $($backups -join ', ')." } else { '' }
+return New-StepResult Success "$($changes.Count) change(s).$note" -Data $data

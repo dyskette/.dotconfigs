@@ -70,8 +70,9 @@
             }
         }
         @{
-            # Elevated until Configure-Dotfiles.ps1 is rewritten (todo.md Phase 5):
-            # it refuses to run without admin, even with Developer Mode on.
+            # Elevated because file symlinks need Administrator unless Developer
+            # Mode is on. Junctions alone would not need it. The elevated child
+            # runs as the same user, so links land in this user's profile.
             Name        = 'Dotfiles'
             Script      = 'Configure-Dotfiles.ps1'
             Description = 'Linking dotfiles'
