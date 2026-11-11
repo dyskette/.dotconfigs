@@ -84,6 +84,22 @@ Describe 'Configure-Dotfiles.ps1' {
         Should -Invoke Invoke-Native -Times 1 -Exactly -ParameterFilter { $FilePath -eq 'tool' -and ($Arguments -join ' ') -eq 'refresh' }
     }
 
+    It 'links an entry that has no post command (most of links.jsonc)' {
+        Set-Content $manifest '{ "links": [ { "app": "c", "source": "dirA", "target": "%DOTCONFIGS_TEST_HOME%\\c", "type": "Junction" } ] }'
+        $result = Invoke-StepScript 'Configure-Dotfiles.ps1' ($parameters + @{ Filter = @('c') })
+        $result.Status | Should -Be 'Success'
+        (Get-Item (Join-Path $env:DOTCONFIGS_TEST_HOME 'c')).LinkType | Should -Be 'Junction'
+        Should -Invoke Invoke-Native -Times 0 -Exactly
+        Should -Invoke Get-Command -Times 0 -Exactly -ParameterFilter { -not $Name }
+    }
+
+    It 'changes nothing under -WhatIf' {
+        Invoke-StepScript 'Configure-Dotfiles.ps1' ($parameters + @{ Filter = @('a', 'localbin'); WhatIf = $true }) | Out-Null
+        $target | Should -Not -Exist
+        Join-Path $root 'bin' | Should -Not -Exist
+        Should -Invoke Invoke-Native -Times 0 -Exactly
+    }
+
     It 'reports Skipped when every link is already in place' {
         Mock Add-PathEntry { $false }
         Invoke-StepScript 'Configure-Dotfiles.ps1' ($parameters + @{ Filter = @('a', 'localbin') }) | Out-Null
@@ -171,6 +187,14 @@ Describe 'Install-GitHubReleases.ps1' {
         Mock Get-InstalledVersion { [pscustomobject]@{ version = 'v1.0' } }
         (Invoke-StepScript 'Install-GitHubReleases.ps1' $parameters 3>$null).Status | Should -Be 'Skipped'
         Should -Invoke Invoke-Download -Times 1 -Exactly
+    }
+
+    It 'does not relink an up-to-date package under -WhatIf' {
+        Mock Get-InstalledVersion { [pscustomobject]@{ version = 'v1.0' } }
+        New-Item -ItemType Directory -Path (Join-Path $root 'opt\tool') -Force | Out-Null
+        Set-Content (Join-Path $root 'opt\tool\tool.exe') 'tool'
+        Invoke-StepScript 'Install-GitHubReleases.ps1' ($parameters + @{ WhatIf = $true }) | Out-Null
+        Join-Path $root 'bin\tool.exe' | Should -Not -Exist
     }
 
     It 'refuses an ambiguous asset pattern' {

@@ -70,7 +70,8 @@ function Publish-Binary($Package, [string]$InstallPath, [string]$LinkDirectory) 
             $source = (Get-ChildItem -LiteralPath $InstallPath -Recurse -File -Filter $bin | Select-Object -First 1)?.FullName
         }
         if (-not $source) { throw "binary $bin not found in the release" }
-        if ((New-BinLink -Source $source -BinDirectory $LinkDirectory) -eq 'Copy') { $bin }
+        # -WhatIf passed explicitly: it does not flow into module functions.
+        if ((New-BinLink -Source $source -BinDirectory $LinkDirectory -WhatIf:$WhatIfPreference) -eq 'Copy') { $bin }
     }
 }
 

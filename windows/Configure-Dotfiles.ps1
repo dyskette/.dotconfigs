@@ -59,7 +59,7 @@ if (& $selected 'localbin') {
             New-Item -ItemType Directory -Path $LocalBin -Force | Out-Null
             $changes.Add("created $LocalBin")
         }
-        if (Add-PathEntry -Path $LocalBin) { $changes.Add("added $LocalBin to PATH") }
+        if (Add-PathEntry -Path $LocalBin -WhatIf:$WhatIfPreference) { $changes.Add("added $LocalBin to PATH") }
     } catch {
         $failures.Add("localbin: $($_.Exception.Message)")
     }
@@ -80,7 +80,9 @@ foreach ($link in $links | Where-Object { & $selected $_.app }) {
             if (-not $alreadyOk) { throw 'symbolic links need Administrator or Developer Mode' }
         }
 
-        $outcome = Set-Link -Source $source -Target $target -Type $link.type
+        # Passed explicitly: preference variables do not flow from a script into
+        # module functions, so -WhatIf would otherwise not reach Set-Link.
+        $outcome = Set-Link -Source $source -Target $target -Type $link.type -WhatIf:$WhatIfPreference
         switch ($outcome) {
             'Unchanged' { }
             'BackedUp' {
