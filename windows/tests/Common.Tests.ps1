@@ -339,6 +339,23 @@ Describe 'Get-ReleaseAssetHash' {
         }
     }
 
+    It "uses GitHub's own asset digest first, without downloading anything" {
+        $release = [pscustomobject]@{ assets = @(
+                [pscustomobject]@{ name = 'tool.zip'; digest = "sha256:$('C' * 64)"; browser_download_url = 'u' }
+                [pscustomobject]@{ name = 'tool.zip.sha256'; browser_download_url = 'https://example.invalid/tool.zip.sha256' }
+            ) }
+        Get-ReleaseAssetHash -Release $release -AssetName 'tool.zip' -WorkDirectory $TestDrive | Should -Be ('c' * 64)
+        Should -Invoke Invoke-Download -ModuleName Common -Times 0 -Exactly
+    }
+
+    It 'ignores a digest that is not sha256' {
+        $release = [pscustomobject]@{ assets = @(
+                [pscustomobject]@{ name = 'tool.zip'; digest = 'md5:abc'; browser_download_url = 'u' }
+                [pscustomobject]@{ name = 'SHA-256.txt'; browser_download_url = 'https://example.invalid/SHA-256.txt' }
+            ) }
+        Get-ReleaseAssetHash -Release $release -AssetName 'tool.zip' -WorkDirectory $TestDrive | Should -Be $hash
+    }
+
     It 'prefers a per-asset .sha256 file' {
         Get-ReleaseAssetHash -Release (Get-TestRelease 'tool.zip', 'tool.zip.sha256', 'SHA-256.txt') -AssetName 'tool.zip' -WorkDirectory $TestDrive |
             Should -Be $hash

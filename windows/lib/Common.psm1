@@ -721,9 +721,14 @@ function Get-GitHubRelease {
 Finds the published SHA256 of a release asset.
 
 .DESCRIPTION
-Looks for a per-asset '<name>.sha256' file first, then for a checksum list
-(checksums.txt, SHA256SUMS, SHA-256.txt, hashes.sha256 and similar), and
-downloads it into WorkDirectory.
+Uses, in order: the 'digest' GitHub computes for every asset ("sha256:<hash>",
+in the release API since 2025); a per-asset '<name>.sha256' file; a checksum
+list (checksums.txt, SHA256SUMS, SHA-256.txt, hashes.sha256 and similar). Files
+are downloaded into WorkDirectory.
+
+The GitHub digest proves the download matches what was uploaded, not who
+uploaded it; a publisher's own checksum file is no stronger, as it lives in
+the same release.
 
 .OUTPUTS
 The lowercase hash, or $null when the release publishes none for the asset.
@@ -738,6 +743,10 @@ function Get-ReleaseAssetHash {
     )
 
     $assets = @($Release.assets)
+    $asset = $assets | Where-Object name -eq $AssetName | Select-Object -First 1
+    $digest = "$(${asset}?.PSObject.Properties['digest']?.Value)"
+    if ($digest -match '^sha256:([0-9a-fA-F]{64})$') { return $Matches[1].ToLowerInvariant() }
+
     $single = $assets | Where-Object { $_.name -in "$AssetName.sha256", "$AssetName.sha256sum" } | Select-Object -First 1
     $list = $assets | Where-Object { $_.name -match '(?i)^(checksums?|sha-?256-?sums?|sha-?256|hashes)(\.sha256)?(\.txt)?$' } |
         Select-Object -First 1
