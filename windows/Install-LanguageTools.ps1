@@ -30,7 +30,8 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
 
 $toolchains = [ordered]@{
-    uv    = { param($name) 'tool', 'install', $name }
+    # --upgrade: an installed tool is otherwise left at its version.
+    uv    = { param($name) 'tool', 'install', '--upgrade', $name }
     cargo = { param($name) 'install', '--locked', $name }
     go    = { param($name) 'install', $name }
 }

@@ -68,7 +68,7 @@ Describe 'Install-LanguageTools.ps1' {
         $result = Invoke-StepScript 'Install-LanguageTools.ps1' @{ ManifestPath = $manifest }
         $result.Status | Should -Be 'Success'
         $result.Data.Installed | Should -Be @('poetry', 'example.com/tool@latest')
-        Should -Invoke Invoke-Native -ParameterFilter { $FilePath -eq 'uv' -and ($Arguments -join ' ') -eq 'tool install poetry' }
+        Should -Invoke Invoke-Native -ParameterFilter { $FilePath -eq 'uv' -and ($Arguments -join ' ') -eq 'tool install --upgrade poetry' }
         Should -Invoke Invoke-Native -ParameterFilter { $FilePath -eq 'go' -and ($Arguments -join ' ') -eq 'install example.com/tool@latest' }
     }
 
