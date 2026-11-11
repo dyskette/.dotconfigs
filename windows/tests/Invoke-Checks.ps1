@@ -8,8 +8,8 @@ Lint: every PowerShell file in the repo is analyzed with the root
 PSScriptAnalyzerSettings.psd1. Findings fail the run, except in files listed in
 QualityBaseline.psd1, where they are only reported.
 
-Test: runs the Pester 5 tests in this folder, with code coverage for
-windows/lib.
+Test: runs the Pester 5 tests in this folder, with code coverage for every
+script under windows/ that is not in the legacy baseline.
 
 With neither -Lint nor -Test, both run.
 
@@ -93,7 +93,12 @@ if ($Test) {
     $config.Run.PassThru = $true
     $config.Output.Verbosity = 'Detailed'
     $config.CodeCoverage.Enabled = $true
-    $config.CodeCoverage.Path = @(Join-Path $root 'windows\lib')
+    # Rewritten scripts only: legacy ones have no tests yet, and the list grows
+    # as files leave QualityBaseline.psd1.
+    $legacy = @(Get-LegacyScript)
+    $config.CodeCoverage.Path = @(Get-PowerShellFile |
+            Where-Object { $_ -like 'windows/*' -and $_ -notlike 'windows/tests/*' -and $_ -match '\.ps(m)?1$' -and $_ -notin $legacy } |
+            ForEach-Object { Join-Path $root $_ })
     $config.CodeCoverage.CoveragePercentTarget = 75
 
     $outDir = Join-Path $PSScriptRoot 'out'

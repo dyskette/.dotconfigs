@@ -15,13 +15,31 @@ This downloads the repo, runs the full setup, and converts the directory into a 
 If the repo is already cloned:
 
 ```powershell
-# Run as Administrator — installs and configures everything
+# Run from PowerShell 7 as your normal user. Steps that need Administrator
+# run together in one elevated window (one UAC prompt).
 .\Install-WindowsEnvironment.ps1
 
-# Opt in / skip specific phases
+# Show the plan without running anything
+.\Install-WindowsEnvironment.ps1 -WhatIf
+
+# Opt in / skip / pick steps by name or tag (see steps.psd1)
 .\Install-WindowsEnvironment.ps1 -InstallWSL
-.\Install-WindowsEnvironment.ps1 -SkipPackages -SkipFont
+.\Install-WindowsEnvironment.ps1 -Skip packages,Font
+.\Install-WindowsEnvironment.ps1 -Only Dotfiles
 ```
+
+Every step is safe to re-run. After a failure, or a restart a step asked for,
+run the same command again and finished steps are skipped.
+
+Exit codes: `0` success, `1` at least one step failed (see the summary),
+`3010` restart Windows and run the same command again.
+
+Logs: `~/.local/state/dotconfigs/logs/<timestamp>.log`, plus a
+`<timestamp>-elevated.log` for the elevated part. The last 10 are kept.
+
+> `Bootstrap.ps1` still runs the orchestrator from Windows PowerShell 5.1,
+> which the orchestrator no longer supports. Until `Bootstrap.ps1` is updated
+> to hand off to PowerShell 7, run the orchestrator from `pwsh` yourself.
 
 ## What Gets Installed
 
@@ -77,16 +95,29 @@ and linking `yazi` restores its packages with `ya pkg install`.
 
 ## Parameters
 
+Steps, their order, whether they need Administrator and their tags are
+declared in `steps.psd1`.
+
 | Parameter | Description |
 |-----------|-------------|
-| `-InstallWSL` | Install WSL with Ubuntu 24.04 (opt-in, off by default) |
-| `-SkipPackages` | Skip winget package installation |
-| `-SkipConfiguration` | Skip dotfile linking |
-| `-SkipExtensions` | Skip editor extension installation |
-| `-SkipFont` | Skip JetBrains Mono Nerd Font |
-| `-SkipNodeSetup` | Skip Node.js LTS setup via fnm |
-| `-SkipOpenCode` | Skip the OpenCode CLI installation |
-| `-SkipWindowsSettings` | Skip Windows registry settings |
+| `-Skip <names/tags>` | Leave out steps by name or tag (`packages`, `config`, `wsl`) |
+| `-Only <names/tags>` | Run only these steps (includes opt-in ones) |
+| `-InstallWSL` | Include the opt-in WSL steps (tag `wsl`) |
+| `-WhatIf` | Print the plan and exit |
+| `-LogDirectory <path>` | Where transcripts go |
+
+The earlier switches still work and map onto `-Skip`:
+
+| Switch | Same as |
+|--------|---------|
+| `-SkipPackages` | `-Skip packages` |
+| `-SkipGitHubPackages` | `-Skip GitHubReleases` |
+| `-SkipOpenCode` | `-Skip OpenCode` |
+| `-SkipConfiguration` | `-Skip Dotfiles` |
+| `-SkipFont` | `-Skip Font` |
+| `-SkipWindowsSettings` | `-Skip WindowsSettings` |
+| `-SkipExtensions` | `-Skip Extensions` |
+| `-SkipNodeSetup` | `-Skip NodeLTS` |
 
 ## Script Files
 
@@ -94,7 +125,16 @@ and linking `yazi` restores its packages with `ya pkg install`.
 |------|-------------|
 | `Bootstrap.ps1` | One-liner entry point for fresh installs |
 | `Install-WindowsEnvironment.ps1` | Main orchestrator |
+| `steps.psd1` | Step table: order, Administrator flag, tags, parameters |
+| `lib/Common.psm1` | Shared helpers (results, PATH, downloads, links, winget) |
+| `lib/StepRunner.psm1` | Loads, selects and runs steps; elevation and summary |
+| `lib/Invoke-ElevatedSteps.ps1` | Internal: runs the Administrator steps in the elevated window |
+| `tests/` | Pester tests and `Invoke-Checks.ps1` (lint + tests, also run in CI) |
 | `packages.jsonc` | Winget package manifest |
+| `Install-WingetPackages.ps1` | `winget import` of `packages.jsonc`, with retries |
+| `Install-VisualStudio.ps1` | Installs Visual Studio or adds the components in `vs/vsconfig.jsonc` |
+| `language-tools.jsonc` | uv, cargo and go tools to install |
+| `Install-LanguageTools.ps1` | Installs `language-tools.jsonc` (sets up LLVM/MSVC headers for cargo) |
 | `Setup-PackageManagers.ps1` | Bootstraps/updates winget |
 | `Configure-Dotfiles.ps1` | Data-driven symlink/junction table |
 | `Configure-WindowsSettings.ps1` | Windows registry tweaks |

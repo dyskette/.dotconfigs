@@ -49,6 +49,10 @@ jobs:
       - name: Test
         run: ./windows/tests/Invoke-Checks.ps1 -Test -CI
 
+      # The plan must resolve on a clean machine; -WhatIf runs no step.
+      - name: Orchestrator dry run
+        run: ./windows/Install-WindowsEnvironment.ps1 -WhatIf -InstallWSL
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
