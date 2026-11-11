@@ -30,6 +30,8 @@
         { "PackageIdentifier": "JesseDuffield.lazygit" },
         { "PackageIdentifier": "dandavison.delta" },
         { "PackageIdentifier": "ezwinports.make" },
+        // Grammar CLI for nvim-treesitter; the same prebuilt zip as the GitHub release.
+        { "PackageIdentifier": "tree-sitter.tree-sitter-cli" },
 
         // Database CLIs
         // SQL*Plus has no winget package; see Install-SqlPlus.ps1

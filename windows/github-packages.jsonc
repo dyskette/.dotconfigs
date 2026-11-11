@@ -1,22 +1,13 @@
 {
   // GitHub release packages installed to ~/.local/opt/ with binaries
   // symlinked to ~/.local/bin/. Run Install-GitHubReleases.ps1 to process.
+  // Prefer winget (packages.jsonc) when a package exists there.
   "packages": [
     {
       "repo": "dweymouth/supersonic",
       "asset_pattern": "windows-x64\\.zip$",
       "bin": "supersonic.exe",
       "install_dir": "supersonic"
-    },
-    {
-      // Prebuilt CLI, as linux/tasks/bin/tree-sitter-cli.yml uses. Replaces
-      // 'cargo install tree-sitter-cli', which needed LLVM and the MSVC
-      // headers and took minutes to build the same binary.
-      "repo": "tree-sitter/tree-sitter",
-      "asset_pattern": "^tree-sitter-cli-windows-x64\\.zip$",
-      "bin": "tree-sitter.exe",
-      "install_dir": "tree-sitter",
-      "require_checksum": true
     }
   ]
 }
