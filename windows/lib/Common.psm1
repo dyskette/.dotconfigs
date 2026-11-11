@@ -798,6 +798,8 @@ function Set-InstalledVersion {
         [string]$Asset = '',
         [string]$Checksum = '',
         [bool]$Verified = $false,
+        # Additional fields kept with the record, e.g. a download fingerprint.
+        [hashtable]$Extra = @{},
         [string]$Path = $script:VersionsFile
     )
 
@@ -815,6 +817,7 @@ function Set-InstalledVersion {
         checksum     = $Checksum
         verified     = $Verified
     }
+    foreach ($key in $Extra.Keys) { $records[$Name][$key] = $Extra[$key] }
 
     New-Item -ItemType Directory -Path (Split-Path $Path -Parent) -Force | Out-Null
     # Write then rename, so an interrupted run never leaves a truncated file.
