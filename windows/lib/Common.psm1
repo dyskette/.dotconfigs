@@ -337,11 +337,25 @@ function Remove-PathEntry {
 
 <#
 .SYNOPSIS
-Tells running applications that environment variables changed.
+Broadcasts a window message to every top-level window, without hanging on
+windows that do not answer.
+
+.PARAMETER Message
+WM_SETTINGCHANGE (0x1A) or WM_FONTCHANGE (0x1D).
+
+.PARAMETER Parameter
+lParam string, e.g. 'Environment' for WM_SETTINGCHANGE; $null when unused.
+
+.OUTPUTS
+$true when the broadcast was delivered.
 #>
-function Send-EnvironmentChange {
+function Send-BroadcastMessage {
     [CmdletBinding()]
-    param()
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][uint32]$Message,
+        [AllowNull()][string]$Parameter
+    )
 
     if (-not ('Dotconfigs.NativeMethods' -as [type])) {
         Add-Type -Namespace Dotconfigs -Name NativeMethods -MemberDefinition @'
@@ -352,11 +366,24 @@ public static extern IntPtr SendMessageTimeout(
 '@
     }
 
-    $broadcast = [IntPtr]0xffff
+    $broadcast = [IntPtr]0xffff   # HWND_BROADCAST
     $result = [UIntPtr]::Zero
-    # WM_SETTINGCHANGE = 0x1A, SMTO_ABORTIFHUNG = 0x2
-    [void][Dotconfigs.NativeMethods]::SendMessageTimeout(
-        $broadcast, 0x1A, [UIntPtr]::Zero, 'Environment', 0x2, 5000, [ref]$result)
+    # SMTO_ABORTIFHUNG = 0x2, 5 s per window at most.
+    $sent = [Dotconfigs.NativeMethods]::SendMessageTimeout(
+        $broadcast, $Message, [UIntPtr]::Zero, $Parameter, 0x2, 5000, [ref]$result)
+    return $sent -ne [IntPtr]::Zero
+}
+
+<#
+.SYNOPSIS
+Tells running applications that environment variables changed.
+#>
+function Send-EnvironmentChange {
+    [CmdletBinding()]
+    param()
+
+    # WM_SETTINGCHANGE with 'Environment'.
+    [void](Send-BroadcastMessage -Message 0x1A -Parameter 'Environment')
 }
 
 # ── External commands ───────────────────────────────────────────────────────
@@ -539,13 +566,17 @@ function Invoke-Download {
         [int]$DelaySeconds = 3
     )
 
-    $headers = @{ 'User-Agent' = 'dotconfigs-installer/1.0' } + $Headers
+    # Merged key by key: '+' on hashtables throws when both define a key. A
+    # distinct name: PowerShell variables are case-insensitive, so $headers
+    # would be the $Headers parameter itself.
+    $requestHeaders = @{ 'User-Agent' = 'dotconfigs-installer/1.0' }
+    foreach ($key in $Headers.Keys) { $requestHeaders[$key] = $Headers[$key] }
     $parent = Split-Path $OutFile -Parent
     if ($parent) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
 
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
         try {
-            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -Headers $headers -UseBasicParsing
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -Headers $requestHeaders -UseBasicParsing
             if ($Sha256) {
                 $actual = (Get-FileHash -Path $OutFile -Algorithm SHA256).Hash
                 if ($actual -ne $Sha256) {
@@ -633,6 +664,163 @@ function Get-ChecksumEntry {
     }
     if ($unique.Count -eq 1) { return $unique[0] }
     return $null
+}
+
+# ── GitHub releases ─────────────────────────────────────────────────────────
+
+<#
+.SYNOPSIS
+Request headers for the GitHub API, with GITHUB_TOKEN when set (5000 instead of
+60 requests per hour).
+#>
+function Get-GitHubHeader {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param()
+
+    $headers = @{
+        'Accept'     = 'application/vnd.github+json'
+        'User-Agent' = 'dotconfigs-installer/1.0'
+    }
+    if ($env:GITHUB_TOKEN) { $headers['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
+    return $headers
+}
+
+<#
+.SYNOPSIS
+Fetches a GitHub release: the latest one, or a specific tag.
+
+.DESCRIPTION
+A 403 from the rate limiter is rethrown with the reset time and a pointer to
+GITHUB_TOKEN instead of the bare HTTP error.
+#>
+function Get-GitHubRelease {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][ValidatePattern('^[\w.-]+/[\w.-]+$')][string]$Repository,
+        [string]$Tag
+    )
+
+    $path = if ($Tag) { "tags/$([uri]::EscapeDataString($Tag))" } else { 'latest' }
+    $uri = "https://api.github.com/repos/$Repository/releases/$path"
+    try {
+        return Invoke-RestMethod -Uri $uri -Headers (Get-GitHubHeader)
+    } catch {
+        $response = $_.Exception.PSObject.Properties['Response']?.Value
+        if ($response -and [int]$response.StatusCode -eq 403) {
+            $reset = $response.Headers | Where-Object Key -eq 'X-RateLimit-Reset' | ForEach-Object { $_.Value } | Select-Object -First 1
+            $when = if ($reset) { ' until ' + [DateTimeOffset]::FromUnixTimeSeconds([long]$reset).LocalDateTime } else { '' }
+            throw "GitHub API rate limit reached$when for $Repository. Set GITHUB_TOKEN to raise the limit."
+        }
+        throw
+    }
+}
+
+<#
+.SYNOPSIS
+Finds the published SHA256 of a release asset.
+
+.DESCRIPTION
+Looks for a per-asset '<name>.sha256' file first, then for a checksum list
+(checksums.txt, SHA256SUMS, SHA-256.txt, hashes.sha256 and similar), and
+downloads it into WorkDirectory.
+
+.OUTPUTS
+The lowercase hash, or $null when the release publishes none for the asset.
+#>
+function Get-ReleaseAssetHash {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]$Release,
+        [Parameter(Mandatory)][string]$AssetName,
+        [Parameter(Mandatory)][string]$WorkDirectory
+    )
+
+    $assets = @($Release.assets)
+    $single = $assets | Where-Object { $_.name -in "$AssetName.sha256", "$AssetName.sha256sum" } | Select-Object -First 1
+    $list = $assets | Where-Object { $_.name -match '(?i)^(checksums?|sha-?256-?sums?|sha-?256|hashes)(\.sha256)?(\.txt)?$' } |
+        Select-Object -First 1
+    $source = $single ?? $list
+    if (-not $source) { return $null }
+
+    $path = Invoke-Download -Uri $source.browser_download_url -OutFile (Join-Path $WorkDirectory "checksum-$($source.name)") `
+        -Headers (Get-GitHubHeader)
+    $content = @(Get-Content -LiteralPath $path)
+
+    if ($source -eq $single) {
+        # Either a bare hash or a one-line "<hash>  <name>".
+        $token = ($content -join ' ').Trim() -split '\s+' | Select-Object -First 1
+        if ($token -match '^[0-9a-fA-F]{64}$') { return $token.ToLowerInvariant() }
+        throw "$($source.name) does not contain a SHA256 hash."
+    }
+    return Get-ChecksumEntry -Content $content -FileName $AssetName
+}
+
+# ── Installed version records ───────────────────────────────────────────────
+# ~/.local/opt/versions.json, keyed by install name; kept from the original
+# Install-GitHubReleases.ps1 format so existing records stay valid.
+
+$script:VersionsFile = Join-Path $env:USERPROFILE '.local\opt\versions.json'
+
+<#
+.SYNOPSIS
+The recorded install for a name, or $null.
+#>
+function Get-InstalledVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [string]$Path = $script:VersionsFile
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    $raw = Get-Content -LiteralPath $Path -Raw
+    if (-not $raw.Trim()) { return $null }
+    $records = $raw | ConvertFrom-Json -AsHashtable
+    if ($records.ContainsKey($Name)) { return [pscustomobject]$records[$Name] }
+    return $null
+}
+
+<#
+.SYNOPSIS
+Records an install (version, time, asset, checksum) for a name.
+
+.PARAMETER Checksum
+'sha256:<hash>' only when the download was verified against a published hash.
+An unverified download is recorded with Verified = $false.
+#>
+function Set-InstalledVersion {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Version,
+        [string]$Asset = '',
+        [string]$Checksum = '',
+        [bool]$Verified = $false,
+        [string]$Path = $script:VersionsFile
+    )
+
+    if (-not $PSCmdlet.ShouldProcess($Path, "Record $Name $Version")) { return }
+
+    $records = [ordered]@{}
+    if (Test-Path -LiteralPath $Path) {
+        $raw = Get-Content -LiteralPath $Path -Raw
+        if ($raw.Trim()) { $records = $raw | ConvertFrom-Json -AsHashtable -Depth 10 }
+    }
+    $records[$Name] = [ordered]@{
+        version      = $Version
+        installed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        asset        = $Asset
+        checksum     = $Checksum
+        verified     = $Verified
+    }
+
+    New-Item -ItemType Directory -Path (Split-Path $Path -Parent) -Force | Out-Null
+    # Write then rename, so an interrupted run never leaves a truncated file.
+    $temp = "$Path.tmp"
+    $records | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $temp -Encoding utf8NoBOM
+    Move-Item -LiteralPath $temp -Destination $Path -Force
 }
 
 # ── Safe file operations ────────────────────────────────────────────────────
@@ -828,12 +1016,25 @@ function Install-DirectoryAtomic {
 
     New-Item -ItemType Directory -Path (Split-Path $Destination -Parent) -Force | Out-Null
 
+    # Move-Item cannot move a directory across volumes (%TEMP% on another
+    # drive), so the source is first copied next to the destination.
+    $sourceRoot = [IO.Path]::GetPathRoot((Resolve-Path -LiteralPath $Source).Path)
+    $destinationRoot = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($Destination))
+    if ($sourceRoot -ne $destinationRoot) {
+        $sibling = '{0}.staging-{1}' -f $Destination, [guid]::NewGuid().ToString('N').Substring(0, 8)
+        Copy-Item -LiteralPath $Source -Destination $sibling -Recurse
+        $Source = $sibling
+    }
+
     $backup = $null
     if (Test-Path -LiteralPath $Destination) {
         $backup = '{0}.old-{1}' -f $Destination, [guid]::NewGuid().ToString('N').Substring(0, 8)
         try {
             Move-Item -LiteralPath $Destination -Destination $backup -Force
         } catch {
+            if ($sourceRoot -ne $destinationRoot) {
+                Remove-Item -LiteralPath $Source -Recurse -Force -ErrorAction SilentlyContinue # safe: the sibling copy made above
+            }
             throw "Cannot replace '$Destination' (is a program from it still running?): $($_.Exception.Message)"
         }
     }
@@ -880,7 +1081,10 @@ Export-ModuleMember -Function @(
     'Write-StepHeader', 'Write-Info', 'Write-Action', 'Write-Success',
     'Start-DotconfigsLog',
     'Test-IsAdministrator', 'Test-CanCreateSymlink',
-    'Update-SessionPath', 'Get-PathEntry', 'Add-PathEntry', 'Remove-PathEntry', 'Send-EnvironmentChange',
+    'Update-SessionPath', 'Get-PathEntry', 'Add-PathEntry', 'Remove-PathEntry',
+    'Send-BroadcastMessage', 'Send-EnvironmentChange',
+    'Get-GitHubHeader', 'Get-GitHubRelease', 'Get-ReleaseAssetHash',
+    'Get-InstalledVersion', 'Set-InstalledVersion',
     'Invoke-Native', 'ConvertTo-CommandLineArgument', 'Invoke-Winget', 'Invoke-Download', 'Expand-ArchiveChecked', 'Get-ChecksumEntry',
     'New-WorkDirectory', 'Test-IsLink', 'Remove-LinkOnly', 'Backup-Path', 'Set-Link', 'New-BinLink',
     'Install-DirectoryAtomic',

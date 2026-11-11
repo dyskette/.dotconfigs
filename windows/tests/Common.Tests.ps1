@@ -310,6 +310,77 @@ Describe 'Invoke-Download' {
     }
 }
 
+Describe 'Invoke-Download headers' {
+    It 'accepts headers that override its own User-Agent' {
+        Mock Invoke-WebRequest -ModuleName Common { Set-Content -Path $OutFile -Value 'x' }
+        $out = Join-Path $TestDrive 'headers.bin'
+        Invoke-Download -Uri 'https://example.invalid/f' -OutFile $out -Headers (Get-GitHubHeader) | Should -Be $out
+        Should -Invoke Invoke-WebRequest -ModuleName Common -ParameterFilter { $Headers['Accept'] -eq 'application/vnd.github+json' }
+    }
+}
+
+Describe 'Get-ReleaseAssetHash' {
+    BeforeAll {
+        $hash = 'a' * 64
+        function Get-TestRelease([string[]]$Names) {
+            [pscustomobject]@{ assets = @($Names | ForEach-Object { [pscustomobject]@{ name = $_; browser_download_url = "https://example.invalid/$_" } }) }
+        }
+    }
+
+    BeforeEach {
+        Mock Invoke-Download -ModuleName Common {
+            $content = switch -Wildcard ($Uri) {
+                '*.zip.sha256' { "$('A' * 64)  tool.zip" }
+                '*SHA-256.txt' { "$('b' * 64)  tool.zip.sig", "$('a' * 64)  tool.zip" }
+                '*bad.sha256' { 'not a hash' }
+            }
+            Set-Content -Path $OutFile -Value $content
+            $OutFile
+        }
+    }
+
+    It 'prefers a per-asset .sha256 file' {
+        Get-ReleaseAssetHash -Release (Get-TestRelease 'tool.zip', 'tool.zip.sha256', 'SHA-256.txt') -AssetName 'tool.zip' -WorkDirectory $TestDrive |
+            Should -Be $hash
+        Should -Invoke Invoke-Download -ModuleName Common -Times 1 -Exactly -ParameterFilter { $Uri -like '*tool.zip.sha256' }
+    }
+
+    It 'falls back to a checksum list, matching the exact name' {
+        Get-ReleaseAssetHash -Release (Get-TestRelease 'tool.zip', 'SHA-256.txt') -AssetName 'tool.zip' -WorkDirectory $TestDrive |
+            Should -Be $hash
+    }
+
+    It 'returns nothing when the release publishes no checksum' {
+        Get-ReleaseAssetHash -Release (Get-TestRelease 'tool.zip') -AssetName 'tool.zip' -WorkDirectory $TestDrive | Should -BeNullOrEmpty
+        Should -Invoke Invoke-Download -ModuleName Common -Times 0 -Exactly
+    }
+
+    It 'throws on a per-asset file without a hash' {
+        { Get-ReleaseAssetHash -Release (Get-TestRelease 'bad', 'bad.sha256') -AssetName 'bad' -WorkDirectory $TestDrive } |
+            Should -Throw '*does not contain a SHA256*'
+    }
+}
+
+Describe 'Installed version records' {
+    It 'adds records next to existing ones and reads them back' {
+        $path = Join-Path $TestDrive 'versions.json'
+        Set-Content $path '{ "supersonic": { "version": "v0.22.1", "asset": "a.zip" } }'
+
+        Set-InstalledVersion -Name 'font:x' -Version 'v3.5.1' -Asset 'f.zip' -Checksum "sha256:$('a' * 64)" -Verified $true -Path $path
+
+        (Get-InstalledVersion -Name 'supersonic' -Path $path).version | Should -Be 'v0.22.1'
+        $record = Get-InstalledVersion -Name 'font:x' -Path $path
+        $record.version | Should -Be 'v3.5.1'
+        $record.verified | Should -BeTrue
+        Get-InstalledVersion -Name 'missing' -Path $path | Should -BeNullOrEmpty
+        "$path.tmp" | Should -Not -Exist
+    }
+
+    It 'returns nothing when there is no file yet' {
+        Get-InstalledVersion -Name 'x' -Path (Join-Path $TestDrive 'none.json') | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Expand-ArchiveChecked' {
     BeforeAll {
         $payload = Join-Path $TestDrive 'payload'
