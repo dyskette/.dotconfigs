@@ -266,6 +266,13 @@ Describe 'Invoke-StepBatch' {
         $batch.StopReason | Should -Be 'CriticalFailure'
     }
 
+    It 'continues after a critical step that only partly failed' {
+        $partialCritical = Build-TestStep -Name 'partialCritical' -Critical -Body "$commonImport; New-StepResult Partial 'update failed'"
+        $batch = Invoke-StepBatch -Steps @($partialCritical, $ok) -ScriptRoot $TestDrive
+        $batch.Outcomes.Step | Should -Be @('partialCritical', 'ok')
+        $batch.StopReason | Should -BeNullOrEmpty
+    }
+
     It 'stops after a step that needs a restart' {
         $batch = Invoke-StepBatch -Steps @($reboot, $ok) -ScriptRoot $TestDrive
         $batch.Outcomes.Step | Should -Be @('reboot')

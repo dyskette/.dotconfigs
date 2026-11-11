@@ -289,7 +289,7 @@ Runs steps in order in this process.
 
 .DESCRIPTION
 Stops after a step that needs a restart (later steps may depend on it) or after
-a failed Critical step.
+a Critical step that Failed (Partial does not stop the run).
 
 .OUTPUTS
 Object with Outcomes, StopReason ($null, 'RestartRequired' or 'CriticalFailure')
@@ -308,7 +308,10 @@ function Invoke-StepBatch {
         $outcome = Invoke-Step -Step $step -ScriptRoot $ScriptRoot
         $outcomes.Add($outcome)
         if ($outcome.Result.Status -eq 'RestartRequired') { $stopReason = 'RestartRequired'; break }
-        if ($step.Critical -and (Test-StepFailed $outcome.Result)) { $stopReason = 'CriticalFailure'; break }
+        # Partial still counts as a failure in the summary, but means the step's
+        # outcome is usable (e.g. winget works, its update failed), so only
+        # Failed stops the run.
+        if ($step.Critical -and $outcome.Result.Status -eq 'Failed') { $stopReason = 'CriticalFailure'; break }
     }
 
     [pscustomobject]@{ Outcomes = $outcomes.ToArray(); StopReason = $stopReason; LogPath = $null }
