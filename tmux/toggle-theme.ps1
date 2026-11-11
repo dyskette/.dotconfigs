@@ -16,8 +16,8 @@ try {
     # reach another session.
     $target = if ($env:PSMUX_TARGET_SESSION) { @('-t', $env:PSMUX_TARGET_SESSION) } else { @() }
 
-    # show-environment ignores the variable name in psmux and prints every
-    # variable, so the line is filtered here.
+    # psmux before 3.4.0 ignored the variable name and printed every variable;
+    # the filter keeps this working on those versions.
     $current = Invoke-PsmuxCommand -Arguments (@('show-environment') + $target + @('-g', 'SYSTEM_COLOR_THEME')) -NoThrow |
         Where-Object { "$_" -like 'SYSTEM_COLOR_THEME=*' } |
         ForEach-Object { "$_".Split('=', 2)[1] } |

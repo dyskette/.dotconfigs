@@ -11,11 +11,14 @@ psmux has no theme detection of its own (tmux 3.6+ does, see tmux.conf), so
 the theme comes from here instead.
 
 The theme's "set -g <option> <value>" lines are replayed one psmux call at a
-time instead of 'psmux source-file', working around two bugs seen in psmux
-3.3.8: a source-file sent from the command line resets every key binding to
-the defaults, and commands chained with ';' on the command line get dropped.
-psmux is at 3.4.0 now; once 'psmux source-file <theme>' keeps the bindings,
-this loop can go.
+time instead of 'psmux source-file': a source-file sent from the command line
+drops custom key bindings (checked on psmux 3.4.0 with a throwaway -L server:
+224 bindings became 222, both custom ones gone). Re-check on a psmux upgrade;
+once it keeps them, this loop can become a single source-file call.
+
+The theme only applies to the session this runs for. In psmux, "global" (-g)
+options are per session: each new session loads ~/.psmux.conf itself, whose
+run-shell runs this script for it.
 
 .PARAMETER Theme
 'dark' or 'light'. When omitted, falls back to $env:SYSTEM_COLOR_THEME (set by
@@ -58,10 +61,9 @@ try {
     }
 
     # Target the session this runs for (psmux exports it to run-shell commands).
-    # 'set-option -g' without -t does not follow PSMUX_TARGET_SESSION and lands
-    # on whichever session psmux picks, so one session's theme toggle would
-    # restyle another. -q (set -gq) marks options newer tmux lacks; psmux gets
-    # them as plain -g.
+    # Without -t, 'set-option -g' lands on the newest session (psmux 3.4.0),
+    # so one session's config load or theme toggle would restyle another.
+    # -q (set -gq) marks options newer tmux lacks; psmux gets them as plain -g.
     $target = if ($env:PSMUX_TARGET_SESSION) { @('-t', $env:PSMUX_TARGET_SESSION) } else { @() }
     $failed = 0
     foreach ($setting in Get-Content -LiteralPath $themeFile | ForEach-Object { ConvertFrom-ThemeLine $_ }) {
