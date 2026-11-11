@@ -234,8 +234,12 @@ Describe 'ConvertTo-GitClone' -Skip:(-not $hasGit) {
     It 'turns the copy into a clean clone that tracks origin/master' {
         ConvertTo-GitClone -Destination $destination -RepositoryUrl $origin -Branch master
         Join-Path $destination '.git' | Should -Exist
-        & git -C $destination status --porcelain | Should -BeNullOrEmpty
-        & git -C $destination rev-parse --abbrev-ref --symbolic-full-name '@{u}' | Should -Be 'origin/master'
+        # Failed once in seven full runs without a captured reason; the git
+        # output goes into the failure message so the next occurrence explains itself.
+        $status = @(& git -C $destination status --porcelain 2>&1)
+        $status | Should -BeNullOrEmpty -Because "git status said: $($status -join ' | ')"
+        $upstream = @(& git -C $destination rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>&1)
+        $upstream | Should -Be 'origin/master' -Because "git rev-parse said: $($upstream -join ' | ')"
         Get-ChildItem $root -Directory -Filter '.dotconfigs.clone-*' | Should -BeNullOrEmpty
     }
 
