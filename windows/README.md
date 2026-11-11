@@ -4,13 +4,18 @@ Automated Windows development environment configuration using **winget** for all
 
 ## Quick Start
 
-On a fresh Windows install, paste this into PowerShell (no git or winget needed):
+On a fresh Windows install, paste this into PowerShell as your normal user (no
+git, winget, PowerShell 7, Administrator or execution policy change needed):
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iwr 'https://raw.githubusercontent.com/dyskette/.dotconfigs/master/windows/Bootstrap.ps1' -UseBasicParsing | iex
+irm https://raw.githubusercontent.com/dyskette/.dotconfigs/master/windows/Bootstrap.ps1 | iex
 ```
 
-This downloads the repo, runs the full setup, and converts the directory into a git clone afterward.
+This downloads the repo to `~/.dotconfigs`, installs PowerShell 7 if it is
+missing (winget, or the MSI from GitHub verified against its SHA256), runs the
+full setup in PowerShell 7, and converts the directory into a git clone once
+git is installed. Running it again is safe: an existing copy or clone is reused
+(a clone is not pulled), and an unrelated `~/.dotconfigs` folder is refused.
 
 If the repo is already cloned:
 
@@ -36,10 +41,6 @@ Exit codes: `0` success, `1` at least one step failed (see the summary),
 
 Logs: `~/.local/state/dotconfigs/logs/<timestamp>.log`, plus a
 `<timestamp>-elevated.log` for the elevated part. The last 10 are kept.
-
-> `Bootstrap.ps1` still runs the orchestrator from Windows PowerShell 5.1,
-> which the orchestrator no longer supports. Until `Bootstrap.ps1` is updated
-> to hand off to PowerShell 7, run the orchestrator from `pwsh` yourself.
 
 ## What Gets Installed
 

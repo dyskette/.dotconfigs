@@ -30,6 +30,7 @@ BeforeDiscovery {
         Legacy = 'windows/Bootstrap.ps1' -in $legacy
     }
     $hasWindowsPowerShell = [bool](Get-Command powershell.exe -ErrorAction SilentlyContinue)
+    $hasAnalyzer = [bool](Get-Module -ListAvailable PSScriptAnalyzer)
 
     $manifests = 'windows/github-packages.jsonc', 'windows/packages.jsonc', 'vs/vsconfig.jsonc', 'vs/extensions.jsonc' |
         ForEach-Object { @{ Name = $_; Path = Join-Path $root $_ } }
@@ -115,6 +116,22 @@ Describe 'Bootstrap.ps1 (runs on Windows PowerShell 5.1)' {
         $count = & powershell.exe -NoProfile -NonInteractive -Command $command
         $LASTEXITCODE | Should -Be 0
         [int]($count | Select-Object -Last 1) | Should -Be 0
+    }
+
+    It 'uses only syntax and commands that exist in 5.1' -Skip:($bootstrap.Legacy -or -not $hasAnalyzer) -TestCases @($bootstrap) {
+        $settings = @{
+            IncludeRules = @('PSUseCompatibleSyntax', 'PSUseCompatibleCommands')
+            Rules        = @{
+                PSUseCompatibleSyntax   = @{ Enable = $true; TargetVersions = @('5.1') }
+                PSUseCompatibleCommands = @{
+                    Enable         = $true
+                    TargetProfiles = @('win-8_x64_10.0.17763.0_5.1.17763.316_x64_4.0.30319.42000_framework')
+                }
+            }
+        }
+        $findings = Invoke-ScriptAnalyzer -Path $Path -Settings $settings |
+            ForEach-Object { "line $($_.Line): $($_.Message)" }
+        $findings | Should -BeNullOrEmpty
     }
 
     It 'is ASCII-only, since 5.1 reads BOM-less files as Windows-1252' -Skip:$bootstrap.Legacy -TestCases @($bootstrap) {
