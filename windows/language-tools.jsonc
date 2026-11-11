@@ -1,7 +1,8 @@
 {
   // Tools installed through language toolchains after winget has installed the
   // toolchains themselves. Run by Install-LanguageTools.ps1.
-  "uv": ["poetry"],                                 // uv tool install <name>
-  "cargo": ["tree-sitter-cli"],                     // cargo install --locked <name>
+  // tree-sitter-cli comes prebuilt from its GitHub release (github-packages.jsonc).
+  "uv": ["poetry"],                                 // uv tool install --upgrade <name>
+  "cargo": [],                                      // cargo install --locked <name>
   "go": ["github.com/mhersson/mpls@latest"]         // go install <module>@<version>
 }
