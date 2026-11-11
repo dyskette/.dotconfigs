@@ -1,65 +1,57 @@
-# Setup fnm environment and install Node.js LTS
-try {
-    # Update PATH environment variable
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+#Requires -Version 7
+<#
+.SYNOPSIS
+Installs the latest Node.js LTS with fnm and makes it the default.
 
-    # Check if fnm is available
-    if (-not (Get-Command fnm -ErrorAction SilentlyContinue)) {
-        Write-Warning "fnm not found in PATH. Please ensure fnm is installed and restart your shell."
-        return @{
-            status = "error"
-            message = "fnm not found in PATH"
-        }
-    }
+.DESCRIPTION
+Asks fnm for the newest LTS release, installs it when missing and points the
+'default' alias at it. Nothing changes when that LTS is already the default.
 
-    Write-Host "Setting up fnm environment..."
-    
-    # Setup fnm environment
-    fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
+Older Node versions are left installed: projects may pin them (.nvmrc).
 
-    Write-Host "Installing Node.js LTS version..."
-    
-    # Install LTS version
-    $installResult = fnm install --lts 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Failed to install Node.js LTS: $installResult"
-        return @{
-            status = "error"
-            message = "Failed to install Node.js LTS: $installResult"
-        }
-    }
+No 'fnm env | Invoke-Expression' is needed: install, default and exec work
+without the shell integration.
 
-    Write-Host "Setting LTS as default version..."
-    
-    # Set LTS as default
-    $defaultResult = fnm default lts/latest 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Failed to set LTS as default: $defaultResult"
-        return @{
-            status = "error"
-            message = "Failed to set LTS as default: $defaultResult"
-        }
-    }
+.OUTPUTS
+Dotconfigs.StepResult
+#>
+[CmdletBinding()]
+param()
 
-    # Get installed version info
-    $nodeVersion = node --version 2>&1
-    $npmVersion = npm --version 2>&1
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
-    Write-Host "Node.js LTS setup completed successfully!"
-    Write-Host "Node.js version: $nodeVersion"
-    Write-Host "npm version: $npmVersion"
+Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
 
-    return @{
-        status = "success"
-        message = "Node.js LTS installed and set as default"
-        node_version = $nodeVersion
-        npm_version = $npmVersion
-    }
+if (-not (Get-Command fnm -ErrorAction SilentlyContinue)) {
+    return New-StepResult Failed 'fnm is not on PATH (it is installed by the WingetPackages step).'
+}
 
-} catch {
-    Write-Error "Error setting up Node.js LTS: $($_.Exception.Message)"
-    return @{
-        status = "error"
-        message = "Error setting up Node.js LTS: $($_.Exception.Message)"
-    }
-} 
+# "v26.13.1 (Lithium)"
+$remote = (Invoke-Native -FilePath fnm -Arguments @('ls-remote', '--lts', '--latest') -Quiet).Output |
+    Where-Object { $_ -match '^v\d+\.\d+\.\d+' } | Select-Object -Last 1
+if (-not $remote) {
+    return New-StepResult Failed 'fnm ls-remote did not return an LTS version.'
+}
+$latest = ($remote -split '\s+')[0]
+
+# "* v26.13.0 default, lts-latest"
+$installed = @((Invoke-Native -FilePath fnm -Arguments @('list') -Quiet).Output |
+        Where-Object { $_ -match '^\*?\s*(v\d+\.\d+\.\d+)(.*)$' } |
+        ForEach-Object { [pscustomobject]@{ Version = $Matches[1]; IsDefault = $Matches[2] -match '\bdefault\b' } })
+$default = ($installed | Where-Object IsDefault | Select-Object -First 1)?.Version
+
+if ($default -eq $latest) {
+    return New-StepResult Skipped "Node.js $latest (latest LTS) is already the default." -Data @{ Version = $latest }
+}
+
+if ($latest -notin $installed.Version) {
+    Write-Action "Installing Node.js $latest..."
+    Invoke-Native -FilePath fnm -Arguments @('install', $latest) | Out-Null
+}
+Invoke-Native -FilePath fnm -Arguments @('default', $latest) -Quiet | Out-Null
+
+$nodeVersion = ((Invoke-Native -FilePath fnm -Arguments @('exec', '--using=default', 'node', '--version') -Quiet).Output |
+        Select-Object -First 1)
+$from = if ($default) { " (was $default)" } else { '' }
+return New-StepResult Success "Node.js $nodeVersion is the default$from." -Data @{ Version = $latest; Previous = $default }

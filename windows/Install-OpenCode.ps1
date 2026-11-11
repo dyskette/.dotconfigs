@@ -1,143 +1,113 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-Installs the standalone OpenCode CLI (v2) into ~/.local/opt/opencode.
+Installs or upgrades the standalone OpenCode CLI (v2) in ~/.local/opt/opencode.
 
 .DESCRIPTION
-OpenCode 2 has no winget package ("Windows package managers are not supported"
-per the docs) and the sst/opencode GitHub releases still carry the v1 line, so
-Install-GitHubReleases.ps1 cannot reach it either. Its update API lists the
-current version plus a sha256 per asset, so this script resolves the release,
-skips the download when the installed binary already matches, verifies the hash
-and links opencode.exe into ~/.local/bin (put on PATH by Configure-Dotfiles.ps1),
-mirroring linux/tasks/bin/opencode.yml.
+OpenCode 2 has no winget package and the sst/opencode GitHub releases still
+carry the v1 line, so the release comes from OpenCode's update API, which lists
+the current version and a SHA256 per asset. The download is verified, staged,
+and swapped in atomically: a running opencode.exe makes the swap fail cleanly
+and leaves the old install working. opencode.exe is then linked into
+~/.local/bin (on PATH via the Dotfiles step), mirroring linux/tasks/bin/opencode.yml.
 
-The npm/bun packages (@opencode/cli) are deliberately avoided: they install the
-binary under the active fnm Node version, so it disappears when the default
-Node changes.
-
-Run by Install-WindowsEnvironment.ps1 through Invoke-Step, so it returns
-@{ status; message } rather than exiting; it can also be run on its own.
+The npm/bun packages are avoided on purpose: they install under the active fnm
+Node version and disappear when the default Node changes.
 
 .PARAMETER Force
-Reinstall even when the installed version already matches the manifest.
+Reinstall even when the installed version matches.
 
 .OUTPUTS
-Hashtable with status ("success" or "error") and message.
-
-.EXAMPLE
-./Install-OpenCode.ps1
+Dotconfigs.StepResult
 #>
 [CmdletBinding()]
 param(
-    [switch]$Force
+    [switch]$Force,
+    [string]$ManifestUrl = 'https://opencode.ai/update/api/latest/cli/opencode',
+    [string]$InstallDirectory = (Join-Path $env:USERPROFILE '.local\opt\opencode'),
+    [string]$BinDirectory = (Join-Path $env:USERPROFILE '.local\bin')
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$manifestUrl = 'https://opencode.ai/update/api/latest/cli/opencode'
-$installDir = Join-Path $env:USERPROFILE '.local\opt\opencode'
-$localBin = Join-Path $env:USERPROFILE '.local\bin'
-$binaryPath = Join-Path $installDir 'opencode.exe'
+Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
 
+$binaryPath = Join-Path $InstallDirectory 'opencode.exe'
 # The API also publishes -baseline variants for CPUs without AVX2.
-$asset = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
-    'opencode-windows-arm64.zip'
-} else {
-    'opencode-windows-x64.zip'
+$assetName = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'opencode-windows-arm64.zip' } else { 'opencode-windows-x64.zip' }
+
+<#
+.SYNOPSIS
+Version reported by an opencode.exe ("opencode v2.2.6" -> "2.2.6"), or $null.
+#>
+function Get-OpenCodeVersion([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    $output = (Invoke-Native -FilePath $Path -Arguments @('--version') -Quiet -NoThrow).Output | Select-Object -First 1
+    if ("$output" -match '\d+\.\d+\.\d+') { return $Matches[0] }
+    return $null
 }
 
-# ── Resolve the published release ──────────────────────────────────────────
+<#
+.SYNOPSIS
+Links opencode.exe into the bin folder unless an up-to-date link or copy is there.
+#>
+function Update-OpenCodeLink {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'Internal helper of a step script; the step itself is the unit of change.')]
+    param()
+
+    $linkPath = Join-Path $BinDirectory 'opencode.exe'
+    if (Test-IsLink $linkPath) {
+        if (@((Get-Item -LiteralPath $linkPath).Target) -contains $binaryPath) { return $null }
+    } elseif ((Test-Path -LiteralPath $linkPath) -and
+        (Get-FileHash -LiteralPath $linkPath).Hash -eq (Get-FileHash -LiteralPath $binaryPath).Hash) {
+        return $null
+    }
+    $kind = New-BinLink -Source $binaryPath -BinDirectory $BinDirectory
+    if ($kind -eq 'Copy') {
+        Write-Warning "Copied opencode.exe into ${BinDirectory}: creating a symlink needs Developer Mode or Administrator."
+    }
+    return $kind
+}
 
 try {
-    $manifest = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
+    $manifest = Invoke-RestMethod -Uri $ManifestUrl
 } catch {
-    return @{ status = 'error'; message = "Could not read $manifestUrl : $($_.Exception.Message)" }
+    return New-StepResult Failed "Could not read $ManifestUrl : $($_.Exception.Message)"
 }
-
-$file = $manifest.metadata.files.$asset
+$latest = [string]$manifest.version
+$file = $manifest.metadata.files.PSObject.Properties[$assetName]?.Value
 if (-not $file) {
-    return @{ status = 'error'; message = "Release $($manifest.version) publishes no asset named $asset." }
+    return New-StepResult Failed "OpenCode $latest publishes no asset named $assetName."
 }
 
-$latestVersion = $manifest.version
-Write-Host "Latest OpenCode: $latestVersion ($asset)" -ForegroundColor Cyan
-
-# ── Compare against the installed binary ───────────────────────────────────
-
-# `opencode --version` prints "opencode v2.2.6"; the manifest reports "2.2.6".
-$installedVersion = $null
-if (Test-Path $binaryPath) {
-    $versionOutput = & $binaryPath --version 2>&1 | Select-Object -First 1
-    if ($versionOutput -match '\d+\.\d+\.\d+') {
-        $installedVersion = $Matches[0]
-    }
+$installed = Get-OpenCodeVersion $binaryPath
+if ($installed -eq $latest -and -not $Force) {
+    $linked = Update-OpenCodeLink
+    $note = if ($linked) { " Re-linked into $BinDirectory ($linked)." } else { '' }
+    return New-StepResult Skipped "OpenCode $latest is already installed.$note" -Data @{ Version = $latest }
 }
 
-if ($installedVersion -eq $latestVersion -and -not $Force) {
-    Write-Host "OpenCode $installedVersion already installed at $installDir. Skipping install." -ForegroundColor Green
-} else {
-    if ($installedVersion) {
-        Write-Host "Updating OpenCode: $installedVersion -> $latestVersion" -ForegroundColor Yellow
-    } else {
-        Write-Host "Installing OpenCode $latestVersion..." -ForegroundColor Yellow
-    }
-
-    $downloadDir = Join-Path $env:TEMP "install-opencode-$(Get-Date -Format yyyyMMdd-HHmmss)"
-    New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
-
-    try {
-        $zip = Join-Path $downloadDir $asset
-        Invoke-WebRequest -Uri $file.url -OutFile $zip -UseBasicParsing
-
-        $actualHash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash.ToLower()
-        if ($actualHash -ne $file.sha256.ToLower()) {
-            return @{
-                status  = 'error'
-                message = "Checksum mismatch for $asset : expected $($file.sha256), got $actualHash."
-            }
-        }
-        Write-Host "Checksum verified." -ForegroundColor Green
-
-        # The zip holds a single opencode.exe at its root. Extracted to a staging
-        # folder first so a failed download cannot leave the install half-replaced.
-        $extractDir = Join-Path $downloadDir 'extracted'
-        Expand-Archive -Path $zip -DestinationPath $extractDir -Force
-
-        $extracted = Join-Path $extractDir 'opencode.exe'
-        if (-not (Test-Path $extracted)) {
-            return @{ status = 'error'; message = "opencode.exe not found in $asset after extraction." }
-        }
-
-        if (Test-Path $installDir) {
-            Remove-Item $installDir -Recurse -Force
-        }
-        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-        Move-Item -Path $extracted -Destination $binaryPath -Force
-    } catch {
-        return @{ status = 'error'; message = "Download or extraction failed: $($_.Exception.Message)" }
-    } finally {
-        Remove-Item $downloadDir -Recurse -Force -ErrorAction Ignore
-    }
-}
-
-# ── Link into ~/.local/bin ─────────────────────────────────────────────────
-
-if (-not (Test-Path $localBin)) {
-    New-Item -ItemType Directory -Path $localBin -Force | Out-Null
-}
-
-$linkPath = Join-Path $localBin 'opencode.exe'
-if (Test-Path $linkPath) {
-    Remove-Item $linkPath -Force
-}
+Write-Action ($installed ? "Upgrading OpenCode $installed -> $latest..." : "Installing OpenCode $latest...")
+$workDir = New-WorkDirectory -Prefix 'dotconfigs-opencode'
 try {
-    New-Item -Path $linkPath -ItemType SymbolicLink -Target $binaryPath -Force | Out-Null
+    $zip = Invoke-Download -Uri $file.url -OutFile (Join-Path $workDir $assetName) -Sha256 $file.sha256
+    $staging = Join-Path $workDir 'staging'
+    Expand-ArchiveChecked -ArchivePath $zip -DestinationPath $staging
+    if (-not (Test-Path -LiteralPath (Join-Path $staging 'opencode.exe'))) {
+        return New-StepResult Failed "opencode.exe is not at the root of $assetName."
+    }
+    Install-DirectoryAtomic -Source $staging -Destination $InstallDirectory
 } catch {
-    # Symlinks need elevation or Developer Mode; a copy keeps the CLI on PATH.
-    Write-Host "Symlink failed, falling back to copy." -ForegroundColor Gray
-    Copy-Item -Path $binaryPath -Destination $linkPath -Force
+    return New-StepResult Failed "OpenCode $latest was not installed: $($_.Exception.Message)"
+} finally {
+    Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue # safe: private temp dir from New-WorkDirectory
 }
 
-$opencodeVersion = & $binaryPath --version 2>&1 | Select-Object -First 1
-return @{ status = 'success'; message = $opencodeVersion }
+Update-OpenCodeLink | Out-Null
+$now = Get-OpenCodeVersion $binaryPath
+if ($now -ne $latest) {
+    return New-StepResult Failed "Installed OpenCode reports '$now', expected $latest."
+}
+return New-StepResult Success "OpenCode $latest installed$($installed ? " (was $installed)" : '')." -Data @{ Version = $latest; Previous = $installed }

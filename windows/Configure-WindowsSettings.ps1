@@ -1,119 +1,81 @@
-# Configure Windows settings equivalent to DSC configuration
-try {
-    Write-Host "Configuring Windows settings..."
-    $changesApplied = @()
-    $errors = @()
+#Requires -Version 7
+<#
+.SYNOPSIS
+Applies the per-user Windows settings in the table below.
 
-    # Configure Windows Explorer settings
-    Write-Host "Configuring Windows Explorer settings..."
-    
-    try {
-        # Enable file extensions
-        $explorerKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-        Set-ItemProperty -Path $explorerKey -Name "HideFileExt" -Value 0 -Force
-        $changesApplied += "File extensions enabled"
-        
-        # Show hidden files
-        Set-ItemProperty -Path $explorerKey -Name "Hidden" -Value 1 -Force
-        $changesApplied += "Hidden files enabled"
-        
-        Write-Host "Windows Explorer settings configured successfully."
-    } catch {
-        $errors += "Failed to configure Windows Explorer: $($_.Exception.Message)"
-    }
+.DESCRIPTION
+Every setting lives under HKCU, so this runs as the current user. Each value is
+written only when it differs, then read back, so the result reports what really
+changed. Explorer picks most of these up when its windows refresh; some need
+signing out or restarting Explorer, which this script does not do on its own.
 
-    # Configure Virtual Desktop settings
-    Write-Host "Configuring Virtual Desktop settings..."
-    
-    try {
-        $explorerAdvancedKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-        
-        # Show all open windows from all desktops in taskbar
-        Set-ItemProperty -Path $explorerAdvancedKey -Name "VirtualDesktopTaskbarFilter" -Value 0 -Type DWord -Force
-        $changesApplied += "Taskbar shows windows from all desktops"
-        
-        # Show all open windows from all desktops when pressing Alt+Tab
-        Set-ItemProperty -Path $explorerAdvancedKey -Name "VirtualDesktopAltTabFilter" -Value 0 -Type DWord -Force
-        $changesApplied += "Alt+Tab shows windows from all desktops"
-        
-        Write-Host "Virtual Desktop settings configured successfully."
-    } catch {
-        $errors += "Failed to configure Virtual Desktop settings: $($_.Exception.Message)"
-    }
+.PARAMETER AdvancedKey
+Explorer's Advanced settings key. A parameter so tests can use a scratch key.
 
-    # Configure browser Alt+Tab behavior (note: may not work due to Windows implementation)
-    Write-Host "Configuring browser Alt+Tab behavior..."
-    
+.OUTPUTS
+Dotconfigs.StepResult: Skipped when everything was already set, Success when
+values changed, Partial or Failed when some could not be written.
+#>
+[CmdletBinding(SupportsShouldProcess)]
+param(
+    [string]$AdvancedKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
+
+$advanced = $AdvancedKey
+$settings = @(
+    @{ Path = $advanced; Name = 'HideFileExt'; Value = 0; Description = 'Show file extensions' }
+    @{ Path = $advanced; Name = 'Hidden'; Value = 1; Description = 'Show hidden files' }
+    @{ Path = $advanced; Name = 'VirtualDesktopTaskbarFilter'; Value = 0; Description = 'Taskbar shows windows from all desktops' }
+    @{ Path = $advanced; Name = 'VirtualDesktopAltTabFilter'; Value = 0; Description = 'Alt+Tab shows windows from all desktops' }
+    # Settings > System > Multitasking > "Show tabs from apps when snapping or
+    # pressing Alt+Tab": 1 = 5 recent tabs, 2 = 3 recent tabs, 3 = don't show
+    # tabs. Microsoft documents only the equivalent policy, BrowserAltTabBlowout
+    # (Policy CSP - Multitasking, 4 = open windows only), which lives under
+    # HKCU\Software\Policies and needs Administrator; this per-user value is
+    # what the Settings app writes (mapping per WinAero / ElevenForum).
+    @{ Path = $advanced; Name = 'MultiTaskingAltTabFilter'; Value = 3; Description = 'Alt+Tab shows windows, not browser tabs' }
+)
+
+$changed = [Collections.Generic.List[string]]::new()
+$failed = [Collections.Generic.List[string]]::new()
+
+foreach ($setting in $settings) {
     try {
-        $explorerPolicyKey = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
-        
-        # Create the key if it doesn't exist
-        if (-not (Test-Path $explorerPolicyKey)) {
-            New-Item -Path $explorerPolicyKey -Force | Out-Null
+        $current = (Get-Item -Path $setting.Path -ErrorAction SilentlyContinue)?.GetValue($setting.Name)
+        if ($null -ne $current -and $current -eq $setting.Value) { continue }
+
+        if (-not $PSCmdlet.ShouldProcess("$($setting.Path)\$($setting.Name)", "Set to $($setting.Value)")) { continue }
+        if (-not (Test-Path -Path $setting.Path)) { New-Item -Path $setting.Path -Force | Out-Null }
+        Set-ItemProperty -Path $setting.Path -Name $setting.Name -Value $setting.Value -Type DWord
+
+        $readBack = (Get-Item -Path $setting.Path).GetValue($setting.Name)
+        if ($readBack -ne $setting.Value) {
+            throw "read back $readBack after writing $($setting.Value)"
         }
-        
-        # Show open windows only in Alt+Tab (may not work as intended)
-        Set-ItemProperty -Path $explorerPolicyKey -Name "BrowserAltTabBlowout" -Value 4 -Type DWord -Force
-        $changesApplied += "Browser Alt+Tab behavior configured (may require restart)"
-        
-        Write-Host "Browser Alt+Tab behavior configured (note: may not work due to Windows implementation)."
+        Write-Info "Set: $($setting.Description)"
+        $changed.Add($setting.Description)
     } catch {
-        $errors += "Failed to configure browser Alt+Tab behavior: $($_.Exception.Message)"
+        Write-Warning "$($setting.Description): $($_.Exception.Message)"
+        $failed.Add("$($setting.Description) ($($_.Exception.Message))")
     }
-
-    # Notify Explorer of registry changes without restarting it
-    Write-Host "Broadcasting settings change to Explorer..."
-    try {
-        Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32 {
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    public static extern IntPtr SendMessageTimeout(
-        IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
-        uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
 }
-"@
-        $HWND_BROADCAST = [IntPtr]0xffff
-        $WM_SETTINGCHANGE = 0x001A
-        $SMTO_ABORTIFHUNG = 0x0002
-        $result = [UIntPtr]::Zero
-        [Win32]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [UIntPtr]::Zero, "Environment", $SMTO_ABORTIFHUNG, 5000, [ref]$result) | Out-Null
-        $changesApplied += "Settings change broadcast sent"
-    } catch {
-        $errors += "Failed to broadcast settings change: $($_.Exception.Message)"
-    }
 
-    # Return results
-    $result = @{
-        status = if ($errors.Count -eq 0) { "success" } else { "partial" }
-        message = "Windows configuration completed"
-        changes_applied = $changesApplied
-        errors = $errors
-        restart_recommended = $true
-    }
+if ($changed.Count -gt 0) {
+    # Lets Explorer and other shell windows re-read their settings.
+    [void](Send-BroadcastMessage -Message 0x1A -Parameter 'ShellState')
+}
 
-    Write-Host "Windows configuration completed successfully!"
-    if ($changesApplied.Count -gt 0) {
-        Write-Host "Changes applied:"
-        $changesApplied | ForEach-Object { Write-Host "  - $_" }
-    }
-    
-    if ($errors.Count -gt 0) {
-        Write-Warning "Some errors occurred:"
-        $errors | ForEach-Object { Write-Warning "  - $_" }
-    }
-    
-    Write-Host "Note: Some changes may require a restart to take full effect."
-    
-    return $result
-
-} catch {
-    Write-Error "Error configuring Windows settings: $($_.Exception.Message)"
-    return @{
-        status = "error"
-        message = "Error configuring Windows settings: $($_.Exception.Message)"
-        changes_applied = @()
-        errors = @($_.Exception.Message)
-    }
-} 
+$data = @{ Changed = $changed.ToArray(); Failed = $failed.ToArray() }
+if ($failed.Count -gt 0) {
+    $status = if ($changed.Count -gt 0) { 'Partial' } else { 'Failed' }
+    return New-StepResult $status "Could not apply: $($failed -join '; ')." -Data $data
+}
+if ($changed.Count -eq 0) {
+    return New-StepResult Skipped "All $($settings.Count) settings were already applied." -Data $data
+}
+return New-StepResult Success "Applied $($changed.Count) setting(s); some take effect after Explorer restarts or you sign out." -Data $data

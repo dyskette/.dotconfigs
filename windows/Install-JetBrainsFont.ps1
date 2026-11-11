@@ -1,135 +1,135 @@
-function InstallJetBrainsMonoFonts {
-    param (
-        [string]$fontUrl = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz",
-        [string]$localAppData = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
-    )
+#Requires -Version 7
+<#
+.SYNOPSIS
+Installs or upgrades JetBrains Mono NL Nerd Font for the current user.
 
-    $fontFilesPattern = "JetBrainsMonoNLNerdFont-*.ttf"
-    $tempDir = [System.IO.Path]::GetTempPath()
-    $fontTarPath = "$tempDir\JetBrainsMono.tar.xz"
-    $fontFolder = "$tempDir\JetBrainsMono"
-    $regPath = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+.DESCRIPTION
+Downloads the font archive from the latest nerd-fonts release, verifies it
+against the release's SHA-256.txt, and installs the matching .ttf files as
+per-user fonts (no Administrator needed).
 
-    # Check if fonts are already installed
-    $existingFonts = Get-ChildItem -Path $localAppData -Filter $fontFilesPattern -ErrorAction SilentlyContinue
-    if ($existingFonts.Count -gt 0) {
-        Write-Host "JetBrains Mono NL Nerd Fonts are already installed. Skipping installation."
-        return @{
-            status = "already_installed"
-            message = "Fonts already present"
-            installed_count = $existingFonts.Count
+Installed files carry the release tag in their name, e.g.
+JetBrainsMonoNLNerdFont-Regular_v3.5.1.ttf. An upgrade therefore never
+overwrites a file a running program (the terminal, typically) has loaded: the
+new files are added, the registry entries are pointed at them, and the old
+files are deleted when nothing holds them. Old files still in use are retried
+on the next run.
+
+.PARAMETER Repository
+GitHub repository publishing the font.
+
+.PARAMETER Archive
+Release asset holding the fonts.
+
+.PARAMETER FontPrefix
+File name prefix of the font files to install, e.g. 'JetBrainsMonoNLNerdFont-'.
+
+.PARAMETER FontDirectory
+Per-user font folder.
+
+.PARAMETER RegistryPath
+Per-user font registration key. A parameter so tests can use a scratch key.
+
+.OUTPUTS
+Dotconfigs.StepResult
+#>
+[CmdletBinding()]
+param(
+    [string]$Repository = 'ryanoasis/nerd-fonts',
+    [string]$Archive = 'JetBrainsMono.zip',
+    [string]$FontPrefix = 'JetBrainsMonoNLNerdFont-',
+    [string]$FontDirectory = (Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'),
+    [string]$RegistryPath = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1')
+
+$registryPath = $RegistryPath
+$recordName = "font:$FontPrefix"
+
+<#
+.SYNOPSIS
+Registry values (name -> file path) for the fonts with this prefix.
+#>
+function Get-RegisteredFont {
+    $key = Get-Item -Path $registryPath -ErrorAction SilentlyContinue
+    $fonts = @{}
+    if ($key) {
+        foreach ($name in $key.GetValueNames() | Where-Object { $_ -like "$FontPrefix* (TrueType)" }) {
+            $fonts[$name] = [string]$key.GetValue($name)
         }
     }
-
-    Write-Host "Installing JetBrains Mono NL Nerd Fonts..."
-
-    # Download the fonts
-    if (Test-Path -Path $fontTarPath) {
-        Remove-Item -Path $fontTarPath -Force
-        Write-Host "Existing download $fontTarPath removed."
-    }
-
-    try {
-        Invoke-WebRequest -Uri $fontUrl -OutFile $fontTarPath
-    } catch {
-        Write-Error "Failed to download fonts: $($_.Exception.Message)"
-        return @{
-            status = "error"
-            message = "Download failed: $($_.Exception.Message)"
-        }
-    }
-
-    if (Test-Path -Path $fontFolder) {
-        Remove-Item -Path $fontFolder -Recurse -Force
-        Write-Host "Existing directory $fontFolder removed."
-    }
-
-    New-Item -Path $fontFolder -ItemType Directory -Force
-
-    try {
-        tar -xf $fontTarPath -C $fontFolder
-    } catch {
-        Write-Error "Failed to extract fonts: $($_.Exception.Message)"
-        return @{
-            status = "error"
-            message = "Extraction failed: $($_.Exception.Message)"
-        }
-    }
-
-    if (-not (Test-Path -Path $localAppData)) {
-        New-Item -Path $localAppData -ItemType Directory -Force
-    }
-
-    # Copy the fonts
-    Remove-Item -Path "$localAppData\$fontFilesPattern" -Force -ErrorAction SilentlyContinue
-    
-    try {
-        Copy-Item -Path "$fontFolder\$fontFilesPattern" -Destination $localAppData -Force
-    } catch {
-        Write-Error "Failed to copy fonts: $($_.Exception.Message)"
-        return @{
-            status = "error"
-            message = "Font copy failed: $($_.Exception.Message)"
-        }
-    }
-
-    # Add to registry
-    if (-not (Test-Path $regPath)) {
-        New-Item -Path $regPath -Force
-    }
-
-    $fontFiles = Get-ChildItem -Path $localAppData -Filter "$fontFilesPattern"
-    $installedCount = 0
-
-    foreach ($fontFile in $fontFiles) {
-        try {
-            $fontRegName = [System.IO.Path]::GetFileNameWithoutExtension($fontFile.Name) + " (TrueType)"
-            Set-ItemProperty -Path $regPath -Name $fontRegName -Value $fontFile.FullName -Type String
-            $installedCount++
-            Write-Host "Registered font: $fontRegName"
-        } catch {
-            Write-Warning "Failed to register font $($fontFile.Name): $($_.Exception.Message)"
-        }
-    }
-
-    # Broadcast the WM_FONTCHANGE message to other applications
-    $fontChangeCode = @"
-    using System;
-    using System.Runtime.InteropServices;
-    public class User32 {
-        [return: MarshalAs(UnmanagedType.Bool)]
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool PostMessage(IntPtr hWnd, int Msg, int wParam = 0, int lParam = 0);
-    }
-"@
-    Add-Type -TypeDefinition $fontChangeCode
-    $broadcastHandle = [IntPtr]::Zero
-    $wmFontChange = 0x1D
-    $broadcastResult = [User32]::PostMessage($broadcastHandle, $wmFontChange)
-
-    if ($broadcastResult) {
-        Write-Host "Broadcasted font change to applications."
-    } else {
-        Write-Host "Unable to broadcast font change to applications. Restart might be necessary."
-    }
-
-    # Cleanup
-    if (Test-Path -Path $fontTarPath) {
-        Remove-Item -Path $fontTarPath -Force
-    }
-    if (Test-Path -Path $fontFolder) {
-        Remove-Item -Path $fontFolder -Recurse -Force
-    }
-
-    return @{
-        status = "installed"
-        message = "Successfully installed JetBrains Mono NL Nerd Fonts"
-        installed_count = $installedCount
-        broadcast_success = $broadcastResult
-    }
+    return $fonts
 }
 
-# Execute the function and return result
-$result = InstallJetBrainsMonoFonts
-Write-Host "Installation result: $($result.message)"
-return $result 
+$release = Get-GitHubRelease -Repository $Repository
+$tag = $release.tag_name
+$asset = @($release.assets | Where-Object name -eq $Archive)
+if ($asset.Count -ne 1) {
+    return New-StepResult Failed "Release $tag of $Repository has no asset named $Archive."
+}
+
+$record = Get-InstalledVersion -Name $recordName
+$registered = Get-RegisteredFont
+$allPresent = $registered.Count -gt 0 -and
+    @($registered.Values | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0
+if ($record -and $record.version -eq $tag -and $allPresent) {
+    return New-StepResult Skipped "$FontPrefix* $tag is already installed ($($registered.Count) files)." -Data @{ Version = $tag }
+}
+
+$workDir = New-WorkDirectory -Prefix 'dotconfigs-font'
+try {
+    $hash = Get-ReleaseAssetHash -Release $release -AssetName $Archive -WorkDirectory $workDir
+    if (-not $hash) { Write-Warning "$Repository $tag publishes no checksum for $Archive; installing it UNVERIFIED." }
+
+    Write-Action "Downloading $Archive ($tag)..."
+    $archivePath = Invoke-Download -Uri $asset[0].browser_download_url -OutFile (Join-Path $workDir $Archive) -Sha256 $hash
+    $extracted = Join-Path $workDir 'extracted'
+    Expand-ArchiveChecked -ArchivePath $archivePath -DestinationPath $extracted
+
+    $sources = @(Get-ChildItem -LiteralPath $extracted -Recurse -File -Filter "$FontPrefix*.ttf")
+    if ($sources.Count -eq 0) {
+        return New-StepResult Failed "$Archive contains no $FontPrefix*.ttf files."
+    }
+
+    New-Item -ItemType Directory -Path $FontDirectory -Force | Out-Null
+    if (-not (Test-Path -Path $registryPath)) { New-Item -Path $registryPath -Force | Out-Null }
+
+    $wanted = @{}
+    foreach ($source in $sources) {
+        $target = Join-Path $FontDirectory ('{0}_{1}{2}' -f $source.BaseName, $tag, $source.Extension)
+        Copy-Item -LiteralPath $source.FullName -Destination $target -Force
+        $valueName = "$($source.BaseName) (TrueType)"
+        Set-ItemProperty -Path $registryPath -Name $valueName -Value $target -Type String
+        $wanted[$valueName] = $target
+    }
+} finally {
+    Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue # safe: private temp dir from New-WorkDirectory
+}
+
+# Styles dropped by the new release lose their registry entry.
+foreach ($stale in @((Get-RegisteredFont).Keys | Where-Object { -not $wanted.ContainsKey($_) })) {
+    Remove-ItemProperty -Path $registryPath -Name $stale
+}
+
+# Files no longer referenced: earlier versions, and the unversioned names the
+# original script used. A file a running program holds is left for next time.
+$inUse = 0
+$keep = @($wanted.Values)
+foreach ($old in Get-ChildItem -LiteralPath $FontDirectory -File -Filter "$FontPrefix*.ttf" |
+        Where-Object { $_.FullName -notin $keep }) {
+    try { Remove-Item -LiteralPath $old.FullName -Force } catch { $inUse++ }
+}
+
+$broadcast = Send-BroadcastMessage -Message 0x1D   # WM_FONTCHANGE
+Set-InstalledVersion -Name $recordName -Version $tag -Asset $Archive `
+    -Checksum ($hash ? "sha256:$hash" : '') -Verified ([bool]$hash)
+
+$message = "Installed $($wanted.Count) $FontPrefix* files ($tag)."
+if ($inUse -gt 0) { $message += " $inUse old file(s) are in use and will be removed on a later run." }
+if (-not $broadcast) { $message += ' Running apps may need a restart to see the new fonts.' }
+$from = if ($record) { $record.version } else { $null }
+return New-StepResult Success $message -Data @{ Version = $tag; Previous = $from; Verified = [bool]$hash; OldFilesInUse = $inUse }

@@ -13,15 +13,11 @@
         'tmux/set-theme.ps1'
         'tmux/toggle-theme.ps1'
         'windows/Configure-Dotfiles.ps1'
-        'windows/Configure-WindowsSettings.ps1'
         'windows/Install-Extensions.ps1'
         'windows/Install-GitHubReleases.ps1'
-        'windows/Install-JetBrainsFont.ps1'
-        'windows/Install-OpenCode.ps1'
         'windows/Install-Psql.ps1'
         'windows/Install-SqlPlus.ps1'
         'windows/Install-WSL.ps1'
-        'windows/Setup-NodeLTS.ps1'
         'windows/Setup-PackageManagers.ps1'
     )
 }
