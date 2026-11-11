@@ -1,3 +1,14 @@
+#Requires -Version 7
+# Interactive profile: no Set-StrictMode or ErrorActionPreference here, both
+# would apply to every command typed in the shell.
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '',
+    Justification = 'Prompt and fnm state must outlive the profile script and be visible to prompt and event handlers.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '',
+    Justification = "fnm's documented PowerShell integration is 'fnm env | Invoke-Expression'.")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'wordToComplete',
+    Justification = 'Argument completers receive their arguments positionally; the dotnet one does not need the word.')]
+param()
+
 Set-PSReadLineKeyHandler -Key 'Ctrl+p' -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key 'Ctrl+n' -Function HistorySearchForward
 Set-PSReadLineKeyHandler -Key "Ctrl+y" -Function AcceptSuggestion
@@ -23,21 +34,21 @@ Get-Command nvim, yazi, fnm, dotnet -CommandType Application -ErrorAction Silent
         $user -eq 'root'
     }
     $global:PromptChar = if ($isAdmin) {
-        '#' 
+        '#'
     } else {
-        '❯' 
+        '❯'
     }
     $head = if ($isAdmin) {
-        "`e[1;31m$user`e[0m" 
+        "`e[1;31m$user`e[0m"
     } else {
-        "`e[32m$user`e[0m" 
+        "`e[32m$user`e[0m"
     }
 
     # Domain accounts (AD, Entra ID) are domain\user, as whoami prints
     # them, and that is the name runas, ACLs and shares want. A local
     # account's domain is the machine itself, so it is left out there.
     $domain = if ($IsWindows) {
-        [Environment]::UserDomainName 
+        [Environment]::UserDomainName
     }
     if ($domain -and $domain -ne [Environment]::MachineName) {
         $head = "`e[2m$($domain.ToLower())\`e[22m$head"
@@ -92,18 +103,18 @@ function prompt {
     # so a tab or psmux window reads as where the shell is. Without it the
     # title is pwsh.exe's full path.
     $folder = if ($loc.ProviderPath -eq $HOME) {
-        "~" 
+        "~"
     } else {
-        Split-Path -Leaf $loc.ProviderPath 
+        Split-Path -Leaf $loc.ProviderPath
     }
     $host.UI.Write("$osc`e]2;$folder`a")
 
     # ~ for home, and only the last three folders, as bash's
     # PROMPT_DIRTRIM=3: ~\...\a\b\c
     $path = if ($loc.Provider.Name -eq "FileSystem") {
-        $loc.ProviderPath 
+        $loc.ProviderPath
     } else {
-        $loc.Path 
+        $loc.Path
     }
     $sep = [IO.Path]::DirectorySeparatorChar
     if ($path.StartsWith($HOME, [StringComparison]::OrdinalIgnoreCase) -and
@@ -116,9 +127,9 @@ function prompt {
     }
 
     $style = if ($ok) {
-        "`e[32m" 
+        "`e[32m"
     } else {
-        "`e[31m" 
+        "`e[31m"
     }
     "$global:PromptHead`e[36m$path`e[0m $style$global:PromptChar`e[0m "
 }
@@ -170,7 +181,7 @@ if ($tools.nvim) {
 }
 
 if ($tools.yazi) {
-    $env:YAZI_FILE_ONE = "C:\Program Files\Git\usr\bin\file.exe"
+    $env:YAZI_FILE_ONE = Join-Path $env:ProgramFiles 'Git\usr\bin\file.exe'
 }
 
 if ($tools.fnm) {
@@ -312,12 +323,15 @@ function sg {
 
 function y {
     $tmp = [System.IO.Path]::GetTempFileName()
-    yazi $args --cwd-file="$tmp"
-    $cwd = Get-Content -Path $tmp -Encoding UTF8
-    if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path) {
-        Set-Location -LiteralPath ([System.IO.Path]::GetFullPath($cwd))
+    try {
+        yazi $args --cwd-file="$tmp"
+        $cwd = Get-Content -Path $tmp -Encoding UTF8
+        if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path) {
+            Set-Location -LiteralPath ([System.IO.Path]::GetFullPath($cwd))
+        }
+    } finally {
+        Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
     }
-    Remove-Item -Path $tmp
 }
 
 <#
@@ -435,39 +449,69 @@ function Invoke-Psmux {
 }
 
 function psmux {
-    Invoke-Psmux @args 
+    Invoke-Psmux @args
 }
 function tmux {
-    Invoke-Psmux @args 
+    Invoke-Psmux @args
+}
+
+# The user-mode sshd started from ~/.ssh/sshd/sshd_config. Only processes
+# started with that config are touched, never a system OpenSSH service.
+$global:SshServerConfig = "$env:USERPROFILE\.ssh\sshd\sshd_config"
+
+<#
+.SYNOPSIS
+    sshd processes started from $SshServerConfig.
+#>
+function Get-SshServerProcess {
+    Get-CimInstance Win32_Process -Filter "Name = 'sshd.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine.Contains($global:SshServerConfig, [StringComparison]::OrdinalIgnoreCase) }
 }
 
 function Start-SshServer {
-    $cfg = "$env:USERPROFILE\.ssh\sshd\sshd_config"
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param()
+
+    # The enum, not the 'Administrators' name: group names are localized
+    # ('Administradores'), and the string check never matches there.
+    $isAdmin = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
     if ($isAdmin) {
-        throw 'Elevated window: SSH sessions would run as administrator. Use a normal window.' 
+        throw 'Elevated window: SSH sessions would run as administrator. Use a normal window.'
     }
     if (Get-NetTCPConnection -LocalPort 22 -State Listen -ErrorAction SilentlyContinue) {
         Write-Warning 'Port 22 is already in use.'; return
     }
-    $p = Start-Process "$env:windir\System32\OpenSSH\sshd.exe" -ArgumentList '-f', "`"$cfg`"" -WindowStyle Hidden -PassThru
+    if (-not $PSCmdlet.ShouldProcess($global:SshServerConfig, 'Start sshd')) { return }
+    $p = Start-Process "$env:windir\System32\OpenSSH\sshd.exe" -ArgumentList '-f', "`"$global:SshServerConfig`"" -WindowStyle Hidden -PassThru
     Start-Sleep -Milliseconds 500
     if ($p.HasExited) {
-        throw "sshd exited (code $($p.ExitCode)). Debug with: sshd -d -f `"$cfg`"" 
+        throw "sshd exited (code $($p.ExitCode)). Debug with: sshd -d -f `"$global:SshServerConfig`""
     }
     "sshd started (PID $($p.Id))"
 }
 
 function Stop-SshServer {
-    Get-Process sshd -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue
-    'sshd stopped'
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([string])]
+    param()
+
+    $processes = @(Get-SshServerProcess)
+    if ($processes.Count -eq 0) { return 'sshd not running' }
+    foreach ($process in $processes) {
+        if ($PSCmdlet.ShouldProcess("sshd $($process.ProcessId)", 'Stop')) {
+            Stop-Process -Id $process.ProcessId
+        }
+    }
+    "sshd stopped ($($processes.Count) process(es))"
 }
 
 function Get-SshServer {
-    $p = Get-Process sshd -ErrorAction SilentlyContinue
-    if ($p) {
-        $p | Select-Object Id, StartTime 
+    $processes = @(Get-SshServerProcess)
+    if ($processes.Count -gt 0) {
+        $processes | Select-Object @{ n = 'Id'; e = { $_.ProcessId } }, @{ n = 'StartTime'; e = { $_.CreationDate } }
     } else {
-        'sshd not running' 
+        'sshd not running'
     }
 }
