@@ -6,6 +6,9 @@ nul
 powershell/Modules/
 powershell/Scripts/
 
+# Test results and coverage written by windows/tests/Invoke-Checks.ps1 -CI.
+windows/tests/out/
+
 # Holds the OpenCode service password, generated per machine.
 opencode/service.json
 

@@ -1,0 +1,58 @@
+# Lint (PSScriptAnalyzer) and test (Pester) the Windows PowerShell scripts.
+# Runs the same entry point as local development: windows/tests/Invoke-Checks.ps1.
+name: powershell
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**.ps1'
+      - '**.psm1'
+      - '**.psd1'
+      - '**.jsonc'
+      - '.github/workflows/powershell.yml'
+  pull_request:
+    paths:
+      - '**.ps1'
+      - '**.psm1'
+      - '**.psd1'
+      - '**.jsonc'
+      - '.github/workflows/powershell.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versions are pinned so a new analyzer rule cannot break CI unannounced.
+      - name: Install Pester and PSScriptAnalyzer
+        run: |
+          Install-PSResource -Name Pester -Version 5.9.1 -Scope CurrentUser -TrustRepository -Quiet
+          Install-PSResource -Name PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository -Quiet
+
+      - name: Lint
+        run: ./windows/tests/Invoke-Checks.ps1 -Lint -CI
+
+      - name: Test
+        run: ./windows/tests/Invoke-Checks.ps1 -Test -CI
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pester-results
+          path: windows/tests/out/
+          if-no-files-found: ignore
