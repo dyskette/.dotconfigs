@@ -2,19 +2,8 @@ local utils = require("config.utils")
 
 local gitsigns_opts = {}
 
-local neogit_opts = {
-  integrations = {
-    diffview = true, -- enables diff popup
-    snacks = true,   -- use the snacks picker for menu selection
-  },
-  sections = {
-    recent = {
-      folded = false,
-      hidden = false,
-    },
-  },
-}
-
+-- lazygit (<leader>gg, config/terminals.lua) is the git UI; diffview is for
+-- reading changes in nvim: the working tree diff and a file's history.
 return {
   {
     "lewis6991/gitsigns.nvim",
@@ -24,17 +13,8 @@ return {
     opts = gitsigns_opts,
   },
   {
-    "NeogitOrg/neogit",
-    -- <leader>gg opens lazygit in a toggleterm float (config/terminals.lua);
-    -- Neogit stays available as :Neogit.
-    cmd = "Neogit",
-    opts = neogit_opts,
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      {
-        "sindrets/diffview.nvim",
-        keys = require("config.keymaps").git_diffview,
-      },
-    },
+    "sindrets/diffview.nvim",
+    cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory", "DiffviewToggleFiles", "DiffviewFocusFiles" },
+    keys = require("config.keymaps").git_diffview,
   },
 }

@@ -160,22 +160,31 @@ return {
     },
   },
 
-  git_diffview = function()
-    vim.keymap.set("n", "<leader>gh", function()
-      if next(require("diffview.lib").views) == nil then
-        vim.cmd.DiffviewFileHistory('"' .. vim.api.nvim_buf_get_name(0) .. '"')
-      else
-        vim.cmd.DiffviewClose()
-      end
-    end, { desc = "Git file history (current buffer)" })
-    vim.keymap.set("n", "<leader>gd", function()
-      if next(require("diffview.lib").views) == nil then
-        vim.cmd.DiffviewOpen()
-      else
-        vim.cmd.DiffviewClose()
-      end
-    end, { desc = "Git diff open" })
-  end,
+  -- Each key closes the diffview that is open, if any, instead of opening another.
+  git_diffview = {
+    {
+      "<leader>gh",
+      function()
+        if next(require("diffview.lib").views) == nil then
+          vim.cmd.DiffviewFileHistory('"' .. vim.api.nvim_buf_get_name(0) .. '"')
+        else
+          vim.cmd.DiffviewClose()
+        end
+      end,
+      desc = "Git file history (current buffer)",
+    },
+    {
+      "<leader>gd",
+      function()
+        if next(require("diffview.lib").views) == nil then
+          vim.cmd.DiffviewOpen()
+        else
+          vim.cmd.DiffviewClose()
+        end
+      end,
+      desc = "Git diff open",
+    },
+  },
 
   gitsigns = {
     {
