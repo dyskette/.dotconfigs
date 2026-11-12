@@ -16,7 +16,7 @@ local blink_opts = {
     preset = "default",
 
     ["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
-    ["<C-|"] = { "show", "show_documentation", "hide_documentation" },
+    ["<C-|>"] = { "show", "show_documentation", "hide_documentation" },
     ["<C-e>"] = { "hide" },
     ["<C-y>"] = { "select_and_accept" },
 
@@ -39,17 +39,6 @@ local blink_opts = {
   },
   sources = {
     default = { "lsp", "path", "snippets", "buffer" },
-    per_filetype = {
-      sql = { "dadbod", "buffer" },
-      mysql = { "dadbod", "buffer" },
-      plsql = { "dadbod", "buffer" },
-    },
-    providers = {
-      dadbod = {
-        name = "Dadbod",
-        module = "vim_dadbod_completion.blink",
-      },
-    },
   },
   cmdline = {
     enabled = true,
