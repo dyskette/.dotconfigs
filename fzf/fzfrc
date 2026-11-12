@@ -1,0 +1,49 @@
+# Default options for every fzf, wherever it runs: the shells' key bindings and
+# functions, yazi's `Z`, the tmux/psmux switchers. Loaded through
+# FZF_DEFAULT_OPTS_FILE (set by bash/bashrc.d/fzf.sh and the PowerShell
+# profile); FZF_DEFAULT_OPTS and command-line flags are applied on top.
+#
+# Only options that suit every caller live here. What a picker shows and does
+# (preview command, --multi, actions) belongs to that picker.
+
+# Inline below the prompt, shrinking to fit short lists; reverse so the query
+# sits where the command line was.
+--height=~70%
+--min-height=20
+--layout=reverse
+--border=none
+--info=inline-right
+--cycle
+--highlight-line
+
+--prompt='❯ '
+--pointer='▌'
+# fzf 0.75 draws the gutter with '▌' in the gutter colour; with no current-line
+# background that is a bar beside every line. A blank one leaves the pointer
+# as the only mark.
+--gutter=' '
+--marker='┃'
+--separator='─'
+--scrollbar='│'
+
+# Preview on the right, or below once it would get under 50 columns there
+# (the threshold is the preview's width, not the terminal's): a split pane,
+# a phone over SSH.
+--preview-window='right,55%,border-left,<50(down,55%,border-top)'
+
+# Colours are ANSI names, so they follow the terminal's palette and switch
+# with its light/dark theme. No background for the current line: Everforest's
+# dark palette has bg3 at black and its light one at white, so no single ANSI
+# colour reads well in both. The pointer and bold text mark it instead.
+--color='16,fg+:-1:bold,bg+:-1,gutter:-1,hl:green:bold,hl+:green:bold'
+--color='pointer:green,marker:yellow,prompt:blue,query:-1:regular,info:bright-black'
+--color='spinner:cyan,header:cyan:italic,label:blue:bold'
+--color='border:bright-black,separator:bright-black,scrollbar:bright-black,preview-border:bright-black'
+
+# ctrl-/ preview on/off, alt-p cycles where it sits; alt-f/alt-b page it
+# (shift-up/down still scroll it by line). alt-a (de)selects everything in
+# --multi pickers.
+--bind='ctrl-/:toggle-preview'
+--bind='alt-p:change-preview-window(down,60%,border-top|hidden|)'
+--bind='alt-f:preview-page-down,alt-b:preview-page-up'
+--bind='alt-a:toggle-all'

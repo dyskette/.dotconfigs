@@ -1,0 +1,22 @@
+# fd's global ignore file, linked to ~/.config/fd/ignore (Linux) and
+# %APPDATA%\fd\ignore (Windows). Same syntax as .gitignore.
+#
+# The shells run fd with --hidden, so dotfolders show up; these are the ones
+# nobody wants to pick from, inside or outside a git repository. Folders a
+# project ignores itself are already skipped through its .gitignore.
+.git/
+node_modules/
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.terraform/
+.gradle/
+.idea/
+.vs/
+.cache/
+.npm/
+.nuget/
+.cargo/registry/
+.rustup/

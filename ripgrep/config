@@ -1,0 +1,25 @@
+# ripgrep defaults, loaded through RIPGREP_CONFIG_PATH (set by
+# bash/bashrc.d/fzf.sh and the PowerShell profile). Applies to every rg the
+# shells start: their fzf grep, nvim's :grep and snacks.nvim's grep picker.
+# One flag per line; `rg --no-config` skips this file.
+
+# Lowercase searches ignore case, any uppercase makes it exact.
+--smart-case
+
+# Dotfiles too (.github, .config), but never the repository internals.
+# .gitignore'd files stay hidden; --no-ignore (or -u) brings them back.
+--hidden
+--glob=!.git/
+
+# Minified bundles and lockfiles would otherwise print one line the size of
+# the file; long matches are cut with a note instead.
+--max-columns=200
+--max-columns-preview
+
+# ANSI colours (names, or 0-15 for the rest of the palette: 8 is bright
+# black), so they follow the terminal's light/dark theme.
+--colors=path:fg:magenta
+--colors=line:fg:green
+--colors=column:fg:8
+--colors=match:fg:red
+--colors=match:style:bold

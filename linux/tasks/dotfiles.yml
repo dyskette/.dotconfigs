@@ -49,6 +49,7 @@
     - { src: "bash/bashrc", dest: "{{ ansible_facts['env']['HOME'] }}/.bashrc" }
     - { src: "bash/bashrc.d", dest: "{{ ansible_facts['env']['HOME'] }}/.bashrc.d" }
     - { src: "bat", dest: "{{ config_dir }}/bat" }
+    - { src: "fd", dest: "{{ config_dir }}/fd" }
     - { src: "lazygit/config.yml", dest: "{{ config_dir }}/lazygit/config.yml" }
     - { src: "claude/settings.json", dest: "{{ ansible_facts['env']['HOME'] }}/.claude/settings.json" }
     - { src: "ghostty", dest: "{{ config_dir }}/ghostty" }

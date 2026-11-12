@@ -12,6 +12,9 @@
     { "app": "lazygit", "source": "lazygit\\config.yml", "target": "%LOCALAPPDATA%\\lazygit\\config.yml", "type": "SymbolicLink" },
     { "app": "powershell", "source": "powershell", "target": "%USERPROFILE%\\Documents\\PowerShell", "type": "Junction" },
     { "app": "bat", "source": "bat", "target": "%APPDATA%\\bat", "type": "Junction", "post": ["bat", "cache", "--build"] },
+    // fd reads only this one file from its folder; the shells point fzf and
+    // ripgrep at fzf\fzfrc and ripgrep\config in the repository directly.
+    { "app": "fd", "source": "fd\\ignore", "target": "%APPDATA%\\fd\\ignore", "type": "SymbolicLink" },
     { "app": "bash", "source": "bash\\bashrc", "target": "%USERPROFILE%\\.bashrc", "type": "SymbolicLink" },
     { "app": "bash", "source": "bash\\bashrc.d", "target": "%USERPROFILE%\\.bashrc.d", "type": "Junction" },
     { "app": "claude", "source": "claude\\settings.json", "target": "%USERPROFILE%\\.claude\\settings.json", "type": "SymbolicLink" },

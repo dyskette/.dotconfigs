@@ -3,3 +3,18 @@
 --theme=auto:always
 --theme-dark="everforest-dark-medium"
 --theme-light="everforest-light-medium"
+
+# Everforest marks comments and keywords in italics; the JetBrains Mono Nerd
+# Font has them.
+--italic-text=always
+
+# Line numbers, git change markers and a file header; no grid. The `cat`
+# replacement in the shells and the fzf previews choose their own --style.
+--style=numbers,changes,header-filename,snip
+
+# Files bat would otherwise show as plain text.
+--map-syntax=*.kdl:Rust
+--map-syntax=.ideavimrc:VimL
+--map-syntax=*vsvimrc:VimL
+--map-syntax=*.ps1xml:XML
+--map-syntax="fzfrc:Bourne Again Shell (bash)"
