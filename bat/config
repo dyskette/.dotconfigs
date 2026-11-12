@@ -1,6 +1,13 @@
-# Pick the theme from the terminal background, even when the output is piped
-# (fzf previews, lazygit), instead of falling back to the dark theme there.
---theme=auto:always
+# Pick the theme from the terminal background. Plain `auto`, never
+# `auto:always`: the detection is an OSC 11 query written straight to the
+# terminal, so it only works when bat is the program holding it. Asking anyway
+# while the output is piped (fzf previews, lazygit, MANPAGER) costs a one
+# second timeout, paints the query over whatever is on screen, and still ends
+# up on Monokai, because the reply goes to the program reading the terminal.
+# Those callers get the theme from BAT_THEME instead, which wins over this and
+# which bash sets once at startup (bash/bashrc.d/colors.sh). PowerShell passes
+# --theme on the command line for the same reason (powershell/CliTools.ps1).
+--theme=auto
 --theme-dark="everforest-dark-medium"
 --theme-light="everforest-light-medium"
 

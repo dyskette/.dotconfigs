@@ -15,13 +15,17 @@ export FZF_DEFAULT_COMMAND='fd --type file --hidden --follow --strip-cwd-prefix'
 # Git Bash: fzf.exe cannot start $SHELL (/usr/bin/bash, an MSYS path), so its
 # previews and reloads go through cmd.exe, as in tmux/scripts/mux-lib.sh. The
 # commands below are written to work in both.
-# FZF_PREVIEW_COLUMNS_REF is how a preview command reads its width there.
+# The *_REF variables are how a preview command reads an environment variable
+# in whichever of the two it runs under; they are expanded when the preview
+# runs, so a `theme` switch (colors.sh) shows up without rebuilding anything.
 if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
   export FZF_DEFAULT_OPTS="--with-shell='cmd.exe /d /s /c'"
   FZF_PREVIEW_COLUMNS_REF='%FZF_PREVIEW_COLUMNS%'
+  SYSTEM_COLOR_THEME_REF='%SYSTEM_COLOR_THEME%'
   __fzf_via_cmd=1
 else
   FZF_PREVIEW_COLUMNS_REF='$FZF_PREVIEW_COLUMNS'
+  SYSTEM_COLOR_THEME_REF='$SYSTEM_COLOR_THEME'
   __fzf_via_cmd=0
 fi
 

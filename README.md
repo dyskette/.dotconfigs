@@ -30,6 +30,13 @@ defaults, read the same way by PowerShell (`powershell/CliTools.ps1`), bash
 | `bat/config` | linked |
 
 Colours are ANSI everywhere, so they follow the terminal's light/dark theme.
+The exception is bat and delta, which need a named theme. They work it out by
+asking the terminal for its background colour, which only works where they are
+the program holding it: inside an fzf preview or lazygit another one is, and it
+takes the reply. So each shell asks once at startup and passes the answer on —
+bash through `BAT_THEME` (`bash/bashrc.d/colors.sh`), PowerShell through
+`SYSTEM_COLOR_THEME`, read from the Windows registry at every prompt. In bash,
+`theme [light|dark]` re-detects or forces it in a shell already open.
 
 Same keys and commands in both shells:
 
@@ -42,6 +49,7 @@ Same keys and commands in both shells:
 | `gsw` / `glo` | switch branch / browse the log with delta diffs |
 | `z` / `zi` | zoxide jump / pick |
 | `ls ll la lt` / `cat` | eza / bat |
+| `theme [light\|dark]` | re-detect or force the colour scheme for this shell |
 
 In nvim, `<leader>gg` toggles lazygit and `<C-\>` a shell, both in floats
 (toggleterm.nvim). Anything they open with `nvim` (lazygit's `e`, a commit
