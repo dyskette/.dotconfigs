@@ -1,4 +1,5 @@
--- snacks.nvim: the pickers, notifications and indent guides. Only the modules configured
+-- snacks.nvim: the pickers, notifications, indent guides, input prompt,
+-- reference highlighting and big-file protection. Only the modules configured
 -- below are enabled; the rest stays off.
 --
 -- Pickers run inside nvim: listing a picker costs one fd/rg process, and
@@ -21,7 +22,7 @@ return {
   -- UIEnter; setup() itself only registers those autocmds.
   lazy = false,
   priority = 1000,
-  keys = require("config.keymaps").picker,
+  keys = vim.list_extend(vim.deepcopy(require("config.keymaps").picker), require("config.keymaps").words),
   init = function()
     require("config.lsp_progress").setup()
   end,
@@ -38,6 +39,14 @@ return {
       enabled = true,
       animate = { enabled = false },
     },
+    -- Files over 1.5 MB, or with very long lines (minified), open without
+    -- treesitter, LSP, folds or matchparen, so they don't freeze nvim.
+    bigfile = { enabled = true },
+    -- Other uses of the symbol under the cursor are highlighted through the
+    -- LSP; ]] and [[ jump between them.
+    words = { enabled = true },
+    -- vim.ui.input (rename prompts and the like) as a small float.
+    input = { enabled = true },
     picker = {
       enabled = true,
       ui_select = true,

@@ -293,6 +293,26 @@ return {
     { "<leader>ts", "<cmd>TermSelect<cr>", desc = "Pick a terminal" },
   },
 
+  -- Loaded with snacks.nvim (plugins/snacks.lua), like picker below.
+  -- Overrides the built-in section motions, which only mean something in C
+  -- and plain text.
+  words = {
+    {
+      "]]",
+      function()
+        Snacks.words.jump(vim.v.count1)
+      end,
+      desc = "Next reference of the symbol under the cursor",
+    },
+    {
+      "[[",
+      function()
+        Snacks.words.jump(-vim.v.count1)
+      end,
+      desc = "Previous reference of the symbol under the cursor",
+    },
+  },
+
   picker = {
     {
       "<leader>sf",
