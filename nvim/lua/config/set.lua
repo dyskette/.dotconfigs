@@ -53,6 +53,21 @@ vim.g.clipboard = {
   paste = clipboard_paste_commands() or { ["+"] = paste_last_yank, ["*"] = paste_last_yank },
 }
 
+-- Windows: nvim takes 'shell' from $SHELL, which the PowerShell profile sets
+-- to pwsh, but keeps cmd.exe's flags (/s /c) -- so :!, system() with a string
+-- and every toggleterm terminal ran `pwsh /s /c ...` and failed. Back to
+-- cmd.exe with its own flags: the default nvim and its plugins are written
+-- for, and ~5x faster to start than pwsh. Interactive terminals still run
+-- pwsh (toggleterm's `shell`, plugins/terminal.lua).
+if vim.fn.has("win32") == 1 and not vim.o.shell:lower():find("cmd") then
+  vim.o.shell = "cmd.exe"
+  vim.o.shellcmdflag = "/s /c"
+  vim.o.shellxquote = '"'
+  vim.o.shellquote = ""
+  vim.o.shellpipe = ">%s 2>&1"
+  vim.o.shellredir = ">%s 2>&1"
+end
+
 -- Pretty colors
 vim.o.termguicolors = true
 vim.o.winborder = "single"
