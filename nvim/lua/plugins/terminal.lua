@@ -93,8 +93,12 @@ local toggleterm_opts = {
     width = function()
       return math.floor(vim.o.columns * 0.92)
     end,
+    -- From the top, one free row above and below, so the bottom border stops
+    -- above the status line (config/statusline.lua) instead of covering it:
+    -- rows 1 .. lines-cmdheight-3, borders included.
+    row = 1,
     height = function()
-      return math.floor(vim.o.lines * 0.88)
+      return vim.o.lines - vim.o.cmdheight - 5
     end,
     title_pos = "center",
   },
