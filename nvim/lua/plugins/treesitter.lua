@@ -98,14 +98,5 @@ return {
       max_lines = 3,
     },
   },
-  {
-    "lukas-reineke/indent-blankline.nvim",
-    main = "ibl",
-    event = utils.events.LazyFile,
-    opts = {
-      scope = {
-        show_start = false,
-      },
-    },
-  },
+  -- Indent guides come from snacks.indent (plugins/snacks.lua).
 }
