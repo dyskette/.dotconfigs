@@ -9,6 +9,11 @@
     Justification = 'Argument completers receive their arguments positionally; the dotnet one does not need the word.')]
 param()
 
+# UTF-8 both ways with native programs. The console defaults to the OEM code
+# page (437), so a path fzf, fd or rg prints with ñ or á would come back
+# garbled when captured into a variable.
+[Console]::InputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+
 Set-PSReadLineKeyHandler -Key 'Ctrl+p' -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key 'Ctrl+n' -Function HistorySearchForward
 Set-PSReadLineKeyHandler -Key "Ctrl+y" -Function AcceptSuggestion
@@ -252,88 +257,6 @@ if ($tools.dotnet) {
     }
 }
 
-function glog {
-    git log --decorate=full --oneline --graph
-}
-
-function sd {
-    $directory_path = fd --type directory |
-        fzf `
-            --layout=reverse `
-            --height=50% `
-            --min-height=20 `
-            --preview "eza --tree --git-ignore --level 2 --colour=always --icons=always {}"
-
-    if ($directory_path) {
-        Set-Location $directory_path
-    }
-}
-
-function sf {
-    $file_path = fd --type file |
-        fzf `
-            --layout=reverse `
-            --height=50% `
-            --min-height=20 `
-            --preview "bat --color=always --style=plain {}"
-
-    if ($file_path) {
-        nvim $file_path
-    }
-}
-
-function sdf {
-    $file_path = fd --type file |
-        fzf `
-            --layout=reverse `
-            --height=50% `
-            --min-height=20 `
-            --preview "bat --color=always --style=plain {}"
-
-    if ($file_path) {
-        $directory_path = Split-Path -Parent $file_path
-        Set-Location $directory_path
-    }
-}
-
-function sg {
-    param (
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [String[]]$searchParams = ""
-    )
-
-    $execRipgrep = "rg --column --color=always --smart-case {q} || :"
-    $execNvim = "nvim {1} +{2}"
-    $execBat = "bat --style=numbers --color=always --highlight-line {2} {1}"
-
-    fzf `
-        --disabled `
-        --ansi `
-        --bind start:reload:$execRipgrep `
-        --bind change:reload:$execRipgrep `
-        --bind enter:become:$execNvim `
-        --layout reverse `
-        --height 50% `
-        --min-height 20 `
-        --delimiter : `
-        --preview $execBat `
-        --preview-window "+{2}/2" `
-        --query "$([String]::Join(" ", $searchParams))"
-}
-
-function y {
-    $tmp = [System.IO.Path]::GetTempFileName()
-    try {
-        yazi $args --cwd-file="$tmp"
-        $cwd = Get-Content -Path $tmp -Encoding UTF8
-        if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path) {
-            Set-Location -LiteralPath ([System.IO.Path]::GetFullPath($cwd))
-        }
-    } finally {
-        Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
-    }
-}
-
 <#
 .SYNOPSIS
     Resolve the project directory for zj/tm: the given path, or an fzf pick
@@ -515,3 +438,8 @@ function Get-SshServer {
         'sshd not running'
     }
 }
+
+# fzf, fd, ripgrep, bat, eza, yazi, lazygit and zoxide: key bindings (Ctrl+t,
+# Alt+c, Ctrl+r, Ctrl+g, Alt+z) and commands (sf, sd, sg, y, lg, ...). Last,
+# because zoxide hooks into the prompt defined above.
+. (Join-Path $PSScriptRoot 'CliTools.ps1')
