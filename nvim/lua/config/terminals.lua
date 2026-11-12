@@ -10,6 +10,39 @@ local M = {}
 --- and are what fzf and lazygit use to move up and down.
 local passthrough_keys = { "<C-h>", "<C-j>", "<C-k>", "<C-l>" }
 
+--- Border of every tool float: toggleterm's (shell, lazygit) and yazi's.
+M.float_border = "single"
+
+--- Width of the tool floats, centred: 92% of the editor.
+---@return integer
+function M.float_width()
+  return math.floor(vim.o.columns * 0.92)
+end
+
+--- Height of the tool floats. They start on row 1 with one free row above and
+--- below, so the bottom border stops above the status line
+--- (config/statusline.lua) instead of covering it: rows 1 .. lines-cmdheight-3,
+--- borders included.
+---@return integer
+function M.float_height()
+  return vim.o.lines - vim.o.cmdheight - 5
+end
+
+--- Where the tool floats go, as nvim_open_win() takes it. Same placement as
+--- toggleterm computes from float_opts, so a non-toggleterm float (yazi) lines
+--- up with lazygit exactly.
+---@return { row: integer, col: number, width: integer, height: integer }
+function M.float_geometry()
+  local width = M.float_width()
+  return {
+    row = 1,
+    -- toggleterm's own centring formula (ui.lua), fractional result included.
+    col = math.ceil(vim.o.columns - width) * 0.5 - 1,
+    width = width,
+    height = M.float_height(),
+  }
+end
+
 --- Give a float terminal's keys to the program running in it.
 ---@param term Terminal
 function M.on_open(term)

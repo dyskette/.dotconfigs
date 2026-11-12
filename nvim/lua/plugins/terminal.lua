@@ -89,17 +89,11 @@ local toggleterm_opts = {
   start_in_insert = true,
   persist_mode = false,
   float_opts = {
-    border = "single",
-    width = function()
-      return math.floor(vim.o.columns * 0.92)
-    end,
-    -- From the top, one free row above and below, so the bottom border stops
-    -- above the status line (config/statusline.lua) instead of covering it:
-    -- rows 1 .. lines-cmdheight-3, borders included.
+    -- Shared with the yazi float (plugins/file-explorer.lua).
+    border = terminals.float_border,
+    width = terminals.float_width,
     row = 1,
-    height = function()
-      return vim.o.lines - vim.o.cmdheight - 5
-    end,
+    height = terminals.float_height,
     title_pos = "center",
   },
   size = function(term)
