@@ -29,6 +29,7 @@
         - ripgrep
         - bat
         - eza
+        - zoxide
         - zellij
         - nvim
         - yazi
@@ -84,6 +85,8 @@
       tags: [bin, bat]
     - import_tasks: tasks/bin/eza.yml
       tags: [bin, eza]
+    - import_tasks: tasks/bin/zoxide.yml
+      tags: [bin, zoxide]
     - import_tasks: tasks/bin/zellij.yml
       tags: [bin, zellij]
     - import_tasks: tasks/bin/nvim.yml

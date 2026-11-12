@@ -59,6 +59,8 @@
         { "PackageIdentifier": "jftuga.less" },
         { "PackageIdentifier": "eza-community.eza" },
         { "PackageIdentifier": "junegunn.fzf" },
+        // Frecency cd (z, zi); also yazi's `z` key.
+        { "PackageIdentifier": "ajeetdsouza.zoxide" },
 
         // SSH
         { "PackageIdentifier": "jstarks.npiperelay" },
