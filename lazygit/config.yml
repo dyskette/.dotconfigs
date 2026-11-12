@@ -18,7 +18,37 @@ git:
         {{else}}--syntax-theme=everforest-dark-medium
         --minus-style="syntax #514045" --minus-emph-style="bold #e67e80 #514045"
         --plus-style="syntax #425047" --plus-emph-style="bold #a7c080 #425047"{{end}}
+os:
+  # Plain nvim on every platform, no nvim-remote preset: inside an nvim
+  # terminal flatten.nvim hands the file to that nvim (the lazygit float hides
+  # meanwhile; commit messages block until written), and outside one it is a
+  # normal nvim. The preset's sh syntax would also break under cmd.exe, which
+  # lazygit uses on Windows.
+  editPreset: nvim
+
+# Back to lazygit as soon as a custom command or editor exits.
+promptToReturnFromSubprocess: false
+
+customCommands:
+  # Y: the highlighted file in yazi, with its folder around it.
+  - key: Y
+    context: files
+    command: yazi {{.SelectedFile.Name | quote}}
+    output: terminal
+    description: Open in yazi
+
 gui:
+  # JetBrains Mono Nerd Font: file icons, branch and remote glyphs.
+  nerdFontsVersion: "3"
+  # Same corners as nvim's floats (winborder = single).
+  border: single
+  # `/` filters lists fuzzily, like fzf.
+  filterMode: fuzzy
+  # The focused side panel grows; the others shrink to their titles.
+  expandFocusedSidePanel: true
+  showDivergenceFromBaseBranch: arrowAndNumber
+  showNumstatInFilesView: true
+  showRandomTip: false
   # <c-d>/<c-u> (and the mouse wheel) scroll the diff by this many lines;
   # the default of 2 makes them feel like line-by-line scrolling.
   scrollHeight: 15
