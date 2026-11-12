@@ -58,9 +58,4 @@ return {
     event = utils.events.LazyFile,
     opts = nvim_highlight_colors_opts,
   },
-  -- Json tools
-  {
-    "VPavliashvili/json-nvim",
-    ft = "json", -- only load for json filetype
-  },
 }
