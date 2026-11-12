@@ -68,6 +68,17 @@ if vim.fn.has("win32") == 1 and not vim.o.shell:lower():find("cmd") then
   vim.o.shellredir = ">%s 2>&1"
 end
 
+-- :grep through ripgrep with the shared defaults (ripgrep/config: smart case,
+-- hidden files, .gitignore respected). nvim's own default adds -uu, which
+-- searches ignored files and .git too. The shells set RIPGREP_CONFIG_PATH; this
+-- covers an nvim started some other way (a desktop shortcut).
+if vim.fn.executable("rg") == 1 then
+  vim.env.RIPGREP_CONFIG_PATH = vim.env.RIPGREP_CONFIG_PATH
+    or vim.fs.joinpath(vim.env.HOME or vim.env.USERPROFILE, ".dotconfigs", "ripgrep", "config")
+  vim.o.grepprg = "rg --vimgrep"
+  vim.o.grepformat = "%f:%l:%c:%m"
+end
+
 -- Pretty colors
 vim.o.termguicolors = true
 vim.o.winborder = "single"
