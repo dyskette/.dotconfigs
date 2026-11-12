@@ -38,6 +38,9 @@ local function setup_global_lsp_config()
   })
 end
 
+--- Servers whose semantic tokens are kept (see on_lsp_attach).
+local semantic_token_servers = { roslyn = true, rust_analyzer = true }
+
 -- Handler called when an LSP client attaches to a buffer
 -- This is where we configure buffer-local LSP behavior
 local function on_lsp_attach()
@@ -49,9 +52,13 @@ local function on_lsp_attach()
         return
       end
 
-      -- Disable semantic tokens from LSP servers
-      -- Let Treesitter handle syntax highlighting for better performance
-      client.server_capabilities.semanticTokensProvider = nil
+      -- Treesitter highlights; semantic tokens only come from the servers
+      -- that know more than the syntax tree does: roslyn and rust-analyzer
+      -- tell fields from locals, static from instance members, and mark
+      -- unused or mutable bindings.
+      if not semantic_token_servers[client.name] then
+        client.server_capabilities.semanticTokensProvider = nil
+      end
 
       -- Ruff and basedpyright both attach to python buffers. Ruff has nothing
       -- to say on hover that the type checker does not say better, and two
