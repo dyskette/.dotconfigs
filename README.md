@@ -35,8 +35,9 @@ asking the terminal for its background colour, which only works where they are
 the program holding it: inside an fzf preview or lazygit another one is, and it
 takes the reply. So each shell asks once at startup and passes the answer on —
 bash through `BAT_THEME` (`bash/bashrc.d/colors.sh`), PowerShell through
-`SYSTEM_COLOR_THEME`, read from the Windows registry at every prompt. In bash,
-`theme [light|dark]` re-detects or forces it in a shell already open.
+`BAT_THEME` and `SYSTEM_COLOR_THEME`, read from the Windows registry at every
+prompt. In bash, `theme [light|dark]` re-detects or forces it in a shell
+already open.
 
 Same keys and commands in both shells:
 

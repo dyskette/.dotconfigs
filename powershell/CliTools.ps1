@@ -37,10 +37,10 @@ $env:FZF_DEFAULT_COMMAND = 'fd --type file --hidden --follow --strip-cwd-prefix'
 # bat and delta pick their theme by asking the terminal for its background,
 # which cannot work in an fzf preview: fzf owns the console and takes the
 # reply, so they fall back to dark themes on a light terminal. The prompt keeps
-# SYSTEM_COLOR_THEME (light/dark) in step with Windows, and cmd.exe expands it
-# each time a preview runs, so a theme switch shows up at once.
-$script:FzfBatTheme = '--theme=everforest-%SYSTEM_COLOR_THEME%-medium'
-$script:FzfPreviewFile = "bat $FzfBatTheme --color=always --style=numbers,changes --line-range=:500 {}"
+# BAT_THEME (bat, and delta's syntax colours) and SYSTEM_COLOR_THEME (delta's
+# --light/--dark, expanded by cmd.exe) in step with Windows; fzf hands both to
+# its previews, so a theme switch shows up from the next fzf.
+$script:FzfPreviewFile = "bat --color=always --style=numbers,changes --line-range=:500 {}"
 $script:FzfPreviewDir = 'eza --tree --level=2 --color=always --icons=always --group-directories-first --git-ignore {}'
 
 <#
@@ -169,7 +169,7 @@ function sg {
         "--bind=change:reload($rg)",
         '--bind=ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf ❯ )+enable-search+clear-query+rebind(ctrl-r)',
         "--bind=ctrl-r:unbind(ctrl-r)+change-prompt(rg ❯ )+disable-search+reload($rg)+rebind(change,ctrl-f)",
-        "--preview=bat $FzfBatTheme --color=always --style=numbers,changes,header-filename --highlight-line={2} {1}",
+        "--preview=bat --color=always --style=numbers,changes,header-filename --highlight-line={2} {1}",
         '--preview-window=+{2}/2')
     Open-GrepHit $hits
 }

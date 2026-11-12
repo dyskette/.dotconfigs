@@ -5,8 +5,8 @@
 # second timeout, paints the query over whatever is on screen, and still ends
 # up on Monokai, because the reply goes to the program reading the terminal.
 # Those callers get the theme from BAT_THEME instead, which wins over this and
-# which bash sets once at startup (bash/bashrc.d/colors.sh). PowerShell passes
-# --theme on the command line for the same reason (powershell/CliTools.ps1).
+# which bash sets once at startup (bash/bashrc.d/colors.sh) and PowerShell at
+# every prompt from the Windows theme (powershell/Microsoft.PowerShell_profile.ps1).
 --theme=auto
 --theme-dark="everforest-dark-medium"
 --theme-light="everforest-light-medium"

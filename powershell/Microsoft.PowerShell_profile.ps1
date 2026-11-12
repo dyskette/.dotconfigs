@@ -75,8 +75,10 @@ function prompt {
     $loc = $executionContext.SessionState.Path.CurrentLocation
 
     # Follow the Windows app theme for psmux, which has no theme detection of
-    # its own: set-theme.ps1 reads SYSTEM_COLOR_THEME. A direct registry read,
-    # as Get-ItemProperty costs a provider round trip on every prompt.
+    # its own: set-theme.ps1 reads SYSTEM_COLOR_THEME. BAT_THEME is the same
+    # answer for bat, which cannot detect it inside an fzf preview (see
+    # CliTools.ps1). A direct registry read, as Get-ItemProperty costs a
+    # provider round trip on every prompt.
     if ($IsWindows) {
         $light = [Microsoft.Win32.Registry]::GetValue(
             'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize', 'AppsUseLightTheme', 0)
@@ -85,6 +87,7 @@ function prompt {
         } else {
             'dark'
         }
+        $env:BAT_THEME = "everforest-$($env:SYSTEM_COLOR_THEME)-medium"
     }
 
     # Report the working directory so the terminal can reopen a tab or

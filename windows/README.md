@@ -114,7 +114,8 @@ Installs outside winget go to `~/.local/opt/<name>`, with their versions in
 | Variable | Used by | Purpose |
 |----------|---------|---------|
 | `GITHUB_TOKEN` | GitHub release lookups (winget update, font, `github-packages.jsonc`) | Optional. Raises the API limit from 60 to 5000 requests per hour. Set it for the session only, from a secret store rather than a persistent variable, e.g. `$env:GITHUB_TOKEN = gh auth token` or `Get-Secret` (SecretManagement). |
-| `SYSTEM_COLOR_THEME` | psmux theme scripts | Set by the PowerShell profile from the Windows app theme. |
+| `SYSTEM_COLOR_THEME` | psmux theme scripts, delta in the fzf previews | Set by the PowerShell profile from the Windows app theme. |
+| `BAT_THEME` | bat | Set by the PowerShell profile from the Windows app theme (`everforest-<light\|dark>-medium`). |
 
 ## Runbook
 
