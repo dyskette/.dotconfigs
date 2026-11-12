@@ -385,13 +385,6 @@ return {
       desc = "Git branches (switch)",
     },
     {
-      "<leader>gL",
-      function()
-        Snacks.picker.git_log_file()
-      end,
-      desc = "Git log of this file",
-    },
-    {
       "gd",
       function()
         Snacks.picker.lsp_definitions()
