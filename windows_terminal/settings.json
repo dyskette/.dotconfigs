@@ -80,7 +80,7 @@
                 "commandline": "%PROGRAMFILES%\\git\\usr\\bin\\bash.exe --login -i",
                 "guid": "{8f96631d-8fe0-45e1-a1e4-69ebee35f5c5}",
                 "hidden": false,
-                "icon": "%PROGRAMFILES%\\git\\mingw64\\share\\git\\git-for-windows.ico",
+                "icon": "%PROGRAMFILES%\\git\\ucrt64\\share\\git\\git-for-windows.ico",
                 "name": "Git Bash",
                 "startingDirectory": "%USERPROFILE%"
             },
