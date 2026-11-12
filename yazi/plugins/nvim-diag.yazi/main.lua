@@ -15,6 +15,29 @@
 
 local M = {}
 
+--- The `files` table of a message: inline, or read from the file it names.
+--- A file that cannot be read or parsed leaves the annotations empty rather
+--- than failing the subscriber.
+local function files_of(body)
+	if not body then
+		return {}
+	end
+	if body.files then
+		return body.files
+	end
+	if not body.path then
+		return {}
+	end
+	local file = io.open(body.path, "rb")
+	if not file then
+		return {}
+	end
+	local text = file:read("*a")
+	file:close()
+	local decoded = ya.json_decode(text)
+	return (decoded and decoded.files) or {}
+end
+
 local ERROR_SIGN = ""
 local WARN_SIGN = ""
 
@@ -27,7 +50,7 @@ function M:setup(opts)
 	st.warn_style = th.nvim_diag and th.nvim_diag.warn or ui.Style():fg("yellow")
 
 	ps.sub_remote("nvim-diag", function(body)
-		st.files = (body and body.files) or {}
+		st.files = files_of(body)
 		-- ui.render(), not ya.render(): the latter updates the cache without
 		-- repainting, so a push stayed invisible until some unrelated event
 		-- redrew the list.

@@ -16,6 +16,12 @@ local DEBOUNCE_MS = 300
 local yazi_id = nil
 local timer = nil
 
+--- File the counts are written to; yazi is sent only its path. Passing the
+--- JSON itself as a `ya pub-to --json` argument hit Windows' 32 767-character
+--- command-line limit (ENAMETOOLONG) once Roslyn reported a whole solution.
+---@type string|nil
+local payload_file = nil
+
 --- Error and warning counts per absolute path.
 ---
 --- Collected across every buffer rather than per-window, so diagnostics
@@ -57,6 +63,22 @@ function M.payload()
   return vim.json.encode({ files = files })
 end
 
+--- Write `text` to `path` through a sibling file and a rename, so yazi never
+--- reads a half-written file.
+---@param path string
+---@param text string
+---@return boolean ok
+local function write_atomic(path, text)
+  local partial = path .. ".partial"
+  local file = io.open(partial, "wb")
+  if not file then
+    return false
+  end
+  file:write(text)
+  file:close()
+  return vim.uv.fs_rename(partial, path) ~= nil
+end
+
 --- Send the current diagnostics to the attached yazi, if there is one.
 ---
 --- Safe to call from a fast event context: yazi.nvim's on_yazi_ready hook runs
@@ -72,9 +94,15 @@ function M.push()
     return
   end
 
+  payload_file = payload_file or (vim.fn.tempname() .. "-yazi-diag.json")
+  if not write_atomic(payload_file, M.payload()) then
+    return
+  end
+
   -- Failures are deliberately ignored: yazi may have exited between the hook
-  -- firing and this call, which is not worth surfacing.
-  vim.system({ "ya", "pub-to", yazi_id, DIAG_KIND, "--json", M.payload() })
+  -- firing and this call, which is not worth surfacing. pcall too, since
+  -- vim.system throws when the process cannot start (ya not on PATH).
+  pcall(vim.system, { "ya", "pub-to", yazi_id, DIAG_KIND, "--json", vim.json.encode({ path = payload_file }) })
 end
 
 local function schedule_push()
@@ -101,6 +129,10 @@ function M.detach()
   yazi_id = nil
   if timer then
     timer:stop()
+  end
+  if payload_file then
+    os.remove(payload_file)
+    payload_file = nil
   end
 end
 
