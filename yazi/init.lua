@@ -4,7 +4,7 @@ require("session"):setup({
 
 -- Borders around all three panes, square like nvim's and lazygit's.
 require("full-border"):setup({
-  type = ui.Border.PLAIN,
+  set = "plain",
 })
 
 -- MIME types from the file name instead of reading each file with `file`:
