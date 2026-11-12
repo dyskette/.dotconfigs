@@ -33,7 +33,14 @@ $env:FZF_DEFAULT_OPTS = '--with-shell="cmd.exe /d /s /c"'
 $env:FZF_DEFAULT_COMMAND = 'fd --type file --hidden --follow --strip-cwd-prefix'
 
 # Previews, written once and shared by the key bindings and the commands.
-$script:FzfPreviewFile = 'bat --color=always --style=numbers,changes --line-range=:500 {}'
+#
+# bat and delta pick their theme by asking the terminal for its background,
+# which cannot work in an fzf preview: fzf owns the console and takes the
+# reply, so they fall back to dark themes on a light terminal. The prompt keeps
+# SYSTEM_COLOR_THEME (light/dark) in step with Windows, and cmd.exe expands it
+# each time a preview runs, so a theme switch shows up at once.
+$script:FzfBatTheme = '--theme=everforest-%SYSTEM_COLOR_THEME%-medium'
+$script:FzfPreviewFile = "bat $FzfBatTheme --color=always --style=numbers,changes --line-range=:500 {}"
 $script:FzfPreviewDir = 'eza --tree --level=2 --color=always --icons=always --group-directories-first --git-ignore {}'
 
 <#
@@ -162,7 +169,7 @@ function sg {
         "--bind=change:reload($rg)",
         '--bind=ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf ❯ )+enable-search+clear-query+rebind(ctrl-r)',
         "--bind=ctrl-r:unbind(ctrl-r)+change-prompt(rg ❯ )+disable-search+reload($rg)+rebind(change,ctrl-f)",
-        '--preview=bat --color=always --style=numbers,changes,header-filename --highlight-line={2} {1}',
+        "--preview=bat $FzfBatTheme --color=always --style=numbers,changes,header-filename --highlight-line={2} {1}",
         '--preview-window=+{2}/2')
     Open-GrepHit $hits
 }
@@ -350,7 +357,7 @@ function glo {
     $commits = git log --color=always --date=short @LogArgument `
         --format='%C(yellow)%h%C(reset) %C(green)%ad%C(reset) %s%C(auto)%d %C(blue)%an' |
         fzf --ansi --multi --no-sort --scheme=history --border-label=' log ' `
-            --preview='git show --color=always {1} | delta --width=%FZF_PREVIEW_COLUMNS%' `
+            --preview='git show --color=always {1} | delta --%SYSTEM_COLOR_THEME% --width=%FZF_PREVIEW_COLUMNS%' `
             --preview-window='down,70%,border-top'
     if ($LASTEXITCODE -ne 0) {
         return
