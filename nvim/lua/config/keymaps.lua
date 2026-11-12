@@ -380,6 +380,13 @@ return {
       desc = "Search keymaps",
     },
     {
+      "<leader>sn",
+      function()
+        Snacks.notifier.show_history()
+      end,
+      desc = "Search notification history",
+    },
+    {
       "<leader>s:",
       function()
         Snacks.picker.command_history()

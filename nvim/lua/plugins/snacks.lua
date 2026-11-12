@@ -1,4 +1,4 @@
--- snacks.nvim: the pickers and indent guides. Only the modules configured
+-- snacks.nvim: the pickers, notifications and indent guides. Only the modules configured
 -- below are enabled; the rest stays off.
 --
 -- Pickers run inside nvim: listing a picker costs one fd/rg process, and
@@ -22,11 +22,17 @@ return {
   lazy = false,
   priority = 1000,
   keys = require("config.keymaps").picker,
+  init = function()
+    require("config.lsp_progress").setup()
+  end,
   opts = {
     -- Previewing an image would otherwise probe the terminal, and under
     -- tmux/psmux that is a blocking `tmux` call per image. Windows Terminal
     -- cannot show inline images anyway (no Kitty graphics protocol).
     image = { enabled = false },
+    -- vim.notify, LSP progress included (config/lsp_progress.lua), in the
+    -- top right corner; <leader>sn lists past notifications.
+    notifier = { enabled = true },
     -- Indent guides, with the current scope highlighted.
     indent = {
       enabled = true,

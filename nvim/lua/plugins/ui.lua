@@ -206,12 +206,6 @@ local tabby_config = function()
   })
 end
 
-local fidget_opts = {
-  notification = {
-    override_vim_notify = true,
-  },
-}
-
 return {
   -- Color schemes. Which one is active follows the terminal background colour;
   -- see the theme tracking at the top of this file.
@@ -238,12 +232,7 @@ return {
     },
   },
   -- The status bar is config/statusline.lua: native, no plugin.
-  -- LSP progress/vim.notify
-  {
-    "j-hui/fidget.nvim",
-    event = utils.events.VeryLazy,
-    opts = fidget_opts,
-  },
+  -- vim.notify and LSP progress are snacks.notifier (plugins/snacks.lua).
   {
     "folke/which-key.nvim",
     event = utils.events.VeryLazy,
