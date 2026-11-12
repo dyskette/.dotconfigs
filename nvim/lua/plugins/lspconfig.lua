@@ -408,9 +408,19 @@ local function enable_language_servers()
   end
 end
 
+-- Inlay hints and code lenses, for every server that offers them: roslyn's
+-- are configured in roslyn_settings below, rust-analyzer and basedpyright
+-- send theirs by default. Enabled globally, so buffers attached later get
+-- them too; <leader>uh toggles the hints, <leader>vl runs a lens.
+local function enable_lsp_annotations()
+  vim.lsp.inlay_hint.enable(true)
+  vim.lsp.codelens.enable(true)
+end
+
 -- Main function that sets up the entire LSP configuration
 local function lsp_config()
   setup_global_lsp_config()
+  enable_lsp_annotations()
   on_lsp_attach()
   setup_language_servers()
   enable_language_servers()

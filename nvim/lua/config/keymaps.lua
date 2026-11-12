@@ -114,6 +114,10 @@ return {
     vim.keymap.set({ "n", "x" }, "<leader>fl", function()
       vim.lsp.buf.format({ async = true })
     end, { desc = "Format document using LSP" })
+    vim.keymap.set("n", "<leader>uh", function()
+      vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+    end, { desc = "Toggle inlay hints" })
+    vim.keymap.set("n", "<leader>vl", vim.lsp.codelens.run, { desc = "Run the code lens on this line" })
 
     -- Diagnostic
     vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, { desc = "View diagnostic" })
