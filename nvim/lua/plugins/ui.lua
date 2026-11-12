@@ -111,20 +111,6 @@ local theme_config = function()
   })
 end
 
-local template_onlyname = function(filetype, name)
-  return {
-    filetypes = { filetype },
-    sections = {
-      lualine_a = { {
-        function()
-          return name
-        end,
-        color = "white",
-      } },
-    },
-  }
-end
-
 local tabby_opts = function()
   -- Build theme matching your tmux configs exactly
   local is_dark = vim.o.background == "dark"
@@ -220,57 +206,6 @@ local tabby_config = function()
   })
 end
 
-local lualine_opts = function()
-  local diffview_files = template_onlyname("DiffviewFiles", "Diffview Files")
-  local diffview_file_history = template_onlyname("DiffviewFileHistory", "Diffview File History")
-
-  return {
-    extensions = { "lazy", "mason", "oil", "trouble", diffview_files, diffview_file_history },
-    options = {
-      component_separators = {
-        left = utils.icons.separators.triple_dash_vertical,
-        right = utils.icons.separators.triple_dash_vertical,
-      },
-      section_separators = { left = "", right = "" },
-      globalstatus = true,
-    },
-    sections = {
-      lualine_b = {
-        "branch",
-        {
-          "diff",
-          -- Counts from gitsigns: without a source, lualine spawns its own
-          -- `git diff` for every buffer, which is slow to start on Windows.
-          source = function()
-            local status = vim.b.gitsigns_status_dict
-            if status then
-              return { added = status.added, modified = status.changed, removed = status.removed }
-            end
-          end,
-        },
-        {
-          "diagnostics",
-          symbols = {
-            error = utils.icons.error,
-            warn = utils.icons.warn,
-            info = utils.icons.info,
-            hint = utils.icons.hint .. " ",
-          },
-        },
-      },
-      -- No symbol breadcrumb here: nvim-treesitter-context shows the
-      -- enclosing scope at the top of the window instead.
-      lualine_c = {
-        {
-          "searchcount",
-          maxcount = 999,
-          timeout = 500,
-        },
-      },
-    },
-  }
-end
-
 local fidget_opts = {
   notification = {
     override_vim_notify = true,
@@ -302,18 +237,7 @@ return {
       "nvim-tree/nvim-web-devicons",
     },
   },
-  -- Status bar
-  {
-    "nvim-lualine/lualine.nvim",
-    -- At startup, so the bar is part of the first screen rather than popping
-    -- in after it. Costs ~50 ms of startup; the git and diagnostic parts
-    -- still fill in once gitsigns and the language servers have loaded.
-    lazy = false,
-    opts = lualine_opts,
-    dependencies = {
-      "nvim-tree/nvim-web-devicons",
-    },
-  },
+  -- The status bar is config/statusline.lua: native, no plugin.
   -- LSP progress/vim.notify
   {
     "j-hui/fidget.nvim",
