@@ -104,6 +104,48 @@ vim.o.wrap = false
 -- Rulers
 vim.o.colorcolumn = "120"
 
+-- Undo history kept on disk, so it survives closing the file
+vim.o.undofile = true
+
+-- Searches ignore case unless the pattern has a capital letter
+vim.o.ignorecase = true
+vim.o.smartcase = true
+
+-- Live preview of :s, with the off-screen matches in a split
+vim.o.inccommand = "split"
+
+-- Always keep the sign column, so text doesn't shift when gitsigns or a
+-- diagnostic adds the first sign
+vim.o.signcolumn = "yes"
+
+-- Highlight the current line's number only
+vim.o.cursorline = true
+vim.o.cursorlineopt = "number"
+
+-- New splits go right and below, where the eye expects them
+vim.o.splitright = true
+vim.o.splitbelow = true
+
+-- CursorHold sooner than the default 4 s: gitsigns, LSP document highlights
+vim.o.updatetime = 250
+
+-- :q on a modified buffer asks to save instead of failing
+vim.o.confirm = true
+
+-- Jumplist as a stack (jumping back then away drops the forward entries),
+-- and returning restores the view, not just the cursor
+vim.o.jumpoptions = "stack,view"
+
+-- Wrapped lines (with :set wrap) keep their indentation
+vim.o.breakindent = true
+
+-- Folds from treesitter, all open on load; zc/zo/za fold as usual. An empty
+-- foldtext shows the first line of the fold with its highlighting.
+vim.o.foldmethod = "expr"
+vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+vim.o.foldlevel = 99
+vim.o.foldtext = ""
+
 -- Diagnostic
 vim.diagnostic.config({
   severity_sort = true,
