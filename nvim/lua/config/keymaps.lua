@@ -256,14 +256,31 @@ return {
     },
   },
 
-  neogit = {
+  -- Loaded with toggleterm.nvim (plugins/terminal.lua).
+  lazygit = {
     {
       "<leader>gg",
       function()
-        require("neogit").open()
+        require("config.terminals").lazygit()
       end,
-      desc = "Git status open",
+      desc = "lazygit (toggle)",
     },
+    {
+      "<leader>gl",
+      function()
+        require("config.terminals").lazygit_file()
+      end,
+      desc = "lazygit: commits touching this file",
+    },
+  },
+
+  toggleterm = {
+    -- No action: loads toggleterm, whose open_mapping then handles the key.
+    { [[<C-\>]], mode = { "n", "t" }, desc = "Toggle terminal" },
+    { "<leader>tf", "<cmd>ToggleTerm direction=float<cr>", desc = "Terminal (float)" },
+    { "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Terminal (below)" },
+    { "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>", desc = "Terminal (right)" },
+    { "<leader>ts", "<cmd>TermSelect<cr>", desc = "Pick a terminal" },
   },
 
   picker = {

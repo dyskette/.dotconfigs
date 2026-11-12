@@ -25,7 +25,9 @@ return {
   },
   {
     "NeogitOrg/neogit",
-    keys = require("config.keymaps").neogit,
+    -- <leader>gg opens lazygit in a toggleterm float (config/terminals.lua);
+    -- Neogit stays available as :Neogit.
+    cmd = "Neogit",
     opts = neogit_opts,
     dependencies = {
       "nvim-lua/plenary.nvim",
