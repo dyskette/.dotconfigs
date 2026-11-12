@@ -49,6 +49,7 @@
     - { src: "bash/bashrc", dest: "{{ ansible_facts['env']['HOME'] }}/.bashrc" }
     - { src: "bash/bashrc.d", dest: "{{ ansible_facts['env']['HOME'] }}/.bashrc.d" }
     - { src: "bat", dest: "{{ config_dir }}/bat" }
+    - { src: "delta", dest: "{{ config_dir }}/delta" }
     - { src: "fd", dest: "{{ config_dir }}/fd" }
     - { src: "lazygit/config.yml", dest: "{{ config_dir }}/lazygit/config.yml" }
     - { src: "claude/settings.json", dest: "{{ ansible_facts['env']['HOME'] }}/.claude/settings.json" }
@@ -64,6 +65,15 @@
     - { src: "zellij", dest: "{{ config_dir }}/zellij" }
     - { src: "yazi", dest: "{{ config_dir }}/yazi" }
     - { src: "opencode", dest: "{{ config_dir }}/opencode" }
+  tags: dotfiles
+
+# delta reads its settings from git config. --replace-all with a value pattern
+# rewrites only this include, so re-running neither duplicates it nor touches
+# other includes.
+- name: Dotfiles | Include delta's Everforest features in the global git config
+  ansible.builtin.command:
+    argv: [git, config, --global, --replace-all, include.path, "~/.config/delta/everforest.gitconfig", "delta/everforest"]
+  changed_when: false
   tags: dotfiles
 
 - name: Dotfiles | Install yazi packages

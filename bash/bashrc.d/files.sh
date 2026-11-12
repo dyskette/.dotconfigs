@@ -153,7 +153,7 @@ glo() {
   git log --color=always --date=short \
     --format='%C(yellow)%h%C(reset) %C(green)%ad%C(reset) %s%C(auto)%d %C(blue)%an' "$@" |
     fzf --ansi --multi --no-sort --scheme=history --border-label=' log ' \
-      --preview="git show --color=always {1} | delta --$SYSTEM_COLOR_THEME_REF --width=$FZF_PREVIEW_COLUMNS_REF" \
+      --preview="git show --color=always {1} | delta --features=everforest-$SYSTEM_COLOR_THEME_REF --width=$FZF_PREVIEW_COLUMNS_REF" \
       --preview-window='down,70%,border-top' |
     cut -d' ' -f1
 }

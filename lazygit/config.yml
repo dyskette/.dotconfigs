@@ -4,20 +4,9 @@ git:
     # lazygit owns scrolling, so delta must not start a pager of its own.
     # lazygit pipes delta's output, so delta can't ask the terminal for its
     # background; lazygit asks instead and hands the answer over as
-    # {{colorScheme}}. The syntax theme matches bat (bat/config), and the
-    # line backgrounds are Everforest's bg_green/bg_red, as in Vim's
-    # DiffAdd/DiffDelete; changed words get the accent in bold.
-    # Styles are double-quoted only: on Windows lazygit runs this through
-    # cmd.exe, which does not treat single quotes as quotes and would split
-    # 'syntax "#514045"' into two arguments. Hex colours need no inner quotes.
-    - command: >-
-        delta --paging=never --{{colorScheme}}
-        {{if eq .colorScheme "light"}}--syntax-theme=everforest-light-medium
-        --minus-style="syntax #fde3da" --minus-emph-style="bold #f85552 #fde3da"
-        --plus-style="syntax #f0f1d2" --plus-emph-style="bold #8da101 #f0f1d2"
-        {{else}}--syntax-theme=everforest-dark-medium
-        --minus-style="syntax #514045" --minus-emph-style="bold #e67e80 #514045"
-        --plus-style="syntax #425047" --plus-emph-style="bold #a7c080 #425047"{{end}}
+    # {{colorScheme}}. The colours are the everforest-* features in
+    # delta/everforest.gitconfig, shared with glo in both shells.
+    - command: delta --paging=never --features=everforest-{{colorScheme}}
 os:
   # Plain nvim on every platform, no nvim-remote preset: inside an nvim
   # terminal flatten.nvim hands the file to that nvim (the lazygit float hides

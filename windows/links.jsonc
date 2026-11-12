@@ -12,6 +12,10 @@
     { "app": "lazygit", "source": "lazygit\\config.yml", "target": "%LOCALAPPDATA%\\lazygit\\config.yml", "type": "SymbolicLink" },
     { "app": "powershell", "source": "powershell", "target": "%USERPROFILE%\\Documents\\PowerShell", "type": "Junction" },
     { "app": "bat", "source": "bat", "target": "%APPDATA%\\bat", "type": "Junction", "post": ["bat", "cache", "--build"] },
+    // delta reads its settings from git config: include the linked file from
+    // the global one. --replace-all with a value pattern rewrites only this
+    // include, so re-running neither duplicates it nor touches other includes.
+    { "app": "delta", "source": "delta", "target": "%USERPROFILE%\\.config\\delta", "type": "Junction", "post": ["git", "config", "--global", "--replace-all", "include.path", "~/.config/delta/everforest.gitconfig", "delta/everforest"] },
     // fd reads only this one file from its folder; the shells point fzf and
     // ripgrep at fzf\fzfrc and ripgrep\config in the repository directly.
     { "app": "fd", "source": "fd\\ignore", "target": "%APPDATA%\\fd\\ignore", "type": "SymbolicLink" },

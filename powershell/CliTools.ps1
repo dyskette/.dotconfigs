@@ -37,9 +37,10 @@ $env:FZF_DEFAULT_COMMAND = 'fd --type file --hidden --follow --strip-cwd-prefix'
 # bat and delta pick their theme by asking the terminal for its background,
 # which cannot work in an fzf preview: fzf owns the console and takes the
 # reply, so they fall back to dark themes on a light terminal. The prompt keeps
-# BAT_THEME (bat, and delta's syntax colours) and SYSTEM_COLOR_THEME (delta's
-# --light/--dark, expanded by cmd.exe) in step with Windows; fzf hands both to
-# its previews, so a theme switch shows up from the next fzf.
+# BAT_THEME (bat) and SYSTEM_COLOR_THEME (expanded by cmd.exe into delta's
+# everforest-light|dark feature, delta/everforest.gitconfig) in step with
+# Windows; fzf hands both to its previews, so a theme switch shows up from the
+# next fzf.
 $script:FzfPreviewFile = "bat --color=always --style=numbers,changes --line-range=:500 {}"
 $script:FzfPreviewDir = 'eza --tree --level=2 --color=always --icons=always --group-directories-first --git-ignore {}'
 
@@ -357,7 +358,7 @@ function glo {
     $commits = git log --color=always --date=short @LogArgument `
         --format='%C(yellow)%h%C(reset) %C(green)%ad%C(reset) %s%C(auto)%d %C(blue)%an' |
         fzf --ansi --multi --no-sort --scheme=history --border-label=' log ' `
-            --preview='git show --color=always {1} | delta --%SYSTEM_COLOR_THEME% --width=%FZF_PREVIEW_COLUMNS%' `
+            --preview='git show --color=always {1} | delta --features=everforest-%SYSTEM_COLOR_THEME% --width=%FZF_PREVIEW_COLUMNS%' `
             --preview-window='down,70%,border-top'
     if ($LASTEXITCODE -ne 0) {
         return

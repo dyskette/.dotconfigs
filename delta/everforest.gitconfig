@@ -1,0 +1,36 @@
+# Everforest for delta, one feature per scheme, so every caller (lazygit, glo in
+# bash and PowerShell) draws the same diff: `delta --features everforest-dark`
+# or `--features everforest-light`.
+#
+# Linked to ~/.config/delta and pulled into the global git config with
+# include.path by the installers (windows/links.jsonc, linux/tasks/dotfiles.yml);
+# delta reads its settings from git config, and git ignores these sections.
+#
+# Callers pick the scheme themselves because delta cannot ask the terminal
+# inside lazygit or an fzf preview (see bash/bashrc.d/colors.sh).
+#
+# The syntax theme matches bat (bat/config). The line backgrounds are
+# Everforest's bg_red/bg_green, as in Vim's DiffDelete/DiffAdd; changed words
+# get the accent in bold. Each style is quoted whole because in git config an
+# unquoted # starts a comment.
+#
+# true-color is forced: delta otherwise trusts COLORTERM, which Windows
+# Terminal does not set, and rounds these colours to the 256-colour palette.
+
+[delta "everforest-dark"]
+    dark = true
+    true-color = always
+    syntax-theme = everforest-dark-medium
+    minus-style = "syntax #514045"
+    minus-emph-style = "bold #e67e80 #514045"
+    plus-style = "syntax #425047"
+    plus-emph-style = "bold #a7c080 #425047"
+
+[delta "everforest-light"]
+    light = true
+    true-color = always
+    syntax-theme = everforest-light-medium
+    minus-style = "syntax #fde3da"
+    minus-emph-style = "bold #f85552 #fde3da"
+    plus-style = "syntax #f0f1d2"
+    plus-emph-style = "bold #8da101 #f0f1d2"

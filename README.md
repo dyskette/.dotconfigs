@@ -28,6 +28,7 @@ defaults, read the same way by PowerShell (`powershell/CliTools.ps1`), bash
 | `ripgrep/config` | `RIPGREP_CONFIG_PATH` (nvim sets it too, for `:grep`) |
 | `fd/ignore` | linked to `~/.config/fd/ignore`, `%APPDATA%\fd\ignore` |
 | `bat/config` | linked |
+| `delta/everforest.gitconfig` | linked to `~/.config/delta`, pulled into the global git config with `include.path`; callers pick `--features=everforest-light\|dark` |
 
 Colours are ANSI everywhere, so they follow the terminal's light/dark theme.
 The exception is bat and delta, which need a named theme. They work it out by
