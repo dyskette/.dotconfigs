@@ -1,4 +1,57 @@
-# Additions to yazi's default keymap; nothing here replaces a default key.
+# Additions to yazi's default keymap. Prepended, so where a key is listed
+# here it wins over the default; each such case says what it replaces.
+#
+# Defaults worth knowing: z zoxide jump, Z fzf jump (both through the shared
+# fzf/fzfrc), s fd search, S ripgrep search, g<Space> type a path.
+
+[[mgr.prepend_keymap]]
+# Replaces `enter`: a file opens instead of nothing happening.
+on = "l"
+run = "plugin smart-enter"
+desc = "Enter the folder, or open the file(s)"
+
+[[mgr.prepend_keymap]]
+on = "<Enter>"
+run = "plugin smart-enter"
+desc = "Enter the folder, or open the file(s)"
+
+[[mgr.prepend_keymap]]
+# Replaces `filter --smart` (now on F): like vim's f.
+on = "f"
+run = "plugin jump-to-char"
+desc = "Jump to the next file starting with a character"
+
+[[mgr.prepend_keymap]]
+# Filters as you type and enters a folder when it is the only match left.
+on = "F"
+run = "plugin smart-filter"
+desc = "Smart filter"
+
+[[mgr.prepend_keymap]]
+on = "T"
+run = "plugin toggle-pane max-preview"
+desc = "Maximize or restore the preview"
+
+[[mgr.prepend_keymap]]
+on = ["g", "s"]
+run = "plugin vcs-files"
+desc = "Go to the files git reports as changed"
+
+[[mgr.prepend_keymap]]
+on = "<A-d>"
+run = "plugin diff"
+desc = "Diff the selected file with the hovered one"
+
+[[mgr.prepend_keymap]]
+# lazygit in the current folder; yazi resumes when it quits.
+on = "<C-g>"
+run = "shell --block lazygit"
+desc = "lazygit"
+
+[[mgr.prepend_keymap]]
+on = ["g", "."]
+run = "cd ~/.dotconfigs"
+desc = "Go to ~/.dotconfigs"
 
 [[mgr.prepend_keymap]]
 # explorer.exe resolves on Windows and, through interop, inside WSL, where it

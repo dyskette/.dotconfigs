@@ -1,9 +1,18 @@
-# Yazi behaviour. Colors live in theme.toml and flavors/.
+# Yazi behaviour. Colors live in theme.toml and flavors/; plugins are pinned
+# in package.toml and set up in init.lua.
 
 [mgr]
 # Metadata column beside each entry.
 # Built-ins: none | size | btime | mtime | permissions | owner
 linemode = "size"
+# Dotfiles shown; `.` still toggles them.
+show_hidden = true
+# file2 before file10; folders first.
+sort_by = "natural"
+sort_dir_first = true
+# Parent, current, preview: more room for the preview.
+ratio = [1, 3, 4]
+scrolloff = 5
 
 # git.yazi - per-file VCS status in the file list.
 # Two rules are needed because `*` does not match directories; `group` makes
@@ -17,3 +26,10 @@ group = "git"
 url = "*/"
 run = "git"
 group = "git"
+
+# Folders preview as an eza tree, two levels deep with git status, instead of
+# a flat listing. piper runs it through sh (Git for Windows' on Windows); eza's
+# colours are ANSI, so they follow the light/dark theme.
+[[plugin.prepend_previewers]]
+url = "*/"
+run = 'piper -- eza --tree --level=2 --color=always --icons=always --group-directories-first --git-ignore --no-quotes "$1"'
