@@ -23,14 +23,8 @@ local function setup_global_lsp_config()
   -- Completion capabilities are not set here: blink.cmp (a dependency, so
   -- loaded first) registers them on "*" from its own plugin/ file.
   vim.lsp.config("*", {
-    -- Client behavior flags
-    flags = {
-      -- Reduce debounce for faster responsiveness
-      debounce_text_changes = 150, -- milliseconds
-    },
-
-    -- Position encoding for LSP communication (fixes position_encoding warnings)
-    offset_encoding = "utf-16",
+    -- The debounce (150 ms) and the position encoding are left to nvim:
+    -- the first is its default, the second it negotiates per server.
 
     -- Default root directory markers for workspace detection
     -- Nested lists indicate equal priority
