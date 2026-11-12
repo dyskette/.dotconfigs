@@ -342,6 +342,55 @@ return {
       desc = "Search workspace symbols",
     },
     {
+      "<leader>s.",
+      function()
+        Snacks.picker.resume()
+      end,
+      desc = "Resume the last search",
+    },
+    {
+      "<leader>sd",
+      function()
+        Snacks.picker.diagnostics()
+      end,
+      desc = "Search diagnostics",
+    },
+    {
+      "<leader>sh",
+      function()
+        Snacks.picker.help()
+      end,
+      desc = "Search help",
+    },
+    {
+      "<leader>sk",
+      function()
+        Snacks.picker.keymaps()
+      end,
+      desc = "Search keymaps",
+    },
+    {
+      "<leader>s:",
+      function()
+        Snacks.picker.command_history()
+      end,
+      desc = "Search command history",
+    },
+    {
+      "<leader>gB",
+      function()
+        Snacks.picker.git_branches()
+      end,
+      desc = "Git branches (switch)",
+    },
+    {
+      "<leader>gL",
+      function()
+        Snacks.picker.git_log_file()
+      end,
+      desc = "Git log of this file",
+    },
+    {
       "gd",
       function()
         Snacks.picker.lsp_definitions()
