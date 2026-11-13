@@ -55,13 +55,14 @@ Always available (locked too):
 
 | Key | Does |
 | --- | --- |
-| `Alt h/j/k/l`, `Alt ←↓↑→` | Move between nvim windows and Zellij panes as one grid; left/right cross into the next tab at the edge |
+| `Alt h/j/k/l`, `Alt ←↓↑→` | Move between nvim windows and Zellij panes as one grid, from any nvim mode; left/right cross into the next tab at the edge |
+| `Alt H/J/K/L` | Move a divider that way: nvim's window divider, or the Zellij pane divider when nvim has none that way (the right/bottom divider first) |
+| `Alt 1`–`9` | Go to tab N |
+| `Alt m` | Maximize (zoom) the pane and back |
 | `Alt a` | To this tab's agent and back (starts one if missing) |
 | `Alt u` | Next pane anywhere that needs you (agent waiting, failed tests), switching session if needed |
 | `Alt \` | Previous pane |
 | `Alt n` / `Alt f` | New pane / show or hide floating panes |
-| `Alt i` / `Alt o` | Move tab left / right |
-| `Alt [` / `Alt ]` | Previous / next swap arrangement |
 | `Alt =` / `Alt -` | Grow / shrink pane |
 
 After `Alt g`:
@@ -71,21 +72,64 @@ After `Alt g`:
 | `f` | Projects picker (`zj`) in a float |
 | `w` | Session manager (type part of a name; previews; resurrect dead sessions) |
 | `i` | Inbox: every agent and long command in every session, by status |
-| `g` / `y` | lazygit / yazi in a float, in the pane's folder |
+| `g` / `y` | lazygit / yazi in a float, in the pane's folder; files they open land in the tab's nvim |
+| `e` | This pane's scrollback in nvim, in place (search, motions, yank) |
 | `n` | Scratch floating shell |
-| `z` | Fullscreen the pane |
-| `Space` | Next arrangement: code (60/40), agent (agent wide), columns (stack on the right) |
+| `z` | Fullscreen the pane (same as `Alt m`) |
+| `Space`, `[` / `]` | Next / previous arrangement: code (60/40), agent (agent wide), columns (stack on the right) |
+| `,` / `.` | Move the tab left / right |
 | `T` | Toggle light/dark theme |
 | `d` | Detach |
 | `p` `t` `r` `m` `s` `o` | Pane, tab, resize, move, scroll, session modes (the status bar lists their keys) |
 
-Worth knowing in those modes: `Alt g p c` renames a pane, `Alt g p v` watches
-it (every finish notifies), `Alt g p u` mutes it; `Alt g s` then `[`/`]` jumps
-between prompts and `c` copies the last command's output (the PowerShell
-prompt sends OSC 133); `Alt g o` then `Tab` toggles the previous session.
+Scroll mode (`Alt g s`) reads like a pager: `j`/`k`, `d`/`u`, `g`/`G` top and
+bottom, `/` search then `n`/`N`, `[`/`]` between prompts, `c` copies the last
+command's output (the PowerShell prompt sends OSC 133), `e` or `v` opens it all
+in nvim.
 
-Freed on purpose: `Alt p` (Claude Code's model picker) and `Ctrl g` (live
-ripgrep in the shell, edit-prompt in Claude Code).
+Worth knowing in the other modes: `Alt g p c` renames a pane, `Alt g p v`
+watches it (every finish notifies), `Alt g p u` mutes it; `Alt g o` then `Tab`
+toggles the previous session.
+
+Left to programs: `Alt p` (Claude Code's model picker), `Ctrl g` (live ripgrep
+in the shell, edit-prompt in Claude Code), `Alt Enter` (newline in OpenCode),
+`Alt z` (zoxide in the shell), `Alt i/o/[/]` (nvim). OpenCode's `Alt a` (start
+of visual line) is the one program key the agent toggle shadows.
+
+## Neovim in the workspace
+
+`nvim/lua/config/zellij.lua`, `config/autoreload.lua` and flatten.nvim
+(`plugins/terminal.lua`) make the tab's editor the centre of the tab.
+
+**One editor per tab.** The nvim a service tab starts registers itself as the
+tab's editor (`%LOCALAPPDATA%\nvim-data\zellij\<session>\<pane>`). Any `nvim`
+started elsewhere in the tab (lazygit's `e`, yazi, `sf` / `sg` in the shell,
+Zellij's click-to-open) hands its files to it, and focus moves there. Edits a
+program waits for (commit and rebase messages, an agent's prompt file in
+`%TEMP%` from OpenCode's editor key or Claude Code's `Ctrl g`) end with `:w`,
+and focus goes back to the pane that asked. A bare `nvim` still starts its own
+instance; so does the scrollback editor.
+
+**Agent bridge** (normal mode; pastes into the agent's prompt without
+submitting, then focuses it):
+
+| Key | Sends |
+| --- | --- |
+| `<leader>if` | `@path` of the buffer |
+| `<leader>il` | `@path line N`; in visual mode the selection as a fenced block with its line range |
+| `<leader>id` | The cursor line's diagnostics (with a count, the whole buffer's) |
+| `<leader>ii` | Nothing: goes to the agent (as `Alt a`) |
+
+**Live reload.** Files the agent changes reload on their own (a watcher per
+buffer, plus checks on focus and idle), with a notification. A buffer with
+unsaved changes is never overwritten; nvim asks.
+
+**Projects from nvim.** `<leader>sp` lists the same projects as `zj` (● marks
+running sessions, folder preview) and opens the pick in its session and tab.
+
+lazygit and a shell are reachable both ways: `<leader>gg` / `<C-\>` float
+inside nvim and close with it; `Alt g g` / `Alt g n` float in Zellij and
+outlive an nvim restart. Both send files to the same editor.
 
 ## A day
 
@@ -166,6 +210,8 @@ When it guesses wrong, put a `.zjr.json` in the folder:
 | Symptom | Fix |
 | --- | --- |
 | Alt+hjkl does nothing | `Build-Pilot.ps1`, then restart the session. Debug: add `debug "true"` to the `pilot` block in `config.kdl`, read `%TEMP%\zellij\zellij-log\zellij.log` (lines start `pilot:`) |
+| A file opens in a new nvim instead of the tab's editor | The editor nvim must have started after this config (it registers on start); restart it. Check `%LOCALAPPDATA%\nvim-data\zellij\<session>` lists its pane |
+| `nvim somefile` in a pane waits | The file is under `%TEMP%`, which counts as an agent's prompt file: `:w` in the editor releases it |
 | A floating "pilot" permission prompt | Answer `y` once, or run `Build-Pilot.ps1` (writes the grant) |
 | `zj` from inside does not switch | It needs pilot (`zellij action switch-session` from the CLI only moves the CLI's own connection, not your client) |
 | New panes open in the wrong folder | The prompt reports the folder with OSC 7; a program that changes folder without a prompt is not tracked |
