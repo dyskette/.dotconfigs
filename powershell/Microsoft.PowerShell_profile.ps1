@@ -90,21 +90,35 @@ function prompt {
         $env:BAT_THEME = "everforest-$($env:SYSTEM_COLOR_THEME)-medium"
     }
 
-    # Report the working directory so the terminal can reopen a tab or
-    # split where this one is. OSC 9;9 is ConEmu's, and Windows Terminal
-    # honours it.
-    #
-    # OSC 9;12 ("prompt start") is ConEmu's too, but terminals that read
-    # OSC 9 as an iTerm2 toast instead post a notification whose entire body
-    # is "12" -- once per prompt. It is therefore emitted only under Windows
-    # Terminal, matching the guard bash/bashrc.d/prompt.sh already puts on
-    # its own OSC 9;9 line.
+    # Shell integration (OSC 133): the end of the last command with its exit
+    # code (D), then where the prompt starts (A) and where it ends (B); the
+    # command start (C) is sent from the history handler below. Zellij uses
+    # them for the inbox (a long command finished or failed), for jumping
+    # between prompts (Alt g s, then [ and ]) and for copying the last
+    # command's output (Alt g s c); Windows Terminal draws scrollbar marks.
+    # D only after a C, so the first prompt reports no phantom command.
     $osc = ""
-    if ($env:WT_SESSION) {
-        $osc += "`e]9;12`a"
+    if ($global:CommandRunning) {
+        $code = if ($ok) { 0 } elseif ($global:LASTEXITCODE) { $global:LASTEXITCODE } else { 1 }
+        $osc += "`e]133;D;$code`a"
+        $global:CommandRunning = $false
     }
+    $osc += "`e]133;A`a"
+
+    # Report the working directory so a new pane, split or tab opens where
+    # this one is. PowerShell's cd does not change the process's directory,
+    # so the terminal cannot find it on its own.
+    #
+    # Inside Zellij: OSC 7, which it reads (and forwards to the terminal
+    # outside). Not OSC 9;9, ConEmu's, which Windows Terminal honours:
+    # Zellij reads OSC 9 as a desktop notification.
     if ($loc.Provider.Name -eq "FileSystem") {
-        $osc += "`e]9;9;`"$($loc.ProviderPath)`"`e\"
+        if ($env:ZELLIJ) {
+            $uri = [Uri]::new($loc.ProviderPath).AbsoluteUri -replace '^file:///', "file://$([Environment]::MachineName)/"
+            $osc += "`e]7;$uri`e\"
+        } else {
+            $osc += "`e]9;9;`"$($loc.ProviderPath)`"`e\"
+        }
     }
 
     # Title at the prompt: the current folder (~ for home), as bash does,
@@ -139,17 +153,21 @@ function prompt {
     } else {
         "`e[31m"
     }
-    "$global:PromptHead`e[36m$path`e[0m $style$global:PromptChar`e[0m "
+    "$global:PromptHead`e[36m$path`e[0m $style$global:PromptChar`e[0m `e]133;B`a"
 }
 
 # Title while a command runs: its first word (npm, dotnet, ...), as bash does.
 # PSReadLine calls this on Enter, just before the line executes; returning its
 # default decision keeps the usual history filtering (e.g. of secrets).
+#
+# Also the OSC 133 "command starts" mark (C), the one shell integration mark
+# the prompt function cannot send; see prompt.
 Set-PSReadLineOption -AddToHistoryHandler {
     param([string]$line)
     $command = ($line.TrimStart() -split '\s+', 2)[0]
     if ($command) {
-        [Console]::Write("$([char]27)]2;$command$([char]7)")
+        [Console]::Write("$([char]27)]2;$command$([char]7)$([char]27)]133;C$([char]7)")
+        $global:CommandRunning = $true
     }
     [Microsoft.PowerShell.PSConsoleReadLine]::GetDefaultAddToHistoryOption($line)
 }
