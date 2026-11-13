@@ -1,0 +1,81 @@
+// One service: Neovim, the agent beside it, and a stack below with the dev
+// server and the tests (both wait for Enter) and a shell.
+//
+// `zj` opens it as a tab in the client's session, in the service's folder
+// (powershell/Zellij.psm1). By hand:
+//   zellij action new-tab --layout service --cwd <folder> --name <service>
+//
+// zjr picks the command for the project (dotnet watch, npm run dev, uv run,
+// cargo run, ...), so one layout serves every kind of project. zja starts
+// the agent (Claude Code by default, $env:ZJ_AGENT to change it) and
+// continues the folder's last conversation when there is one.
+//
+// Alt g Space cycles the arrangements below.
+layout {
+    // The same one-line bar as the built-in compact layout. Swap layouts
+    // count it: 5 panes + the bar = 6.
+    tab_template name="ui" {
+        children
+        pane size=1 borderless=true {
+            plugin location="compact-bar"
+        }
+    }
+
+    ui name="service" focus=true {
+        pane split_direction="vertical" {
+            pane name="editor" command="nvim" focus=true size="60%"
+            pane name="agent" command="pwsh" size="40%" {
+                args "-NoLogo" "-Command" "zja; exit $LASTEXITCODE"
+            }
+        }
+        pane size="30%" stacked=true {
+            pane name="dev" command="pwsh" start_suspended=true {
+                args "-NoLogo" "-Command" "zjr dev; exit $LASTEXITCODE"
+            }
+            pane name="test" command="pwsh" start_suspended=true {
+                args "-NoLogo" "-Command" "zjr test; exit $LASTEXITCODE"
+            }
+            pane name="shell" expanded=true
+        }
+    }
+
+    // The editor and the agent side by side, the stack under them.
+    swap_tiled_layout name="code" {
+        ui exact_panes=6 {
+            pane split_direction="vertical" {
+                pane size="60%"
+                pane size="40%"
+            }
+            pane size="30%" stacked=true {
+                children
+            }
+        }
+    }
+
+    // The agent takes the wide column; the editor stays as a reference.
+    swap_tiled_layout name="agent" {
+        ui exact_panes=6 {
+            pane split_direction="vertical" {
+                pane size="35%"
+                pane size="65%"
+            }
+            pane size="30%" stacked=true {
+                children
+            }
+        }
+    }
+
+    // Editor and agent full height, the stack in a narrow right column (wide
+    // monitors).
+    swap_tiled_layout name="columns" {
+        ui exact_panes=6 {
+            pane split_direction="vertical" {
+                pane size="45%"
+                pane size="35%"
+                pane size="20%" stacked=true {
+                    children
+                }
+            }
+        }
+    }
+}
