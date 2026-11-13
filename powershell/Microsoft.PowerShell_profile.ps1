@@ -280,7 +280,7 @@ if ($tools.dotnet) {
 
 <#
 .SYNOPSIS
-    Resolve the project directory for zj/tm: the given path, or an fzf pick
+    Resolve the project directory for tm: the given path, or an fzf pick
     from directories under $HOME. Returns nothing when the pick is cancelled.
 #>
 function Select-ProjectDirectory {
@@ -301,29 +301,15 @@ function Select-ProjectDirectory {
     }
 }
 
-function zj {
-    param(
-        [Parameter(Position = 0)]
-        [string]$Directory
-    )
-
-    $dir = Select-ProjectDirectory $Directory
-    if (-not $dir) {
-        return
-    }
-
-    $name = (Split-Path -Leaf $dir) -replace '\.', '_'
-
-    if ($env:ZELLIJ) {
-        zellij action switch-session $name --cwd $dir
-    } else {
-        zellij attach --create $name options --default-cwd $dir
-    }
+# Zellij: zj (projects: a session per client, a tab per service), zja (the
+# coding agent) and zjr (dev server, tests, build). See zellij/README.md.
+if (Get-Command zellij -CommandType Application -ErrorAction SilentlyContinue) {
+    Import-Module (Join-Path $PSScriptRoot 'Zellij.psm1') -DisableNameChecking
 }
 
 <#
 .SYNOPSIS
-    psmux session manager, the psmux twin of zj: switch-client from inside,
+    psmux session manager: switch-client from inside,
     new-session -A (attach or create) from outside.
 #>
 function tm {
