@@ -212,6 +212,9 @@ When it guesses wrong, put a `.zjr.json` in the folder:
 | Alt+hjkl does nothing | `Build-Pilot.ps1`, then restart the session. Debug: add `debug "true"` to the `pilot` block in `config.kdl`, read `%TEMP%\zellij\zellij-log\zellij.log` (lines start `pilot:`) |
 | A file opens in a new nvim instead of the tab's editor | The editor nvim must have started after this config (it registers on start); restart it. Check `%LOCALAPPDATA%\nvim-data\zellij\<session>` lists its pane |
 | `nvim somefile` in a pane waits | The file is under `%TEMP%`, which counts as an agent's prompt file: `:w` in the editor releases it |
+| A session vanished after switching away (not even listed as EXITED) | Zellij 0.46 deletes a session nobody pressed Enter in when the session manager (`Alt g w`, inbox, session card) leaves it. pilot marks service tabs as used at start (an Enter key event without bytes in the `shell` pane). Sessions without a pane named `shell` (made in the session manager) count once you run any command in them |
+| A session named `.something` cannot be found | Zellij cannot list or reach names starting or ending with a dot; `zj` strips them (`~/.dotconfigs` → `dotconfigs`) |
+| New tabs fail with `0x80070002` launching `pwsh.exe`; Start-menu apps miss tools | Explorer drops the whole user PATH when system + user PATH exceed about 4,095 characters, as soon as anything broadcasts an environment change. Shorten the user PATH (duplicates, folders whose programs are found earlier), then close every Windows Terminal window and reopen it |
 | A floating "pilot" permission prompt | Answer `y` once, or run `Build-Pilot.ps1` (writes the grant) |
 | `zj` from inside does not switch | It needs pilot (`zellij action switch-session` from the CLI only moves the CLI's own connection, not your client) |
 | New panes open in the wrong folder | The prompt reports the folder with OSC 7; a program that changes folder without a prompt is not tracked |
