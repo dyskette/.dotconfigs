@@ -57,3 +57,9 @@ In nvim, `<leader>gg` toggles lazygit and `<C-\>` a shell, both in floats
 (toggleterm.nvim). Anything they open with `nvim` (lazygit's `e`, a commit
 message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one. In
 tmux/psmux, `prefix g` and `prefix e` open lazygit and yazi over the pane.
+
+On Windows the workspace is Zellij: Windows Terminal's default profile opens
+its session picker, every client is a session and every service a tab with
+nvim, a coding agent, and dev/test/shell panes. `zj` opens a project, `zja`
+starts the agent, `zjr` runs the dev server or tests. See
+[zellij/README.md](zellij/README.md).
