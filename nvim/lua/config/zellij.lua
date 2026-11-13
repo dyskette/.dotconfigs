@@ -85,10 +85,10 @@ function M.navigate(key)
   if vim.api.nvim_get_current_win() ~= before or not in_zellij() then
     return
   end
-  -- Left and right cross into the next tab at the screen edge, as pilot
-  -- does for other panes.
-  local action = dirs[key].vertical and "move-focus-or-tab" or "move-focus"
-  zellij({ "action", action, dirs[key].name })
+  -- Through pilot: `zellij action move-focus` from a pane has no client to
+  -- move ("No connected clients"). nav-pane skips pilot's editor check,
+  -- which would send the key straight back here.
+  zellij({ "pipe", "--name", "nav-pane", "--", dirs[key].name })
 end
 
 -- --- Resizing --------------------------------------------------------------------
@@ -411,7 +411,8 @@ function M.projects()
   local items = {}
   for idx, rel in ipairs(list) do
     local dir = vim.fs.joinpath(root, rel)
-    local client = rel:match("^[^/]+"):gsub("[^%w%.%-_]", "_")
+    -- Same name rule as ConvertTo-ZjSessionName (powershell/Zellij.psm1).
+    local client = rel:match("^[^/]+"):gsub("[^%w%.%-_]", "_"):gsub("^%.+", ""):gsub("%.+$", "")
     table.insert(items, {
       text = rel,
       file = dir,

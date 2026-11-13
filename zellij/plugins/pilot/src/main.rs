@@ -10,6 +10,9 @@
 //!   `zellij action move-focus-or-tab` when it is already at its edge. Any
 //!   other pane moves Zellij's focus directly, crossing into the next tab at
 //!   the left and right screen edges.
+//! - `nav-pane`: the same move without the Neovim check, sent by Neovim when it
+//!   is at its own edge (`zellij action move-focus` from a pane has no client
+//!   to move).
 //! - `agent` (payload `toggle`): jumps to the pane named `agent` in the current tab, or back to
 //!   the previous pane when the agent already has focus. A tab without one
 //!   gets a new agent pane, started in the focused pane's directory with the
@@ -111,8 +114,8 @@ impl ZellijPlugin for Pilot {
             return false;
         };
         match message.name.as_str() {
-            "nav" => match parse_direction(payload) {
-                Some(direction) => self.navigate(direction),
+            "nav" | "nav-pane" => match parse_direction(payload) {
+                Some(direction) => self.navigate(direction, message.name == "nav"),
                 None => eprintln!("pilot: nav expects left, right, up or down, not '{payload}'"),
             },
             "agent" => self.toggle_agent(),
@@ -133,14 +136,14 @@ impl ZellijPlugin for Pilot {
 
 impl Pilot {
     /// Hand the key to an editor pane, or move Zellij's focus.
-    fn navigate(&self, direction: Direction) {
+    fn navigate(&self, direction: Direction, editor_first: bool) {
         let focused = get_focused_pane_info();
         self.log(|| format!("nav {direction:?}, focused {focused:?}"));
         let Ok((_, pane)) = focused else {
             return;
         };
 
-        let editor = is_editor(pane);
+        let editor = editor_first && is_editor(pane);
         self.log(|| format!("{pane:?} runs an editor: {editor}"));
         if editor {
             // Alt+<key> in legacy encoding: ESC followed by the key. Neovim
