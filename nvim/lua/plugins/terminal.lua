@@ -5,13 +5,35 @@
 -- them, by hand or by a tool (lazygit's `e`, git commit, yazi, sf/sg in the
 -- shell), open its files in this nvim instead of a nested one. No per-tool
 -- editor settings: lazygit/config.yml just says `nvim`.
+--
+-- Inside Zellij the same goes for every pane of the tab: the tab's editor
+-- nvim is the host (config/zellij.lua finds it), takes focus when a file
+-- arrives, and gives it back to the pane that asked once a blocking edit
+-- (commit message, an agent's prompt) is written.
 local terminals = require("config.terminals")
 
---- flatten's hooks, wired to toggleterm: a float hides while its file is
---- edited, and a blocking edit (commit message) brings it back when done.
+--- Whether argv edits a file in the temp folder: the prompt files agents
+--- (OpenCode's editor key, Claude Code's Ctrl+g) hand to $EDITOR and read
+--- back when it exits, so the caller has to wait for the edit.
+---@param argv string[]
+---@return boolean
+local function edits_temp_file(argv)
+  local temp = vim.fs.normalize(vim.env.TEMP or vim.env.TMPDIR or "/tmp"):lower()
+  for i = 2, #argv do
+    local arg = argv[i]
+    if not arg:match("^[-+]") and vim.startswith(vim.fs.normalize(vim.fn.fnamemodify(arg, ":p")):lower(), temp) then
+      return true
+    end
+  end
+  return false
+end
+
+--- flatten's hooks, wired to toggleterm and Zellij: a float hides while its
+--- file is edited, and a blocking edit brings it back when done.
 local flatten_opts = function()
   ---@type Terminal?
   local saved_terminal
+  local zellij = require("config.zellij")
 
   return {
     -- The window the terminal was opened from, not the float itself.
@@ -20,10 +42,20 @@ local flatten_opts = function()
     -- nothing; with files (or -d, -q) it is flattened.
     nest_if_no_args = true,
     hooks = {
+      -- The host: this nvim's parent terminal, or the Zellij tab's editor.
+      pipe_path = zellij.pipe_path,
+      -- Tells the host which Zellij pane to give focus back to.
+      guest_data = zellij.guest_data,
+      -- Always hand files over once a host is found (the default nests when
+      -- not inside an nvim terminal); no-argument runs still nest.
+      should_nest = function()
+        return false
+      end,
       -- `nvim -b file` waits until the file is closed, like a commit message
-      -- does on its own (block_for: gitcommit, gitrebase).
+      -- does on its own (block_for: gitcommit, gitrebase), and so does an
+      -- agent's prompt file.
       should_block = function(argv)
-        return vim.tbl_contains(argv, "-b")
+        return vim.tbl_contains(argv, "-b") or edits_temp_file(argv)
       end,
 
       pre_open = function()
@@ -48,9 +80,15 @@ local flatten_opts = function()
           saved_terminal = nil
         end
 
-        -- A commit or rebase message ends with :w; the buffer goes so the
-        -- waiting git carries on (:wq would try to close the window too).
-        if ctx.filetype == "gitcommit" or ctx.filetype == "gitrebase" then
+        -- Sent from another Zellij pane: bring this editor's pane forward.
+        if type(ctx.data) == "table" and ctx.data.zellij_pane then
+          zellij.focus_pane()
+        end
+
+        -- A blocking edit (commit or rebase message, an agent's prompt) ends
+        -- with :w; the buffer goes so the waiting program carries on (:wq
+        -- would try to close the window too).
+        if ctx.is_blocking then
           vim.api.nvim_create_autocmd("BufWritePost", {
             buffer = ctx.bufnr,
             once = true,
@@ -63,12 +101,16 @@ local flatten_opts = function()
         end
       end,
 
-      block_end = function()
-        -- Back to the program that was waiting for the edit.
+      block_end = function(ctx)
+        -- Back to the program that was waiting for the edit: a toggleterm
+        -- float here, or the Zellij pane it runs in.
         vim.schedule(function()
           if saved_terminal then
             saved_terminal:open()
             saved_terminal = nil
+          end
+          if type(ctx.data) == "table" and ctx.data.zellij_pane then
+            zellij.focus_pane(ctx.data.zellij_pane)
           end
         end)
       end,
