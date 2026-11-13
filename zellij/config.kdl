@@ -27,6 +27,29 @@ keybinds preset="unlock-first" unlock="Alt g" {
         bind "Alt k" "Alt Up" { MessagePlugin "pilot" { name "nav"; payload "up"; }; }
         bind "Alt l" "Alt Right" { MessagePlugin "pilot" { name "nav"; payload "right"; }; }
 
+        // Alt H/J/K/L: move a divider that way, the same in both layers.
+        // In Neovim its window divider, else (or with none that way) the
+        // Zellij pane divider. Terminals send Alt+Shift+h as Alt + "H".
+        bind "Alt H" { MessagePlugin "pilot" { name "resize"; payload "left"; }; }
+        bind "Alt J" { MessagePlugin "pilot" { name "resize"; payload "down"; }; }
+        bind "Alt K" { MessagePlugin "pilot" { name "resize"; payload "up"; }; }
+        bind "Alt L" { MessagePlugin "pilot" { name "resize"; payload "right"; }; }
+
+        // Alt 1-9: straight to a tab, like a count before gt.
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
+
+        // Alt m: maximize (zoom) the pane and back, as <C-w>| then <C-w>=.
+        // Not Alt z (zoxide in the shell) or Alt Enter (a newline in OpenCode).
+        bind "Alt m" { ToggleFocusFullscreen; }
+
         // Alt a: to the tab's agent and back (starts one if the tab has none).
         bind "Alt a" { MessagePlugin "pilot" { name "agent"; payload "toggle"; }; }
 
@@ -38,9 +61,27 @@ keybinds preset="unlock-first" unlock="Alt g" {
         // Alt \ toggles to the previously focused pane.
         bind "Alt \\" { FocusLastPane; }
 
-        // Freed for programs: Alt p is Claude Code's model picker. Pane
-        // groups stay on the mouse (Alt + click).
-        unbind "Alt p" "Alt Shift p"
+        // Freed for programs: Alt p is Claude Code's model picker (pane
+        // groups stay on the mouse, Alt + click); Alt i/o and Alt [/] go to
+        // Neovim (rare Zellij actions, now after Alt g: , . [ ]). OpenCode's
+        // Alt a (start of visual line) stays shadowed by the agent key.
+        unbind "Alt p" "Alt Shift p" "Alt i" "Alt o" "Alt [" "Alt ]"
+    }
+
+    // Scroll and search read like a pager in vim: g/G top and bottom, /
+    // search, n/N next and previous match, e or v the whole scrollback in
+    // Neovim (motions, text objects, yank) in place of the pane.
+    scroll {
+        bind "g" { ScrollToTop; }
+        bind "G" { ScrollToBottom; }
+        bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "v" { EditScrollback; SwitchToMode "Locked"; }
+    }
+    search {
+        bind "N" { Search "up"; }
+        bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "g" { ScrollToTop; }
+        bind "G" { ScrollToBottom; }
     }
 
     // Actions one key after Alt g.
@@ -96,7 +137,14 @@ keybinds preset="unlock-first" unlock="Alt g" {
         // A scratch shell that floats over the tab; Alt f hides and shows it.
         bind "n" { NewFloatingPane; SwitchToMode "Locked"; }
         bind "z" { ToggleFocusFullscreen; SwitchToMode "Locked"; }
+        // This pane's scrollback in Neovim, without going through scroll mode.
+        bind "e" { EditScrollback; SwitchToMode "Locked"; }
+        // Arrangements and tab order, moved here from Alt [ ] i o.
         bind "Space" { NextSwapLayout; SwitchToMode "Locked"; }
+        bind "[" { PreviousSwapLayout; SwitchToMode "Locked"; }
+        bind "]" { NextSwapLayout; SwitchToMode "Locked"; }
+        bind "," { MoveTab "Left"; SwitchToMode "Locked"; }
+        bind "." { MoveTab "Right"; SwitchToMode "Locked"; }
         bind "T" { ToggleTheme; SwitchToMode "Locked"; }
         bind "d" { Detach; }
     }

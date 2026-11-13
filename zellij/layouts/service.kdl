@@ -10,6 +10,10 @@
 // the agent (OpenCode by default, $env:ZJ_AGENT to change it) and
 // continues the folder's last conversation when there is one.
 //
+// The editor pane is borderless: Neovim's statusline already says what it
+// is, and the row goes to code. The other panes keep their title rows, which
+// carry the inbox markers.
+//
 // Alt g Space cycles the arrangements below.
 layout {
     // The same one-line bar as the built-in compact layout. Swap layouts
@@ -23,7 +27,7 @@ layout {
 
     ui name="service" focus=true {
         pane split_direction="vertical" {
-            pane name="editor" command="nvim" focus=true size="60%"
+            pane name="editor" command="nvim" focus=true size="60%" borderless=true
             pane name="agent" command="pwsh" size="40%" {
                 args "-NoLogo" "-Command" "zja; exit $LASTEXITCODE"
             }
