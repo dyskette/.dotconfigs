@@ -60,7 +60,40 @@ struct Pilot {
     /// `debug "true"`: log each decision to the Zellij log
     /// (%TEMP%\zellij\zellij-log\zellij.log on Windows).
     debug: bool,
+    /// Progress of marking this session as used; see `keep_session`.
+    keep: Keep,
 }
+
+/// Zellij 0.46 treats a session nobody pressed Enter in as disposable: when
+/// the session manager (Alt g w, the inbox, the session card) switches away
+/// from it, the session is killed and its resurrection data deleted
+/// (`SwitchSessionAndCloseCurrent`). A service tab starts nvim and the agent
+/// by itself, so reading code and switching away lost the whole session, and
+/// so did leaving a session resurrected after a reboot.
+///
+/// The only thing that marks a session as used is an unmodified Enter key
+/// from the user's client in a terminal pane. pilot sends one on the user's
+/// behalf: an Enter key event with no bytes, in the tab's shell pane (pwsh,
+/// which does not use the kitty keyboard protocol, so no byte is written to
+/// it), then gives focus back.
+#[derive(Default, Debug, PartialEq)]
+enum Keep {
+    /// Waiting for a client and a tab with a shell pane.
+    #[default]
+    Waiting,
+    /// Asked Zellij whether a command was submitted already.
+    Checking,
+    /// Sent the Enter; focus goes back to this pane once it is done.
+    Marking(PaneId),
+    /// The session counts as used.
+    Done,
+}
+
+/// Name of the pane the Enter goes to (layouts/service.kdl).
+const SHELL_PANE: &str = "shell";
+
+/// Context tag of the action pilot runs, to recognise its completion.
+const KEEP_CONTEXT: &str = "pilot-keep-session";
 
 impl Pilot {
     fn log(&self, message: impl FnOnce() -> String) {
@@ -86,17 +119,50 @@ impl ZellijPlugin for Pilot {
             PermissionType::WriteToStdin,
             PermissionType::RunCommands,
             PermissionType::OpenTerminalsOrPlugins,
+            PermissionType::RunActionsAsUser,
         ]);
-        subscribe(&[EventType::PaneUpdate, EventType::TabUpdate, EventType::PermissionRequestResult]);
+        subscribe(&[
+            EventType::PaneUpdate,
+            EventType::TabUpdate,
+            EventType::PermissionRequestResult,
+            EventType::SessionSuggestions,
+            EventType::TerminalCommandSubmitted,
+            EventType::ActionComplete,
+        ]);
         // Headless: never take focus or space.
         set_selectable(false);
     }
 
     fn update(&mut self, event: Event) -> bool {
         match event {
-            Event::PaneUpdate(manifest) => self.panes = manifest,
+            Event::PaneUpdate(manifest) => {
+                self.panes = manifest;
+                self.keep_session();
+            }
             Event::TabUpdate(tabs) => self.tabs = tabs,
-            Event::PermissionRequestResult(PermissionStatus::Granted) => self.ready = true,
+            Event::SessionSuggestions(suggestions) if self.keep == Keep::Checking => {
+                if suggestions.command_submitted {
+                    self.keep = Keep::Done;
+                } else {
+                    self.mark_session_used();
+                }
+            }
+            Event::TerminalCommandSubmitted => {
+                if let Keep::Marking(pane) = self.keep {
+                    focus_pane_with_id(pane, false, false);
+                }
+                self.keep = Keep::Done;
+            }
+            Event::ActionComplete(_, _, context) if context.contains_key(KEEP_CONTEXT) => {
+                if let Keep::Marking(pane) = self.keep {
+                    focus_pane_with_id(pane, false, false);
+                    self.keep = Keep::Done;
+                }
+            }
+            Event::PermissionRequestResult(PermissionStatus::Granted) => {
+                self.ready = true;
+                self.keep_session();
+            }
             Event::PermissionRequestResult(PermissionStatus::Denied) => {
                 eprintln!("pilot: permissions denied; navigation and agent keys are disabled");
             }
@@ -128,7 +194,9 @@ impl ZellijPlugin for Pilot {
                 Err(_) => eprintln!("pilot: focus expects a terminal pane id, not '{payload}'"),
             },
             "switch" => self.switch_session(&message.args, payload),
-            other => eprintln!("pilot: unknown command '{other}'"),
+            // Pipes without a plugin target reach every plugin; the built-in
+            // ones broadcast their own (session_panel_size, ...).
+            other => self.log(|| format!("ignoring pipe '{other}'")),
         }
         false
     }
@@ -192,6 +260,54 @@ impl Pilot {
         );
         self.log(|| format!("resize {direction:?}: {resize:?} {edge:?}"));
         resize_focused_pane_with_direction(resize, edge);
+    }
+
+    /// The focused tab's shell pane, if it can take the Enter: a live terminal
+    /// that is not a held command pane (where Enter would run the command).
+    fn shell_pane(&self, tab: usize) -> Option<&PaneInfo> {
+        self.panes.panes.get(&tab)?.iter().find(|p| {
+            !p.is_plugin && p.title == SHELL_PANE && !p.is_held && !p.exited && !p.is_suppressed
+        })
+    }
+
+    /// Once there is a client and its tab has a shell pane, ask Zellij
+    /// whether the session counts as used yet (see `Keep`).
+    fn keep_session(&mut self) {
+        if !self.ready || self.keep != Keep::Waiting {
+            return;
+        }
+        let Ok((tab, _)) = get_focused_pane_info() else {
+            return; // no client yet (a session started in the background)
+        };
+        if self.shell_pane(tab).is_some() {
+            self.keep = Keep::Checking;
+            get_session_suggestions(0);
+        }
+    }
+
+    /// Send an Enter key event without bytes from the user's client in the
+    /// shell pane, which marks the session as used, then (on ActionComplete)
+    /// focus the pane that had it.
+    fn mark_session_used(&mut self) {
+        let Ok((tab, focused)) = get_focused_pane_info() else {
+            self.keep = Keep::Waiting;
+            return;
+        };
+        let Some(shell) = self.shell_pane(tab).map(|p| p.id) else {
+            self.keep = Keep::Waiting;
+            return;
+        };
+        self.log(|| format!("marking the session as used through shell pane {shell}"));
+        focus_terminal_pane(shell, false, false);
+        run_action(
+            actions::Action::Write {
+                key_with_modifier: Some(KeyWithModifier::new(BareKey::Enter)),
+                bytes: vec![],
+                is_kitty_keyboard_protocol: false,
+            },
+            BTreeMap::from([(KEEP_CONTEXT.to_owned(), String::new())]),
+        );
+        self.keep = Keep::Marking(focused);
     }
 
     /// Focus the tab's agent pane, return from it, or start one.

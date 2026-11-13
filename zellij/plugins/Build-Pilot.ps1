@@ -67,14 +67,24 @@ Write-Host "pilot.wasm: $([math]::Round((Get-Item $output).Length / 1KB)) KB -> 
 # C:\Users\me/.dotconfigs/zellij/plugins/pilot.wasm (checked on 0.46.0).
 $cache = Join-Path $env:LOCALAPPDATA 'Zellij\cache\permissions.kdl'
 $location = "$HOME/.dotconfigs/zellij/plugins/pilot.wasm"
-$permissions = 'ReadApplicationState', 'ChangeApplicationState', 'WriteToStdin', 'RunCommands', 'OpenTerminalsOrPlugins'
-$node = "`"$($location.Replace('\', '\\'))`" {`n" + (($permissions | ForEach-Object { "    $_`n" }) -join '') + "}`n"
+# Keep this list in step with request_permission in pilot/src/main.rs:
+# Zellij prompts again when the plugin asks for one that is not cached.
+$permissions = 'ReadApplicationState', 'ChangeApplicationState', 'WriteToStdin', 'RunCommands',
+    'OpenTerminalsOrPlugins', 'RunActionsAsUser'
+$key = $location.Replace('\', '\\')
+$node = "`"$key`" {`n" + (($permissions | ForEach-Object { "    $_`n" }) -join '') + "}`n"
 
 $existing = if (Test-Path -LiteralPath $cache) { Get-Content -LiteralPath $cache -Raw } else { '' }
-if ($existing -and $existing.Contains($location.Replace('\', '\\'))) {
+# pilot's entry as it stands, written by this script or by Zellij's prompt
+# (one node, its permissions as children, in any order).
+$current = [regex]::Match($existing, '(?ms)^"' + [regex]::Escape($key) + '"\s*\{[^}]*\}\s*')
+$granted = if ($current.Success) { [regex]::Matches($current.Value, '(?m)^\s+(\w+)\s*$') | ForEach-Object { $_.Groups[1].Value } } else { @() }
+
+if (-not ($permissions | Where-Object { $_ -notin $granted })) {
     Write-Host "Permissions already granted in $cache"
 } elseif ($PSCmdlet.ShouldProcess($cache, "Grant pilot $($permissions -join ', ')")) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $cache) | Out-Null
-    Set-Content -LiteralPath $cache -Value ($existing.TrimEnd() + "`n" + $node).TrimStart() -Encoding utf8NoBOM -NoNewline
+    $others = if ($current.Success) { $existing.Remove($current.Index, $current.Length) } else { $existing }
+    Set-Content -LiteralPath $cache -Value ($others.TrimEnd() + "`n" + $node).TrimStart() -Encoding utf8NoBOM -NoNewline
     Write-Host "Granted pilot's permissions in $cache"
 }
