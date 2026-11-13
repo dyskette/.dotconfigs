@@ -43,13 +43,21 @@ function Get-ZjProjectRoot {
 <#
 .SYNOPSIS
     A Zellij session name from a folder name: anything but letters, digits,
-    '-', '_' and '.' becomes '_' (session names end up in pipe and file paths).
+    '-', '_' and '.' becomes '_' (session names end up in pipe and file paths),
+    and leading or trailing dots go.
+.DESCRIPTION
+    On Windows (Zellij 0.46.0) a session named '.dotconfigs' starts and runs,
+    but `zellij ls`, the session manager, `-s` and resurrection never find it:
+    once you switch away it is unreachable, and CLI calls from its own panes
+    fail. A trailing dot breaks the same way (Windows drops it from file
+    names). So ~/.dotconfigs becomes session 'dotconfigs'.
 #>
 function ConvertTo-ZjSessionName {
     [OutputType([string])]
     param([Parameter(Mandatory)][string]$Name)
 
-    $Name -replace '[^\w.-]', '_'
+    $clean = ($Name -replace '[^\w.-]', '_').Trim('.')
+    if ($clean) { $clean } else { '_' }
 }
 
 <#

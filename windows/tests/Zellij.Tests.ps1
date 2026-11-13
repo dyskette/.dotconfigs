@@ -53,6 +53,14 @@ Describe 'Get-ZjTarget' {
         (Get-ZjTarget -Directory 'c:\projects\acme\api\' -Root 'C:\Projects\').Session | Should -Be 'acme'
     }
 
+    It 'never starts or ends a session name with a dot (Zellij cannot find those)' -TestCases @(
+        @{ Folder = 'C:\Users\me\.dotconfigs'; Session = 'dotconfigs' }
+        @{ Folder = 'C:\work\..hidden..'; Session = 'hidden' }
+        @{ Folder = 'C:\work\app.v2'; Session = 'app.v2' }
+    ) {
+        (Get-ZjTarget -Directory $Folder -Root 'C:\Projects').Session | Should -Be $Session
+    }
+
     It 'makes a folder outside the root its own session' {
         $target = Get-ZjTarget -Directory 'D:\work\tool' -Root 'C:\Projects'
         $target.Session | Should -Be 'tool'
