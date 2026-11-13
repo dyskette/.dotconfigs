@@ -131,6 +131,35 @@ Describe 'Claude Code conversations' {
     }
 }
 
+Describe 'Test-AgentConversation' {
+    It 'continues OpenCode when the project lists a session' {
+        Mock -ModuleName Zellij opencode { $global:LASTEXITCODE = 0; "ses_abc`tTitle`t11/13/2026" }
+        InModuleScope Zellij -Parameters @{ P = $TestDrive } { Test-AgentConversation -Agent opencode -Path $P } | Should -BeTrue
+        Should -Invoke -ModuleName Zellij opencode -ParameterFilter { $args -contains 'list' }
+    }
+
+    It 'starts OpenCode fresh when the project has no session' {
+        Mock -ModuleName Zellij opencode { $global:LASTEXITCODE = 0 }
+        InModuleScope Zellij -Parameters @{ P = $TestDrive } { Test-AgentConversation -Agent opencode -Path $P } | Should -BeFalse
+    }
+
+    It 'starts OpenCode fresh when listing fails' {
+        Mock -ModuleName Zellij opencode { $global:LASTEXITCODE = 1; 'ses_stale' }
+        InModuleScope Zellij -Parameters @{ P = $TestDrive } { Test-AgentConversation -Agent opencode -Path $P } | Should -BeFalse
+    }
+
+    It 'leaves the current folder as it was' {
+        Mock -ModuleName Zellij opencode { $global:LASTEXITCODE = 0 }
+        $before = (Get-Location).Path
+        InModuleScope Zellij -Parameters @{ P = $TestDrive } { Test-AgentConversation -Agent opencode -Path $P } | Out-Null
+        (Get-Location).Path | Should -Be $before
+    }
+
+    It 'never continues an unknown agent' {
+        InModuleScope Zellij -Parameters @{ P = $TestDrive } { Test-AgentConversation -Agent codex -Path $P } | Should -BeFalse
+    }
+}
+
 Describe 'Format-ProgramStatus' {
     It 'writes OSC 7501 with a base64 message' {
         $sequence = InModuleScope Zellij { Format-ProgramStatus -State working -Message 'dev: npm run dev' -App zjr }

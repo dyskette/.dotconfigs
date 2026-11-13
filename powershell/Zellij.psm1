@@ -190,6 +190,39 @@ function Test-ClaudeConversation {
 
 <#
 .SYNOPSIS
+    Whether an agent has a conversation to continue in a folder. Only
+    OpenCode and Claude Code are known; any other agent answers false.
+.DESCRIPTION
+    OpenCode: `opencode session list` lists the folder's project sessions
+    (~120 ms through its background service); nothing listed, or an error,
+    means start fresh. Claude Code: a transcript in ~/.claude/projects.
+#>
+function Test-AgentConversation {
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$Agent,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    switch ($Agent) {
+        'opencode' {
+            Push-Location -LiteralPath $Path
+            try {
+                $sessions = & opencode session list --max-count 1 2>$null
+                return ($LASTEXITCODE -eq 0 -and [bool]($sessions | Where-Object { $_ -match '^ses_' }))
+            } catch {
+                return $false
+            } finally {
+                Pop-Location
+            }
+        }
+        'claude' { return Test-ClaudeConversation -Path $Path }
+        default { return $false }
+    }
+}
+
+<#
+.SYNOPSIS
     The OSC 7501 sequence that tells Zellij's inbox what a program is doing.
 .PARAMETER State
     idle, working, done, blocked, error, or clear (removes the status).
@@ -591,20 +624,21 @@ function zj {
 <#
 .SYNOPSIS
     Start the coding agent for the current folder: $env:ZJ_AGENT (default
-    claude), continuing the folder's last Claude Code conversation if any.
+    opencode), continuing the folder's last conversation if it has one.
 .DESCRIPTION
     The service layout's agent pane runs this, so after a reboot the
-    resurrected pane picks the conversation up where it stopped. Extra
-    arguments go to the agent.
+    resurrected pane picks the conversation up where it stopped. OpenCode
+    and Claude Code continue with --continue; other agents start fresh.
+    Arguments given to zja go to the agent instead.
 .EXAMPLE
     zja
 .EXAMPLE
-    $env:ZJ_AGENT = 'opencode'; zja
+    $env:ZJ_AGENT = 'claude'; zja
 #>
 function zja {
-    $agent = if ($env:ZJ_AGENT) { $env:ZJ_AGENT } else { 'claude' }
+    $agent = if ($env:ZJ_AGENT) { $env:ZJ_AGENT } else { 'opencode' }
     $arguments = @($args)
-    if ($agent -eq 'claude' -and $arguments.Count -eq 0 -and (Test-ClaudeConversation -Path $PWD.ProviderPath)) {
+    if ($arguments.Count -eq 0 -and (Test-AgentConversation -Agent $agent -Path $PWD.ProviderPath)) {
         $arguments = @('--continue')
     }
     & $agent @arguments

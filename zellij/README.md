@@ -8,7 +8,7 @@ sessions, tabs and long-running processes; Neovim owns files, search and git.
 session = client          acme
   tab = service             cerberus │ ORDERS_API │ ...
     ┌────────────── editor ──────────────┬──────── agent ────────┐
-    │ nvim                               │ claude (or $ZJ_AGENT) │
+    │ nvim                               │ opencode ($ZJ_AGENT)  │
     ├────────────────────────────────────┴───────────────────────┤
     │ dev   zjr dev    (waits for Enter)       stacked: one open, │
     │ test  zjr test   (waits for Enter)       the others a line  │
@@ -44,7 +44,7 @@ old build until they restart.
 | Variable | Default | Used by |
 | --- | --- | --- |
 | `ZJ_PROJECTS` | `~/Projects` | `zj`: the folder holding `<client>/<service>` |
-| `ZJ_AGENT` | `claude` | `zja`: the agent program (`opencode`, `codex`, ...) |
+| `ZJ_AGENT` | `opencode` | `zja`: the agent program (`claude`, `codex`, ...); OpenCode and Claude Code continue the folder's last conversation |
 
 ## Keys
 
@@ -108,7 +108,7 @@ Sessions are saved every 30 s with each pane's last screen. After a reboot,
 a session is listed as EXITED; opening it (session manager, `zj`, `zellij
 attach`) brings back the tabs, panes, folders and commands; each command waits
 for Enter (`zellij attach -f <name>` runs them all at once). The agent pane runs `zja`, which continues the
-folder's last Claude Code conversation, so Enter there picks the work up.
+folder's last OpenCode (or Claude Code) conversation, so Enter there picks the work up.
 Running state (a dev server, an agent mid-task) is not restored.
 
 Checked on Zellij 0.46.0, Windows 11: kill, reattach, both tabs and all panes
@@ -138,7 +138,8 @@ menu entry, "Open Zellij here" in Explorer).
 
 | Source | How |
 | --- | --- |
-| Claude Code ≥ 2.1.295, OpenCode ≥ 2.1 | Report working / needs you / done themselves (OSC 7501) |
+| OpenCode ≥ 2.1 | Reports working / waiting for you / idle itself (OSC 7501); not done or failed |
+| Claude Code ≥ 2.1.295 | Reports working / needs you / done itself (OSC 7501) |
 | Shell commands | The profile's OSC 133 marks: a command over 15 s is reported when it ends, with its exit code |
 | `zjr` | Reports `dev` / `test` / `build` as working, then done or error (OSC 7501) |
 | Command panes | Zellij marks the exit code |

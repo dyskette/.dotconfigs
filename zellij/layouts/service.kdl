@@ -7,7 +7,7 @@
 //
 // zjr picks the command for the project (dotnet watch, npm run dev, uv run,
 // cargo run, ...), so one layout serves every kind of project. zja starts
-// the agent (Claude Code by default, $env:ZJ_AGENT to change it) and
+// the agent (OpenCode by default, $env:ZJ_AGENT to change it) and
 // continues the folder's last conversation when there is one.
 //
 // Alt g Space cycles the arrangements below.

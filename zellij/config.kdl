@@ -161,7 +161,7 @@ web_sharing "off"
 
 // --- Attention: the inbox, tab markers and notifications --------------------------
 //
-// Claude Code and OpenCode report working / needs you / done themselves
+// OpenCode reports working / waiting / idle and Claude Code working / needs you / done themselves
 // (OSC 7501); the shell prompt marks each command's start and exit code
 // (OSC 133, powershell/Microsoft.PowerShell_profile.ps1); zjr reports dev
 // servers and test runs (powershell/Zellij.psm1).
