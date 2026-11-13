@@ -17,3 +17,7 @@ opencode/service.json
 # (rather than a bare directory) is what lets the negation below apply.
 yazi/plugins/*
 !yazi/plugins/nvim-diag.yazi/
+
+# Zellij plugin build output; built by zellij/plugins/Build-Pilot.ps1.
+zellij/plugins/pilot/target/
+zellij/plugins/pilot.wasm

@@ -1,0 +1,15 @@
+[package]
+name = "pilot"
+version = "0.1.0"
+edition = "2024"
+description = "Zellij plugin: Neovim-aware pane navigation and agent pane toggling."
+license = "MIT"
+publish = false
+
+[dependencies]
+zellij-tile = "0.46.0"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
