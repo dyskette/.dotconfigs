@@ -12,7 +12,7 @@
     ],
     "copyFormatting": "none",
     "copyOnSelect": false,
-    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+    "defaultProfile": "{5feb229d-70ca-415c-9bec-f2e3170882ef}",
     "disabledProfileSources": [
         "Windows.Terminal.VisualStudio"
     ],
@@ -44,6 +44,22 @@
         {
             "id": null,
             "keys": "f11"
+        },
+        {
+            "id": null,
+            "keys": "alt+left"
+        },
+        {
+            "id": null,
+            "keys": "alt+right"
+        },
+        {
+            "id": null,
+            "keys": "alt+up"
+        },
+        {
+            "id": null,
+            "keys": "alt+down"
         }
     ],
     "newTabMenu": [
@@ -63,6 +79,14 @@
             }
         },
         "list": [
+            {
+                "commandline": "pwsh.exe -NoLogo -Command zellij --layout welcome",
+                "guid": "{5feb229d-70ca-415c-9bec-f2e3170882ef}",
+                "hidden": false,
+                "icon": "🟩",
+                "name": "Zellij",
+                "startingDirectory": "%USERPROFILE%"
+            },
             {
                 "commandline": "pwsh.exe",
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
