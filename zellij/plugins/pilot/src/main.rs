@@ -14,6 +14,14 @@
 //!   the previous pane when the agent already has focus. A tab without one
 //!   gets a new agent pane, started in the focused pane's directory with the
 //!   command from the `agent_command` setting.
+//! - `resize` (payload `left|right|up|down`): Alt+Shift+h/j/k/l. Neovim gets
+//!   the key and moves its window divider; other panes move a Zellij pane
+//!   divider. `resize-pane` skips the Neovim check (Neovim's fallback when
+//!   it has no divider in that direction).
+//! - `focus` (payload: a terminal pane id): focuses that pane for the user.
+//!   `zellij action focus-pane-id` from a pane exits 0 but leaves the user's
+//!   client where it was, as `switch-session` does; Neovim uses this to bring
+//!   its pane forward when a file arrives and to give focus back afterwards.
 //! - `switch` (payload: a KDL layout or `-`; args `session`, `tab`, `cwd`,
 //!   `pane`): moves the user's client to another session, used by `zj`
 //!   (powershell/Zellij.psm1). See `switch_session` for why it lives here.
@@ -38,6 +46,9 @@ const AGENT_PANE: &str = "agent";
 struct Pilot {
     /// Panes per tab position, kept current by `PaneUpdate`.
     panes: PaneManifest,
+    /// Tabs by position, kept current by `TabUpdate`: their viewport size
+    /// tells which pane edges are dividers.
+    tabs: Vec<TabInfo>,
     /// The agent launcher, split on whitespace (`agent_command` setting).
     agent_command: Vec<String>,
     /// Set once the user granted the permissions; commands before that would
@@ -73,7 +84,7 @@ impl ZellijPlugin for Pilot {
             PermissionType::RunCommands,
             PermissionType::OpenTerminalsOrPlugins,
         ]);
-        subscribe(&[EventType::PaneUpdate, EventType::PermissionRequestResult]);
+        subscribe(&[EventType::PaneUpdate, EventType::TabUpdate, EventType::PermissionRequestResult]);
         // Headless: never take focus or space.
         set_selectable(false);
     }
@@ -81,6 +92,7 @@ impl ZellijPlugin for Pilot {
     fn update(&mut self, event: Event) -> bool {
         match event {
             Event::PaneUpdate(manifest) => self.panes = manifest,
+            Event::TabUpdate(tabs) => self.tabs = tabs,
             Event::PermissionRequestResult(PermissionStatus::Granted) => self.ready = true,
             Event::PermissionRequestResult(PermissionStatus::Denied) => {
                 eprintln!("pilot: permissions denied; navigation and agent keys are disabled");
@@ -104,6 +116,14 @@ impl ZellijPlugin for Pilot {
                 None => eprintln!("pilot: nav expects left, right, up or down, not '{payload}'"),
             },
             "agent" => self.toggle_agent(),
+            "resize" | "resize-pane" => match parse_direction(payload) {
+                Some(direction) => self.resize(direction, message.name == "resize"),
+                None => eprintln!("pilot: resize expects left, right, up or down, not '{payload}'"),
+            },
+            "focus" => match payload.trim().parse::<u32>() {
+                Ok(id) => focus_terminal_pane(id, false, false),
+                Err(_) => eprintln!("pilot: focus expects a terminal pane id, not '{payload}'"),
+            },
             "switch" => self.switch_session(&message.args, payload),
             other => eprintln!("pilot: unknown command '{other}'"),
         }
@@ -133,6 +153,42 @@ impl Pilot {
             Direction::Left | Direction::Right => move_focus_or_tab(direction),
             Direction::Up | Direction::Down => move_focus(direction),
         }
+    }
+
+    /// Move a divider in a direction: the focused pane's right (or bottom)
+    /// one when it has one, else its left (or top) one; nvim's <M-H/J/K/L>
+    /// follow the same rule (nvim/lua/config/zellij.lua). With `editor_first`
+    /// an nvim pane gets Alt+Shift+key instead, and calls back with
+    /// `resize-pane` when it has no window divider in that direction.
+    fn resize(&self, direction: Direction, editor_first: bool) {
+        let Ok((tab, pane)) = get_focused_pane_info() else {
+            return;
+        };
+        if editor_first && is_editor(pane) {
+            write_to_pane_id(vec![0x1b, key_for(direction).to_ascii_uppercase()], pane);
+            return;
+        }
+
+        let info = self.panes.panes.get(&tab).and_then(|panes| {
+            panes.iter().find(|p| match pane {
+                PaneId::Terminal(id) => !p.is_plugin && p.id == id,
+                PaneId::Plugin(id) => p.is_plugin && p.id == id,
+            })
+        });
+        let viewport = self.tabs.iter().find(|t| t.position == tab);
+        let (Some(info), Some(viewport)) = (info, viewport) else {
+            // Unknown geometry: Zellij's own rule for the key.
+            resize_focused_pane_with_direction(Resize::Increase, direction);
+            return;
+        };
+
+        let (resize, edge) = divider_move(
+            direction,
+            info.pane_x + info.pane_columns < viewport.viewport_columns,
+            info.pane_y + info.pane_rows < viewport.viewport_rows,
+        );
+        self.log(|| format!("resize {direction:?}: {resize:?} {edge:?}"));
+        resize_focused_pane_with_direction(resize, edge);
     }
 
     /// Focus the tab's agent pane, return from it, or start one.
@@ -230,6 +286,24 @@ fn parse_direction(payload: &str) -> Option<Direction> {
     }
 }
 
+/// The Zellij resize that moves a divider towards `direction`, given whether
+/// the pane has a neighbour to its right and below. The right/bottom divider
+/// is preferred: moving it towards the neighbour grows the pane, away
+/// shrinks it. Without one, the left/top divider moves, which shrinks the
+/// pane when it moves towards the far side.
+fn divider_move(direction: Direction, has_right: bool, has_below: bool) -> (Resize, Direction) {
+    match direction {
+        Direction::Right if has_right => (Resize::Increase, Direction::Right),
+        Direction::Right => (Resize::Decrease, Direction::Left),
+        Direction::Left if has_right => (Resize::Decrease, Direction::Right),
+        Direction::Left => (Resize::Increase, Direction::Left),
+        Direction::Down if has_below => (Resize::Increase, Direction::Down),
+        Direction::Down => (Resize::Decrease, Direction::Up),
+        Direction::Up if has_below => (Resize::Decrease, Direction::Down),
+        Direction::Up => (Resize::Increase, Direction::Up),
+    }
+}
+
 /// The vi key Neovim maps for each direction.
 fn key_for(direction: Direction) -> u8 {
     match direction {
@@ -250,6 +324,19 @@ mod tests {
         assert_eq!(program_name("/usr/bin/nvim"), "nvim");
         assert_eq!(program_name("NVIM.EXE"), "nvim");
         assert_eq!(program_name("pwsh"), "pwsh");
+    }
+
+    #[test]
+    fn dividers_prefer_the_right_and_bottom_one() {
+        // A left pane (neighbour on the right): Alt L grows it, Alt H shrinks it.
+        assert_eq!(divider_move(Direction::Right, true, false), (Resize::Increase, Direction::Right));
+        assert_eq!(divider_move(Direction::Left, true, false), (Resize::Decrease, Direction::Right));
+        // A right pane: its left divider moves.
+        assert_eq!(divider_move(Direction::Right, false, false), (Resize::Decrease, Direction::Left));
+        assert_eq!(divider_move(Direction::Left, false, false), (Resize::Increase, Direction::Left));
+        // A top pane grows downwards; a bottom pane's top divider moves.
+        assert_eq!(divider_move(Direction::Down, false, true), (Resize::Increase, Direction::Down));
+        assert_eq!(divider_move(Direction::Up, false, false), (Resize::Increase, Direction::Up));
     }
 
     #[test]
