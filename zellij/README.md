@@ -1,8 +1,16 @@
 # Zellij workspace
 
-Zellij 0.46 on native Windows, inside Windows Terminal. Windows Terminal is
-only the window (font, colours, a profile that starts Zellij); Zellij owns
-sessions, tabs and long-running processes; Neovim owns files, search and git.
+Zellij 0.46 on both machines: native Windows inside Windows Terminal, and
+Linux inside Ghostty. The terminal is only the window (font, colours, a
+profile that starts Zellij); Zellij owns sessions, tabs and long-running
+processes; Neovim owns files, search and git.
+
+Keys, layout and workflow are the same on both. What differs is the shell and
+the commands the config names — pwsh with `powershell/Zellij.psm1` on Windows,
+bash with `zellij/bin/*` on Linux — so `config.kdl` and `layouts/service.kdl`
+exist twice (KDL has no includes and Zellij expands no variables in them).
+Everything else is one file: the keys, the themes, the lobby layout and the
+plugin.
 
 ```
 session = client          acme
@@ -18,34 +26,52 @@ session = client          acme
 
 | File | What it is |
 | --- | --- |
-| `config.kdl` | Keys (unlock-first preset), behaviour, inbox, resurrection, `zellij terminal` settings |
-| `layouts/service.kdl` | One service tab, plus three swap arrangements |
-| `layouts/lobby.kdl` | The hub alone, full screen: what Windows Terminal opens on |
+| `config.kdl` | Windows: keys (unlock-first preset), behaviour, inbox, resurrection, `zellij terminal` settings |
+| `layouts/service.kdl` | Windows: one service tab, plus three swap arrangements |
+| `linux/config.kdl`, `linux/layouts/service.kdl` | The Linux twins of those two: bash, `zja`, `zjr`, `zj-hub-projects`. The rest is meant to stay word for word the same |
+| `layouts/lobby.kdl` | The hub alone, full screen: what the terminal opens on |
 | `themes/` | Everforest medium (dark and light) and Rosé Pine Dawn |
 | `plugins/pilot/` | Our own plugin (Rust → wasm). Headless in every session: Alt+hjkl across nvim and panes, the agent toggle, keeping sessions from being deleted. As a pane: the session hub (`src/hub`) |
+| `plugins/Build-Pilot.ps1`, `plugins/build-pilot.sh` | Build it and pre-grant its permissions, on Windows and on Linux |
 | `plugins/tests/` | Tools for end-to-end checks: type keys into, and read the screen of, a test window without focus |
-| `../powershell/Zellij.psm1` | `zj`, `zja`, `zjr` (imported by the PowerShell profile) |
+| `bin/` | Linux: `zj`, `zja`, `zjr`, `zj-hub-projects` and the `zj-lib.sh` they share |
+| `../powershell/Zellij.psm1` | Windows: the same commands as functions (imported by the PowerShell profile) |
 | `../nvim/lua/config/zellij.lua` | nvim's half of Alt+hjkl, the agent bridge, `<leader>sp` |
 
 ## Setup
 
-`windows/links.jsonc` links this folder to `%APPDATA%\Zellij\config`.
-The plugin is built, not committed:
+**Windows.** `windows/links.jsonc` links this folder to
+`%APPDATA%\Zellij\config`. The plugin is built, not committed:
 
 ```pwsh
 ./zellij/plugins/Build-Pilot.ps1        # needs rustup; adds wasm32-wasip1 if missing
 ./zellij/plugins/Build-Pilot.ps1 -Test  # also runs its unit tests
 ```
 
-The script also pre-grants pilot's permissions in
-`%LOCALAPPDATA%\Zellij\cache\permissions.kdl`, as answering Zellij's prompt
-once would. A session started in the background has no client to show that
-prompt to, so without it the plugin stays inert. Running sessions keep the
-old build until they restart.
+**Linux.** `linux/tasks/dotfiles.yml` fills `~/.config/zellij` with links —
+`config.kdl` and `layouts/service.kdl` from `zellij/linux/`, `layouts/lobby.kdl`,
+`themes/` and `plugins/` from here — links `bin/*` into `~/.local/bin`, and
+builds the plugin. By hand:
+
+```bash
+./zellij/plugins/build-pilot.sh         # needs rustup; adds wasm32-wasip1 if missing
+./zellij/plugins/build-pilot.sh --test  # also runs its unit tests
+./linux/tests/zj-lib.test.sh            # the bash half of zj, zjr and the hub list
+```
+
+`--test` builds for the host, which needs a C toolchain and OpenSSL headers
+(a `toolbox` on Fedora Silverblue); the wasm build itself needs neither.
+
+Both scripts also pre-grant pilot's permissions in Zellij's cache
+(`%LOCALAPPDATA%\Zellij\cache\permissions.kdl`,
+`~/.cache/zellij/permissions.kdl`), as answering Zellij's prompt once would. A
+session started in the background has no client to show that prompt to, so
+without it the plugin stays inert. Running sessions keep the old build until
+they restart.
 
 | Variable | Default | Used by |
 | --- | --- | --- |
-| `ZJ_PROJECTS` | `~/Projects` | The hub and `zj`: the folder holding `<client>/<service>` |
+| `ZJ_PROJECTS` | `~/Projects`, or whichever of `~/Projects` and `~/Proyectos` holds folders on Linux | The hub and `zj`: the folder holding `<client>/<service>` |
 | `ZJ_AGENT` | `opencode` | `zja`: the agent program (`claude`, `codex`, ...); OpenCode and Claude Code continue the folder's last conversation |
 
 ## Keys
@@ -104,9 +130,11 @@ One place answers "where do I want to be?": running sessions, saved sessions
 and projects in one list, with a preview. It is the same view everywhere, in
 two sizes:
 
-- **Full screen when you are in no session**: Windows Terminal opens on it
-  (`zj` without arguments, in a throwaway `lobby-…` session). Detaching from a
-  session brings it back; `q` there leaves Zellij for a plain shell.
+- **Full screen when you are in no session**: the terminal opens on it (`zj`
+  without arguments, in a throwaway `lobby-…` session; Windows Terminal's
+  default profile runs it, and on Linux it is what you type, or a Ghostty
+  `command = zj`). Detaching from a session brings it back; `Esc` then `q`
+  there leaves Zellij for a plain shell.
 - **A popup when you are in one**: `Alt s` (also `Alt g w`, `Alt g f`, `zj`
   without arguments, and `<leader>sp` in nvim).
 
@@ -159,11 +187,13 @@ The hub only marks sessions and tabs with `⚑N`.
 (`plugins/terminal.lua`) make the tab's editor the centre of the tab.
 
 **One editor per tab.** The nvim a service tab starts registers itself as the
-tab's editor (`%LOCALAPPDATA%\nvim-data\zellij\<session>\<pane>`). Any `nvim`
-started elsewhere in the tab (lazygit's `e`, yazi, `sf` / `sg` in the shell,
-Zellij's click-to-open) hands its files to it, and focus moves there. Edits a
-program waits for (commit and rebase messages, an agent's prompt file in
-`%TEMP%` from OpenCode's editor key or Claude Code's `Ctrl g`) end with `:w`,
+tab's editor, in nvim's own state folder
+(`%LOCALAPPDATA%\nvim-data\zellij\<session>\<pane>`,
+`~/.local/state/nvim/zellij/<session>/<pane>`). Any `nvim` started elsewhere in
+the tab (lazygit's `e`, yazi, `sf` / `sg` in the shell, Zellij's
+click-to-open) hands its files to it, and focus moves there. Edits a program
+waits for (commit and rebase messages, an agent's prompt file in the temp
+folder from OpenCode's editor key or Claude Code's `Ctrl g`) end with `:w`,
 and focus goes back to the pane that asked. A bare `nvim` still starts its own
 instance; so does the scrollback editor.
 
@@ -189,7 +219,7 @@ outlive an nvim restart. Both send files to the same editor.
 
 ## A day
 
-- **Morning.** Open Windows Terminal: the hub, on the session you used last.
+- **Morning.** Open the terminal (`zj`): the hub, on the session you used last.
   Enter; after a reboot that resurrects it (see below).
 - **Start on a service.** `Alt s`, type part of the name, Enter. The hint
   says what will happen: a new session for a new client, a new tab in a
@@ -212,8 +242,8 @@ for Enter (`zellij attach -f <name>` runs them all at once). The agent pane runs
 folder's last OpenCode (or Claude Code) conversation, so Enter there picks the work up.
 Running state (a dev server, an agent mid-task) is not restored.
 
-Checked on Zellij 0.46.0, Windows 11: kill, reattach, both tabs and all panes
-back.
+Checked on Zellij 0.46.0, Windows 11 and Fedora Silverblue 45: kill, reattach,
+both tabs and all panes back.
 
 ## Watching from elsewhere
 
@@ -229,11 +259,12 @@ back.
 
 `zellij terminal` opens Zellij's own window (0.46) with a tray icon: the
 session list and inbox from the taskbar, a badge counting what needs you, and
-Windows notifications when an agent waits or a command fails. The `terminal`
-block in `config.kdl` gives it the same font and Everforest colours as
-Windows Terminal. Sessions are shared: attach to the same one from either.
-To try it as the main terminal: `zellij setup --install-desktop-entry` (Start
-menu entry, "Open Zellij here" in Explorer).
+desktop notifications when an agent waits or a command fails. The `terminal`
+block in both configs gives it the same font and Everforest colours as Windows
+Terminal and Ghostty. Sessions are shared: attach to the same one from either.
+To try it as the main terminal: `zellij setup --install-desktop-entry` (a
+Start menu entry and "Open Zellij here" in Explorer; a `.desktop` file under
+`~/.local/share/applications` on Linux).
 
 ## Inbox integration
 
@@ -241,7 +272,7 @@ menu entry, "Open Zellij here" in Explorer).
 | --- | --- |
 | OpenCode ≥ 2.1 | Reports working / waiting for you / idle itself (OSC 7501); not done or failed |
 | Claude Code ≥ 2.1.295 | Reports working / needs you / done itself (OSC 7501) |
-| Shell commands | The profile's OSC 133 marks: a command over 15 s is reported when it ends, with its exit code |
+| Shell commands | The prompt's OSC 133 marks (`powershell/Microsoft.PowerShell_profile.ps1`, `bash/bashrc.d/prompt.sh`): a command over 15 s is reported when it ends, with its exit code |
 | `zjr` | Reports `dev` / `test` / `build` as working, then done or error (OSC 7501) |
 | Command panes | Zellij marks the exit code |
 
@@ -266,21 +297,23 @@ When it guesses wrong, put a `.zjr.json` in the folder:
 
 | Symptom | Fix |
 | --- | --- |
-| Alt+hjkl does nothing | `Build-Pilot.ps1`, then restart the session. Debug: add `debug "true"` to the `pilot` block in `config.kdl`, read `%TEMP%\zellij\zellij-log\zellij.log` (lines start `pilot:`) |
-| A file opens in a new nvim instead of the tab's editor | The editor nvim must have started after this config (it registers on start); restart it. Check `%LOCALAPPDATA%\nvim-data\zellij\<session>` lists its pane |
-| `nvim somefile` in a pane waits | The file is under `%TEMP%`, which counts as an agent's prompt file: `:w` in the editor releases it |
+| Alt+hjkl does nothing | `Build-Pilot.ps1` / `build-pilot.sh`, then restart the session. Debug: add `debug "true"` to the `pilot` block in the config, read Zellij's log (`%TEMP%\zellij\zellij-log\zellij.log`, `/tmp/zellij-<uid>/zellij-log/zellij.log`); lines start `pilot:` |
+| A file opens in a new nvim instead of the tab's editor | The editor nvim must have started after this config (it registers on start); restart it. Check that nvim's state folder (`%LOCALAPPDATA%\nvim-data\zellij\<session>`, `~/.local/state/nvim/zellij/<session>`) lists its pane |
+| `nvim somefile` in a pane waits | The file is under the temp folder, which counts as an agent's prompt file: `:w` in the editor releases it |
 | A session vanished after switching away (not even listed as EXITED) | Zellij 0.46 deletes a session nobody pressed Enter in when Zellij's own session manager (the inbox, the session card) leaves it; the hub never does. pilot marks every session as used when it starts or is resurrected: an Enter key event without bytes in a pane running a plain shell, or, in a resurrected session, the Enter that starts a held bare shell. A session with no shell pane at all (only nvim, an agent, a dev server) still needs one Enter from you before it is safe to leave |
 | A session named `.something` cannot be found | Zellij cannot list or reach names starting or ending with a dot; `zj` strips them (`~/.dotconfigs` → `dotconfigs`) |
 | New tabs fail with `0x80070002` launching `pwsh.exe`; Start-menu apps miss tools | Explorer drops the whole user PATH when system + user PATH exceed about 4,095 characters, as soon as anything broadcasts an environment change. Shorten the user PATH (duplicates, folders whose programs are found earlier), then close every Windows Terminal window and reopen it |
 | The hub opens empty, or with a permission prompt | Run `Build-Pilot.ps1` (it grants the plugin's permissions) and restart the session; both views of the plugin must ask for the same set, `PERMISSIONS` in `src/main.rs` |
-| The hub lists no projects | It runs `projects_command` (config.kdl) in the background and caches the result: check that `Get-ZjHubProject` prints `root=…` and the folders |
-| Windows Terminal opens a shell, not the hub | The loop ended: Zellij exited within two seconds (a config error: `zellij setup --check`), or the hub was quit with `q`. `zj` starts it again |
+| The hub lists no projects | It runs `projects_command` (the config) in the background and caches the result: check that `Get-ZjHubProject` / `zj-hub-projects` prints `root=…` and the folders. On Linux the root is `$ZJ_PROJECTS`, or whichever of `~/Projects` and `~/Proyectos` holds folders |
+| The terminal opens a shell, not the hub | The loop ended: Zellij exited within two seconds (a config error: `zellij setup --check`), or the hub was quit with `q`. `zj` starts it again |
+| `zj`, `zja` or `zjr` not found, or the old fzf picker runs (Linux) | `~/.local/bin` must be on PATH and hold the links to `zellij/bin/*` (`ansible-playbook` with `--tags dotfiles`). The old `zj` fzf function is gone from `bash/bashrc.d/fzf.sh`; open a new shell |
+| A service tab opens named "service", in the wrong folder | `zj` and the hub replace the tab line of `layouts/service.kdl` (`ui name="service" focus=true`) with the tab's name and folder, and take the first match in the file: no comment may repeat it |
 | A floating "pilot" permission prompt | Answer `y` once, or run `Build-Pilot.ps1` (writes the grant) |
 | `zj` from inside does not switch | It needs pilot (`zellij action switch-session` from the CLI only moves the CLI's own connection, not your client) |
 | New panes open in the wrong folder | The prompt reports the folder with OSC 7; a program that changes folder without a prompt is not tracked |
 | Session stuck or zombie | `zellij ls`; `zellij kill-session <name>`; `zellij delete-session <name>` drops its resurrection data |
 | Config error after an upgrade | `zellij setup --check`; compare with `zellij setup --dump-config` and `--dump-keybinds unlock-first` |
-| Rollback | `windows_terminal/settings.json`: set `defaultProfile` back to PowerShell Core; the psmux setup in `tmux/` is untouched |
+| Rollback | `windows_terminal/settings.json`: set `defaultProfile` back to PowerShell Core; on Linux just stop typing `zj`. The psmux setup in `tmux/` is untouched on both |
 
 ## Fallback
 
