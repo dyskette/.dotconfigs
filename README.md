@@ -59,7 +59,8 @@ message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one. In
 tmux/psmux, `prefix g` and `prefix e` open lazygit and yazi over the pane.
 
 On Windows the workspace is Zellij: Windows Terminal's default profile opens
-its session picker, every client is a session and every service a tab with
-nvim, a coding agent, and dev/test/shell panes. `zj` opens a project, `zja`
-starts the agent, `zjr` runs the dev server or tests. See
-[zellij/README.md](zellij/README.md).
+the session hub (running sessions, saved sessions and projects in one list,
+vim keys; `Alt s` inside a session). Every client is a session and every
+service a tab with nvim, a coding agent, and dev/test/shell panes. `zj` opens
+the hub or a folder, `zja` starts the agent, `zjr` runs the dev server or
+tests. See [zellij/README.md](zellij/README.md).

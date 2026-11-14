@@ -20,10 +20,12 @@ session = client          acme
 | --- | --- |
 | `config.kdl` | Keys (unlock-first preset), behaviour, inbox, resurrection, `zellij terminal` settings |
 | `layouts/service.kdl` | One service tab, plus three swap arrangements |
+| `layouts/lobby.kdl` | The hub alone, full screen: what Windows Terminal opens on |
 | `themes/` | Everforest medium (dark and light) and Rosé Pine Dawn |
-| `plugins/pilot/` | Our own plugin (Rust → wasm): Alt+hjkl across nvim and panes, the agent toggle, session switching for `zj` |
+| `plugins/pilot/` | Our own plugin (Rust → wasm). Headless in every session: Alt+hjkl across nvim and panes, the agent toggle, keeping sessions from being deleted. As a pane: the session hub (`src/hub`) |
+| `plugins/tests/` | Tools for end-to-end checks: type keys into, and read the screen of, a test window without focus |
 | `../powershell/Zellij.psm1` | `zj`, `zja`, `zjr` (imported by the PowerShell profile) |
-| `../nvim/lua/config/zellij.lua` | nvim's half of Alt+hjkl |
+| `../nvim/lua/config/zellij.lua` | nvim's half of Alt+hjkl, the agent bridge, `<leader>sp` |
 
 ## Setup
 
@@ -43,7 +45,7 @@ old build until they restart.
 
 | Variable | Default | Used by |
 | --- | --- | --- |
-| `ZJ_PROJECTS` | `~/Projects` | `zj`: the folder holding `<client>/<service>` |
+| `ZJ_PROJECTS` | `~/Projects` | The hub and `zj`: the folder holding `<client>/<service>` |
 | `ZJ_AGENT` | `opencode` | `zja`: the agent program (`claude`, `codex`, ...); OpenCode and Claude Code continue the folder's last conversation |
 
 ## Keys
@@ -59,6 +61,7 @@ Always available (locked too):
 | `Alt H/J/K/L` | Move a divider that way: nvim's window divider, or the Zellij pane divider when nvim has none that way (the right/bottom divider first) |
 | `Alt 1`–`9` | Go to tab N |
 | `Alt m` | Maximize (zoom) the pane and back |
+| `Alt s` | The session hub: sessions, saved sessions and projects (see "The hub") |
 | `Alt a` | To this tab's agent and back (starts one if missing) |
 | `Alt u` | Next pane anywhere that needs you (agent waiting, failed tests), switching session if needed |
 | `Alt \` | Previous pane |
@@ -69,8 +72,7 @@ After `Alt g`:
 
 | Key | Does |
 | --- | --- |
-| `f` | Projects picker (`zj`) in a float |
-| `w` | Session manager (type part of a name; previews; resurrect dead sessions) |
+| `w` / `f` | The session hub (as `Alt s`) |
 | `i` | Inbox: every agent and long command in every session, by status |
 | `g` / `y` | lazygit / yazi in a float, in the pane's folder; files they open land in the tab's nvim |
 | `e` | This pane's scrollback in nvim, in place (search, motions, yank) |
@@ -95,6 +97,61 @@ Left to programs: `Alt p` (Claude Code's model picker), `Ctrl g` (live ripgrep
 in the shell, edit-prompt in Claude Code), `Alt Enter` (newline in OpenCode),
 `Alt z` (zoxide in the shell), `Alt i/o/[/]` (nvim). OpenCode's `Alt a` (start
 of visual line) is the one program key the agent toggle shadows.
+
+## The hub
+
+One place answers "where do I want to be?": running sessions, saved sessions
+and projects in one list, with a preview. It is the same view everywhere, in
+two sizes:
+
+- **Full screen when you are in no session**: Windows Terminal opens on it
+  (`zj` without arguments, in a throwaway `lobby-…` session). Detaching from a
+  session brings it back; `q` there leaves Zellij for a plain shell.
+- **A popup when you are in one**: `Alt s` (also `Alt g w`, `Alt g f`, `zj`
+  without arguments, and `<leader>sp` in nvim).
+
+The bottom line always says what Enter will do on the selected row: `attach`,
+`go to tab`, `resurrect`, `new tab in <session>`, `new session`, `create`.
+The current session is listed dimmed ("you are here"); the cursor starts on
+the previous one, so `Alt s` `Enter` toggles between the last two.
+
+It opens in **insert** mode: type to filter (the list is then ranked by match
+quality across sessions, tabs and projects, and a last row offers to create a
+session named after what you typed).
+
+| Insert | |
+| --- | --- |
+| type | Filter |
+| `Ctrl-n` `Ctrl-p` / `Ctrl-j` `Ctrl-k` | Move |
+| `Ctrl-w` / `Ctrl-u` | Delete a word / clear |
+| `Enter` | Open |
+| `Esc` | Normal mode; the filter stays |
+
+| Normal | |
+| --- | --- |
+| `j` `k`, `gg` `G`, `Ctrl-d` `Ctrl-u` | Move |
+| `l` | Unfold a session, then step into its tabs; opens only a leaf (a tab, a saved session, a project) |
+| `h` | To the tab's session, then fold it (`zo` / `zc` fold without moving) |
+| `Enter` | Always opens |
+| `o` | New: a folder to open (any path, `~` included), or a name for an empty session |
+| `r` | Rename the session or tab |
+| `dd` | One step down: a running session is stopped and stays saved; a saved one is deleted; a tab is closed |
+| `/` `i` | Back to the filter |
+| `p` / `?` | Preview on or off / all keys |
+| `q` `Esc` | Close |
+
+`dd` asks first only when it cannot be undone (deleting a saved session,
+always by name), when an agent is working or something needs you there, or
+when it is the session you are in (you are moved to the previous one). A
+second `dd` on a session just stopped therefore asks.
+
+Projects follow the same rule as `zj <folder>`: the first folder under the
+projects root is the client (the session), the last one the service (the
+tab). Saved sessions untouched for 14 days sink to the bottom of their
+section; nothing is ever deleted on its own, except lobbies nobody is in.
+
+The inbox (`Alt g i`, `Alt u`) stays separate: it answers "what needs me?".
+The hub only marks sessions and tabs with `⚑N`.
 
 ## Neovim in the workspace
 
@@ -124,8 +181,7 @@ submitting, then focuses it):
 buffer, plus checks on focus and idle), with a notification. A buffer with
 unsaved changes is never overwritten; nvim asks.
 
-**Projects from nvim.** `<leader>sp` lists the same projects as `zj` (● marks
-running sessions, folder preview) and opens the pick in its session and tab.
+**The hub from nvim.** `<leader>sp` opens the session hub, as `Alt s` does.
 
 lazygit and a shell are reachable both ways: `<leader>gg` / `<C-\>` float
 inside nvim and close with it; `Alt g g` / `Alt g n` float in Zellij and
@@ -133,23 +189,24 @@ outlive an nvim restart. Both send files to the same editor.
 
 ## A day
 
-- **Morning.** Open Windows Terminal: the Zellij profile shows the session
-  manager. Pick yesterday's client; after a reboot it is resurrected (see below).
-- **Start on a service.** `Alt g f`, type part of the name, Enter. New
-  client → new session; known client → a new tab in its session; open tab →
-  focused. `●` marks clients that are running.
+- **Morning.** Open Windows Terminal: the hub, on the session you used last.
+  Enter; after a reboot that resurrects it (see below).
+- **Start on a service.** `Alt s`, type part of the name, Enter. The hint
+  says what will happen: a new session for a new client, a new tab in a
+  known client's session, or just a jump to a tab that is open.
 - **In the tab.** Edit in nvim, give the agent a task (`Alt a` jumps there and
   back), press Enter on `dev` to start the server, Enter on `test` when you
   want them. `Alt g n` for a one-off command.
-- **Interruption.** Client X pings: `Alt g f` (or `Alt g w`) to its session.
-  Agents left in client Y keep working; the tab bar and `Alt g i` show when
-  one needs you, `Alt u` takes you there.
-- **Closing the window** only detaches. Reopen and pick the session.
+- **Interruption.** Client X pings: `Alt s`, type, Enter; `Alt s` `Enter`
+  comes back. Agents left in client Y keep working; the tab bar and `Alt g i`
+  show when one needs you, `Alt u` takes you there.
+- **Closing the window** only detaches; so does `Alt g d`, which returns to
+  the hub.
 
 ## Reboot and resurrection
 
 Sessions are saved every 30 s with each pane's last screen. After a reboot,
-a session is listed as EXITED; opening it (session manager, `zj`, `zellij
+a session is listed as saved (`○` in the hub); opening it (the hub, `zj`, `zellij
 attach`) brings back the tabs, panes, folders and commands; each command waits
 for Enter (`zellij attach -f <name>` runs them all at once). The agent pane runs `zja`, which continues the
 folder's last OpenCode (or Claude Code) conversation, so Enter there picks the work up.
@@ -212,9 +269,12 @@ When it guesses wrong, put a `.zjr.json` in the folder:
 | Alt+hjkl does nothing | `Build-Pilot.ps1`, then restart the session. Debug: add `debug "true"` to the `pilot` block in `config.kdl`, read `%TEMP%\zellij\zellij-log\zellij.log` (lines start `pilot:`) |
 | A file opens in a new nvim instead of the tab's editor | The editor nvim must have started after this config (it registers on start); restart it. Check `%LOCALAPPDATA%\nvim-data\zellij\<session>` lists its pane |
 | `nvim somefile` in a pane waits | The file is under `%TEMP%`, which counts as an agent's prompt file: `:w` in the editor releases it |
-| A session vanished after switching away (not even listed as EXITED) | Zellij 0.46 deletes a session nobody pressed Enter in when the session manager (`Alt g w`, inbox, session card) leaves it. pilot marks every session as used when it starts or is resurrected: an Enter key event without bytes in a pane running a plain shell, or, in a resurrected session, the Enter that starts a held bare shell. A session with no shell pane at all (only nvim, an agent, a dev server) still needs one Enter from you before it is safe to leave |
+| A session vanished after switching away (not even listed as EXITED) | Zellij 0.46 deletes a session nobody pressed Enter in when Zellij's own session manager (the inbox, the session card) leaves it; the hub never does. pilot marks every session as used when it starts or is resurrected: an Enter key event without bytes in a pane running a plain shell, or, in a resurrected session, the Enter that starts a held bare shell. A session with no shell pane at all (only nvim, an agent, a dev server) still needs one Enter from you before it is safe to leave |
 | A session named `.something` cannot be found | Zellij cannot list or reach names starting or ending with a dot; `zj` strips them (`~/.dotconfigs` → `dotconfigs`) |
 | New tabs fail with `0x80070002` launching `pwsh.exe`; Start-menu apps miss tools | Explorer drops the whole user PATH when system + user PATH exceed about 4,095 characters, as soon as anything broadcasts an environment change. Shorten the user PATH (duplicates, folders whose programs are found earlier), then close every Windows Terminal window and reopen it |
+| The hub opens empty, or with a permission prompt | Run `Build-Pilot.ps1` (it grants the plugin's permissions) and restart the session; both views of the plugin must ask for the same set, `PERMISSIONS` in `src/main.rs` |
+| The hub lists no projects | It runs `projects_command` (config.kdl) in the background and caches the result: check that `Get-ZjHubProject` prints `root=…` and the folders |
+| Windows Terminal opens a shell, not the hub | The loop ended: Zellij exited within two seconds (a config error: `zellij setup --check`), or the hub was quit with `q`. `zj` starts it again |
 | A floating "pilot" permission prompt | Answer `y` once, or run `Build-Pilot.ps1` (writes the grant) |
 | `zj` from inside does not switch | It needs pilot (`zellij action switch-session` from the CLI only moves the CLI's own connection, not your client) |
 | New panes open in the wrong folder | The prompt reports the folder with OSC 7; a program that changes folder without a prompt is not tracked |
