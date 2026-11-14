@@ -1,0 +1,327 @@
+// Zellij 0.46 workspace on Linux: one session per client, one tab per
+// service, and in each tab Neovim, a coding agent and a stack of
+// run/test/shell panes. The workflow, the keys and the runbook are in
+// zellij/README.md.
+//
+// This is the Linux twin of zellij/config.kdl (Windows). Everything portable
+// is shared through ~/.config/zellij: themes/, layouts/lobby.kdl and
+// plugins/. KDL has no includes and Zellij expands no variables, so the few
+// settings that name a program have to live in two files; they are marked
+// "Linux:" below, and the rest is meant to stay identical to the Windows one.
+//
+// Commented defaults: zellij setup --dump-config
+// Built-in key preset:  zellij setup --dump-keybinds unlock-first
+
+// --- Keys ---------------------------------------------------------------------
+//
+// unlock-first: Zellij starts locked, so every key reaches Neovim, the shell
+// and the agent. Alt g unlocks (normal mode); from there one letter picks a
+// mode (p pane, t tab, r resize, m move, s scroll, o session) or one of the
+// actions below. Esc or Enter locks again.
+//
+// Alt g and not the preset's Ctrl g: Ctrl g is live ripgrep in the shell
+// (bash/bashrc.d/files.sh) and "edit prompt in $EDITOR" in Claude Code.
+//
+// Bindings here are applied on top of the preset.
+keybinds preset="unlock-first" unlock="Alt g" {
+    shared_among "normal" "locked" {
+        // Alt h/j/k/l: one set of keys across Neovim windows and Zellij
+        // panes. The pilot plugin (plugins/pilot) hands them to Neovim when
+        // it has focus (nvim/lua/config/zellij.lua) and moves Zellij's focus
+        // otherwise; left/right cross into the neighbouring tab at the edge.
+        bind "Alt h" "Alt Left" { MessagePlugin "pilot" { name "nav"; payload "left"; }; }
+        bind "Alt j" "Alt Down" { MessagePlugin "pilot" { name "nav"; payload "down"; }; }
+        bind "Alt k" "Alt Up" { MessagePlugin "pilot" { name "nav"; payload "up"; }; }
+        bind "Alt l" "Alt Right" { MessagePlugin "pilot" { name "nav"; payload "right"; }; }
+
+        // Alt H/J/K/L: move a divider that way, the same in both layers.
+        // In Neovim its window divider, else (or with none that way) the
+        // Zellij pane divider. Terminals send Alt+Shift+h as Alt + "H".
+        bind "Alt H" { MessagePlugin "pilot" { name "resize"; payload "left"; }; }
+        bind "Alt J" { MessagePlugin "pilot" { name "resize"; payload "down"; }; }
+        bind "Alt K" { MessagePlugin "pilot" { name "resize"; payload "up"; }; }
+        bind "Alt L" { MessagePlugin "pilot" { name "resize"; payload "right"; }; }
+
+        // Alt 1-9: straight to a tab, like a count before gt.
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
+
+        // Alt m: maximize (zoom) the pane and back, as <C-w>| then <C-w>=.
+        // Not Alt z (zoxide in the shell) or Alt Enter (a newline in OpenCode).
+        bind "Alt m" { ToggleFocusFullscreen; }
+
+        // Alt s: the session hub (running sessions, saved sessions and
+        // projects in one list, vim keys; README: "The hub"). Also on
+        // Alt g w and Alt g f, and full screen when the terminal opens on
+        // `zj` (layouts/lobby.kdl).
+        bind "Alt s" {
+            LaunchOrFocusPlugin "hub" {
+                floating true
+                move_to_focused_tab true
+            }
+        }
+
+        // Alt a: to the tab's agent and back (starts one if the tab has none).
+        bind "Alt a" { MessagePlugin "pilot" { name "agent"; payload "toggle"; }; }
+
+        // Alt u: the next pane anywhere that needs you (agent waiting for
+        // approval, failed test run, finished build), switching session if
+        // it has to.
+        bind "Alt u" { GoToNextAttention; }
+
+        // Alt \ toggles to the previously focused pane.
+        bind "Alt \\" { FocusLastPane; }
+
+        // Freed for programs: Alt p is Claude Code's model picker (pane
+        // groups stay on the mouse, Alt + click); Alt i/o and Alt [/] go to
+        // Neovim (rare Zellij actions, now after Alt g: , . [ ]). OpenCode's
+        // Alt a (start of visual line) stays shadowed by the agent key.
+        unbind "Alt p" "Alt Shift p" "Alt i" "Alt o" "Alt [" "Alt ]"
+    }
+
+    // Scroll and search read like a pager in vim: g/G top and bottom, /
+    // search, n/N next and previous match, e or v the whole scrollback in
+    // Neovim (motions, text objects, yank) in place of the pane.
+    scroll {
+        bind "g" { ScrollToTop; }
+        bind "G" { ScrollToBottom; }
+        bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "v" { EditScrollback; SwitchToMode "Locked"; }
+    }
+    search {
+        bind "N" { Search "up"; }
+        bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "g" { ScrollToTop; }
+        bind "G" { ScrollToBottom; }
+    }
+
+    // Actions one key after Alt g.
+    normal {
+        // The session hub, as Alt s: w where Zellij's session manager was,
+        // f where the projects picker was. One list holds both now.
+        bind "w" "f" {
+            LaunchOrFocusPlugin "hub" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "Locked"
+        }
+        // The inbox: what every agent and long command in every session is
+        // doing (Alt Enter types into a preview without switching).
+        bind "i" { ToggleSessionCard; SwitchToMode "Locked"; }
+        bind "g" {
+            Run "lazygit" {
+                floating true
+                close_on_exit true
+                name "lazygit"
+                width "90%"
+                height "90%"
+                x "5%"
+                y "5%"
+            }
+            SwitchToMode "Locked"
+        }
+        bind "y" {
+            Run "yazi" {
+                floating true
+                close_on_exit true
+                name "yazi"
+                width "90%"
+                height "90%"
+                x "5%"
+                y "5%"
+            }
+            SwitchToMode "Locked"
+        }
+        // A scratch shell that floats over the tab; Alt f hides and shows it.
+        bind "n" { NewFloatingPane; SwitchToMode "Locked"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "Locked"; }
+        // This pane's scrollback in Neovim, without going through scroll mode.
+        bind "e" { EditScrollback; SwitchToMode "Locked"; }
+        // Arrangements and tab order, moved here from Alt [ ] i o.
+        bind "Space" { NextSwapLayout; SwitchToMode "Locked"; }
+        bind "[" { PreviousSwapLayout; SwitchToMode "Locked"; }
+        bind "]" { NextSwapLayout; SwitchToMode "Locked"; }
+        bind "," { MoveTab "Left"; SwitchToMode "Locked"; }
+        bind "." { MoveTab "Right"; SwitchToMode "Locked"; }
+        bind "T" { ToggleTheme; SwitchToMode "Locked"; }
+        bind "d" { Detach; }
+    }
+}
+
+// --- Plugins --------------------------------------------------------------------
+
+plugins {
+    // Built from plugins/pilot (plugins/build-pilot.sh). The path is the
+    // linked config folder, so it holds wherever the repository is cloned.
+    //
+    // Linux: agent_command runs zja (zellij/bin), which the Windows config
+    // reaches through pwsh.
+    pilot location="file:~/.config/zellij/plugins/pilot.wasm" {
+        agent_command "zja"
+    }
+
+    // The session hub: the same plugin drawing one list of running sessions,
+    // saved sessions and projects (plugins/pilot/src/hub). projects_command
+    // prints the projects root and the projects, most used first; the hub
+    // runs it in the background and shows the last result meanwhile.
+    //
+    // Linux: zj-hub-projects (zellij/bin) in place of Get-ZjHubProject.
+    hub location="file:~/.config/zellij/plugins/pilot.wasm" {
+        view "hub"
+        projects_command "zj-hub-projects"
+    }
+    // The hub as a lobby: the only pane of a throwaway session, shown when
+    // no session is open yet (layouts/lobby.kdl; `zj` without arguments).
+    // q leaves Zellij there instead of closing a popup.
+    lobby location="file:~/.config/zellij/plugins/pilot.wasm" {
+        view "hub"
+        lobby "true"
+        projects_command "zj-hub-projects"
+    }
+}
+
+load_plugins {
+    // Loaded at session start, headless, so the first Alt h is instant.
+    pilot
+}
+
+// --- Behaviour -------------------------------------------------------------------
+
+// Linux: bash with ~/.bashrc, so zj, zja, zjr and the fzf tools exist in
+// every pane (Windows: pwsh).
+default_shell "bash"
+// One-line bar (tabs, mode, sessions with something for you); the service
+// layout uses the same one.
+default_layout "compact"
+// Ctrl q (unlocked) asks first, with detach preselected: closing never kills
+// agents by accident.
+on_quit "ask_detach"
+
+pane_frames true
+pane_frame_style "titles"
+ui {
+    pane_frames {
+        rounded_corners true
+        // The session name is in the bar already.
+        hide_session_name true
+    }
+}
+
+// Agents and builds print a lot.
+scroll_buffer_size 50000
+copy_on_select true
+show_startup_tips false
+
+// Resurrection after a reboot: layout, cwds and commands (each waits for
+// Enter), plus the last screen of every pane so you see where it was.
+session_serialization true
+serialization_interval 30
+serialize_pane_viewport true
+scrollback_lines_to_serialize 2000
+
+// Open the nested session prompt only when asked (ssh into a box running
+// Zellij): zoom in with Alt g o f.
+nested_session_handling "ask"
+
+// The web server stays off; start it on demand with `zellij web` (README:
+// "Watching from elsewhere"). Sessions opt in to sharing one by one.
+web_server false
+web_sharing "off"
+
+// --- Attention: the inbox, tab markers and notifications --------------------------
+//
+// OpenCode reports working / waiting / idle and Claude Code working / needs you / done themselves
+// (OSC 7501); the shell prompt marks each command's start and exit code
+// (OSC 133, bash/bashrc.d/prompt.sh); zjr reports dev servers and test runs
+// (zellij/bin/zjr).
+attention {
+    enabled true
+    frame_markers true
+    tab_markers true
+    host_status true
+    // List commands running longer than this as working, and report them
+    // when they end.
+    track_commands true
+    done_threshold_secs 15
+    idle_rule "watched"
+    startup_card "attention"
+    desktop_notifications {
+        needs_you true
+        failed true
+        done false
+    }
+    tray_badge {
+        needs_you true
+        failed true
+        done true
+        working true
+        quiet false
+        new_output false
+    }
+    // Everforest orange, red, green and blue.
+    tray_badge_colors {
+        needs_you "#e69875"
+        failed "#e67e80"
+        done "#a7c080"
+        working "#7fbbb3"
+        quiet "#859289"
+        new_output "#83c092"
+    }
+}
+
+// --- Look --------------------------------------------------------------------------
+
+// Themes live in themes/ (theme_dir defaults to it). Zellij follows the
+// host terminal's light/dark reports (DEC mode 2031) and passes the switch on
+// to Neovim. A terminal that never reports leaves it dark; Alt g T, or
+// `zellij action toggle-theme`, switches by hand.
+theme_dark "everforest-dark-medium"
+theme_light "everforest-light-medium"
+
+// --- The Zellij terminal (`zellij terminal`) -----------------------------------------
+//
+// Only read by Zellij's own window, the alternative to Ghostty with a tray
+// icon, the inbox badge and desktop notifications (README: "Zellij as the
+// terminal").
+terminal {
+    font "JetBrainsMonoNL Nerd Font"
+    font_size 10
+    ligatures false
+    padding 4
+    padding_balance true
+    cursor_style "block"
+    hide_pointer_while_typing true
+    startup_mode "remember"
+    paste_keys "Ctrl Shift v" "Shift Insert"
+    copy_keys "Ctrl Shift c"
+    // Ghostty's Everforest Dark Medium (ghostty/config).
+    theme {
+        foreground "#d3c6aa"
+        background "#2d353b"
+        cursor "#d3c6aa"
+        black "#475258"
+        red "#e67e80"
+        green "#a7c080"
+        yellow "#dbbc7f"
+        blue "#7fbbb3"
+        magenta "#d699b6"
+        cyan "#83c092"
+        white "#d3c6aa"
+        bright_black "#859289"
+        bright_red "#e67e80"
+        bright_green "#a7c080"
+        bright_yellow "#dbbc7f"
+        bright_blue "#7fbbb3"
+        bright_magenta "#d699b6"
+        bright_cyan "#83c092"
+        bright_white "#d3c6aa"
+    }
+}
