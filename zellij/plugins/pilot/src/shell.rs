@@ -12,6 +12,7 @@ use std::time::Duration;
 use zellij_tile::prelude::*;
 
 use crate::hub::model::{OpenPlan, ProjectEntry, Row, RowId, RowKind, SessionEntry, Snapshot, TabEntry};
+use crate::hub::schedule::Schedule;
 use crate::hub::target::{self, Target};
 use crate::hub::view::{self, Frame, Preview, Style};
 use crate::hub::{Effect, Hub, Key};
@@ -36,12 +37,13 @@ const ACTION_CONTEXT: &str = "hub-action";
 const SERVICE_LAYOUT: &str = "service";
 /// Where the last project list is kept so the hub can show it at once.
 const PROJECTS_CACHE: &str = "/cache/hub-projects.txt";
-/// How long the cursor must rest on a row before its preview is fetched.
-const PREVIEW_DELAY_SECS: f64 = 0.15;
-/// How often the session list is read again while the hub is open. Zellij
-/// reports changes with SessionUpdate, but not promptly after the hub's own
-/// actions, and attention markers should stay current.
-const REFRESH_SECS: f64 = 1.0;
+/// The hub's only timer (see hub/schedule.rs). The cursor must rest on a row
+/// for one to two ticks before its preview is fetched.
+const TICK_SECS: f64 = 0.1;
+/// Ticks between reads of the session list (about a second). Zellij reports
+/// changes with SessionUpdate, but not promptly after the hub's own actions,
+/// and attention markers should stay current.
+const TICKS_PER_REFRESH: u32 = 10;
 
 pub struct HubShell {
     hub: Hub,
@@ -62,6 +64,10 @@ pub struct HubShell {
     preview_of: Option<RowId>,
     /// The row a preview was asked for and is still wanted.
     preview_wanted: Option<RowId>,
+    schedule: Schedule,
+    /// Whether the tick timer runs; it is started once and re-armed by each
+    /// tick, so exactly one is ever pending.
+    ticking: bool,
     ready: bool,
 }
 
@@ -98,6 +104,8 @@ impl HubShell {
             preview: Preview::default(),
             preview_of: None,
             preview_wanted: None,
+            schedule: Schedule::new(TICKS_PER_REFRESH),
+            ticking: false,
             ready: false,
         };
         // The list from last time, so projects are there on the first paint.
@@ -116,16 +124,22 @@ impl HubShell {
                 self.pull_sessions();
                 self.scan_projects();
                 self.refresh();
-                set_timeout(REFRESH_SECS);
+                if !self.ticking {
+                    self.ticking = true;
+                    set_timeout(TICK_SECS);
+                }
             }
+            // Only redraw when the list changed: every redraw of the hub makes
+            // Zellij report the sessions again, so redrawing on each report
+            // fed a loop that kept the plugin thread busy and keys waiting.
             Event::SessionUpdate(live, saved) => {
                 self.live = live;
                 self.saved = saved;
-                self.refresh();
+                return self.refresh();
             }
             Event::SessionHistoryUpdate(history) => {
                 self.history = std::iter::once(history.current).chain(history.previous).chain(history.back).collect();
-                self.refresh();
+                return self.refresh();
             }
             Event::RunCommandResult(code, stdout, _, context) if context.contains_key(PROJECTS_CONTEXT) => {
                 if code == Some(0) {
@@ -157,12 +171,18 @@ impl HubShell {
                 }
                 self.sync_preview();
             }
-            // Timers are told apart by their length.
-            Event::Timer(length) if (length - PREVIEW_DELAY_SECS).abs() < 0.01 => self.fetch_preview(),
+            // The only timer is the tick; its reported length is ignored.
             Event::Timer(_) => {
+                set_timeout(TICK_SECS);
+                let tick = self.schedule.tick();
+                if tick.fetch_preview {
+                    self.fetch_preview();
+                }
+                if !tick.refresh {
+                    return false; // nothing on screen changed
+                }
                 self.pull_sessions();
-                self.refresh();
-                set_timeout(REFRESH_SECS);
+                return self.refresh();
             }
             Event::SessionPreview(report) => {
                 if self.wants_preview_of(&report.session_name) {
@@ -234,8 +254,9 @@ impl HubShell {
         run_command(&command, BTreeMap::from([(PROJECTS_CONTEXT.to_owned(), String::new())]));
     }
 
-    /// Rebuild the hub's snapshot from what Zellij last reported.
-    fn refresh(&mut self) {
+    /// Rebuild the hub's snapshot from what Zellij last reported. Returns
+    /// whether the list changed and has to be drawn again.
+    fn refresh(&mut self) -> bool {
         let recency = |name: &str| {
             let position = self.history.iter().position(|seen| seen == name).unwrap_or(self.history.len());
             (self.history.len() - position) as u64
@@ -280,8 +301,11 @@ impl HubShell {
             .collect();
         sessions.extend(saved);
 
-        self.hub.set_snapshot(Snapshot { sessions, projects: self.projects.clone() });
-        self.sync_preview();
+        let changed = self.hub.set_snapshot(Snapshot { sessions, projects: self.projects.clone() });
+        if changed {
+            self.sync_preview();
+        }
+        changed
     }
 
     // --- Preview -----------------------------------------------------------------------
@@ -310,11 +334,13 @@ impl HubShell {
         );
         self.preview_wanted = if has_screen && self.hub.preview_enabled() { id } else { None };
         if self.preview_wanted.is_some() {
-            set_timeout(PREVIEW_DELAY_SECS);
+            self.schedule.want_preview();
+        } else {
+            self.schedule.cancel_preview();
         }
     }
 
-    /// The timer fired: fetch the preview if the cursor is still on that row.
+    /// The cursor rested: fetch the preview if it is still on that row.
     fn fetch_preview(&mut self) {
         let Some(row) = self.hub.selected() else { return };
         if row.id() != self.preview_wanted {

@@ -17,6 +17,7 @@
 
 pub mod fuzzy;
 pub mod model;
+pub mod schedule;
 pub mod target;
 pub mod view;
 
@@ -176,7 +177,14 @@ impl Hub {
     /// Replace what is listed. The cursor stays on its row when the row is
     /// still there; before the first key it is put on the previous session,
     /// so opening the hub and pressing Enter toggles between the last two.
-    pub fn set_snapshot(&mut self, snapshot: Snapshot) {
+    ///
+    /// Returns whether anything changed. Zellij reports sessions far more
+    /// often than they change (each redraw of the hub makes it report them
+    /// again), so an unchanged snapshot must not cause another redraw.
+    pub fn set_snapshot(&mut self, snapshot: Snapshot) -> bool {
+        if snapshot == self.snapshot {
+            return false;
+        }
         self.snapshot = snapshot;
         self.rebuild();
         // Until a key is pressed the data is still arriving (sessions,
@@ -192,6 +200,7 @@ impl Hub {
                 self.cursor = Some(id);
             }
         }
+        true
     }
 
     /// Rebuild the rows and keep the cursor valid: on its row if it is still
@@ -608,6 +617,16 @@ mod tests {
         changed.sessions.push(session("another", &["x"], 70)); // sorts above globex
         hub.set_snapshot(changed);
         assert_eq!(label(&hub), "initech", "a refresh does not move the cursor");
+    }
+
+    #[test]
+    fn an_unchanged_snapshot_asks_for_no_redraw() {
+        let mut hub = Hub::new(false);
+        assert!(hub.set_snapshot(sample()));
+        assert!(!hub.set_snapshot(sample()), "the same sessions again: nothing to draw");
+        let mut changed = sample();
+        changed.sessions[0].tabs[0].attention = 1;
+        assert!(hub.set_snapshot(changed), "an attention marker changed");
     }
 
     #[test]
