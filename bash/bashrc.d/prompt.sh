@@ -1,4 +1,6 @@
-# Set the pane title to the command being run
+# Set the pane title to the command being run, and mark where it starts for
+# shell integration (OSC 133 C). One C per prompt line: the trap fires for
+# every simple command, so the mark waits for the next prompt (D below).
 function set_command_title() {
 	[[ $- != *i* ]] && return
 
@@ -10,7 +12,12 @@ function set_command_title() {
 	esac
 
 	local first_word=${BASH_COMMAND%% *}
-	printf "\033]2;%s\007" "$first_word" >/dev/tty
+	if ((__command_running)); then
+		printf "\033]2;%s\007" "$first_word" >/dev/tty
+	else
+		__command_running=1
+		printf "\033]2;%s\007\033]133;C\007" "$first_word" >/dev/tty
+	fi
 }
 
 # At the prompt the title is the current folder (~ for home), so a tab or
@@ -71,15 +78,54 @@ function __prompt_init() {
 	__prompt_char="$char"
 }
 
+# Percent-encode $PWD for the OSC 7 URI into __osc7_path. A variable rather
+# than output, as command substitution would fork on every prompt; LC_ALL=C
+# makes the loop walk bytes, so UTF-8 folder names (Música) are encoded byte
+# by byte as the URI wants.
+function __osc7_encode() {
+	local path=$1 char index
+	local LC_ALL=C
+
+	__osc7_path=''
+	for (( index = 0; index < ${#path}; index++ )); do
+		char=${path:index:1}
+		case "$char" in
+			[-/:_.~a-zA-Z0-9]) __osc7_path+=$char ;;
+			*) printf -v char '%%%02X' "'$char"; __osc7_path+=$char ;;
+		esac
+	done
+}
+
 function __prompt_command() {
 	# First, before anything overwrites $?.
 	local status=$?
 	history -a
 	reset_title
 
+	# Shell integration (OSC 133): the end of the last command with its exit
+	# code (D), then where the prompt starts (A); the prompt's end (B) is in
+	# PS1 and the command start (C) in the DEBUG trap above. Zellij uses them
+	# for the inbox (a long command finished or failed), for jumping between
+	# prompts (Alt g s, then [ and ]) and for copying the last command's
+	# output (Alt g s c). D only after a C, so the first prompt reports no
+	# phantom command.
+	local osc=''
+	if (( __command_running )); then
+		osc="\e]133;D;${status}\a"
+		__command_running=0
+	fi
+	osc+='\e]133;A\a'
+
+	# Report the working directory (OSC 7) so a new Zellij pane, split or tab
+	# opens where this one is; Zellij forwards it to the terminal outside.
+	__osc7_encode "$PWD"
+	osc+="\e]7;file://${HOSTNAME}${__osc7_path}\e\\"
+	# %b, never the format string itself: the encoded path carries % escapes.
+	printf '%b' "$osc"
+
 	local style='\[\e[32m\]'
 	(( status )) && style='\[\e[31m\]'
-	PS1="${__prompt_head}${style}${__prompt_char}\[\e[0m\] "
+	PS1="${__prompt_head}${style}${__prompt_char}\[\e[0m\] \[\e]133;B\a\]"
 }
 
 if [[ $- == *i* ]]; then
