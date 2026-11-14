@@ -38,6 +38,35 @@
     path: "{{ config_dir }}/lazygit"
     state: directory
 
+# Zellij's config folder is built from both halves of the repository: the
+# Linux config.kdl and service layout (they name bash, zja and zjr, and KDL
+# has neither includes nor variables), and the shared themes, lobby layout and
+# plugin. Older setups linked the whole zellij/ folder, which would make the
+# links below land inside the repository.
+- name: Dotfiles | Look at the Zellij config folder
+  ansible.builtin.stat:
+    path: "{{ config_dir }}/zellij"
+    follow: false
+  register: zellij_config
+  tags: dotfiles
+
+- name: Dotfiles | Drop the old whole-folder Zellij link
+  when: zellij_config.stat.islnk | default(false)
+  ansible.builtin.file:
+    path: "{{ config_dir }}/zellij"
+    state: absent
+  tags: dotfiles
+
+- name: Dotfiles | Create the Zellij config directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ config_dir }}/zellij"
+    - "{{ config_dir }}/zellij/layouts"
+  tags: dotfiles
+
 - name: Dotfiles | Create symbolic links
   ansible.builtin.file:
     src: "{{ repository_dir }}/{{ item.src }}"
@@ -62,9 +91,55 @@
     - { src: "vscode/keybindings.json", dest: "{{ ansible_facts['env']['HOME'] }}/.var/app/com.visualstudio.code/config/Code/User/keybindings.json" }
     - { src: "zed/keymap.json", dest: "{{ config_dir }}/zed/keymap.json" }
     - { src: "zed/settings.json", dest: "{{ config_dir }}/zed/settings.json" }
-    - { src: "zellij", dest: "{{ config_dir }}/zellij" }
+    - { src: "zellij/linux/config.kdl", dest: "{{ config_dir }}/zellij/config.kdl" }
+    - { src: "zellij/linux/layouts/service.kdl", dest: "{{ config_dir }}/zellij/layouts/service.kdl" }
+    - { src: "zellij/layouts/lobby.kdl", dest: "{{ config_dir }}/zellij/layouts/lobby.kdl" }
+    - { src: "zellij/themes", dest: "{{ config_dir }}/zellij/themes" }
+    - { src: "zellij/plugins", dest: "{{ config_dir }}/zellij/plugins" }
     - { src: "yazi", dest: "{{ config_dir }}/yazi" }
     - { src: "opencode", dest: "{{ config_dir }}/opencode" }
+  tags: dotfiles
+
+# zj, zja, zjr and zj-hub-projects are what the Zellij config, the service
+# layout and the hub run; ~/.local/bin is on PATH for every shell and for the
+# Zellij server.
+- name: Dotfiles | Link the Zellij workspace commands
+  ansible.builtin.file:
+    src: "{{ repository_dir }}/zellij/bin/{{ item }}"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/{{ item }}"
+    state: link
+    force: true
+  loop:
+    - zj
+    - zja
+    - zjr
+    - zj-hub-projects
+  tags: dotfiles
+
+# The pilot plugin is built, not committed. Without cargo (Fedora Silverblue
+# keeps no toolchain) the workspace still works, minus Alt+hjkl, the agent key
+# and the hub, so this reports instead of failing.
+- name: Dotfiles | Look for cargo
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['env']['HOME'] }}/.cargo/bin/cargo"
+  register: cargo_binary
+  tags: dotfiles
+
+- name: Dotfiles | Build the Zellij pilot plugin
+  when: cargo_binary.stat.exists
+  ansible.builtin.command:
+    cmd: "{{ repository_dir }}/zellij/plugins/build-pilot.sh"
+  environment:
+    PATH: "{{ ansible_facts['env']['HOME'] }}/.cargo/bin:{{ ansible_facts['env']['PATH'] }}"
+  changed_when: false
+  tags: dotfiles
+
+- name: Dotfiles | Report a missing Rust toolchain
+  when: not cargo_binary.stat.exists
+  ansible.builtin.debug:
+    msg: >-
+      cargo was not found, so zellij/plugins/pilot.wasm was not built.
+      Install Rust with rustup and run zellij/plugins/build-pilot.sh.
   tags: dotfiles
 
 # delta reads its settings from git config. --replace-all with a value pattern
