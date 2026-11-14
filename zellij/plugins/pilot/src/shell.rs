@@ -360,9 +360,10 @@ impl HubShell {
         match effect {
             Effect::Close => close_self(),
             Effect::Quit => {
-                // Tell the loop that started this lobby (zj, in
-                // powershell/Zellij.psm1) that it was left on purpose: the
-                // plugin's /tmp is Zellij's temp folder on the host.
+                // Tell the loop that started this lobby (zj: zellij/bin/zj on
+                // Linux, powershell/Zellij.psm1 on Windows) that it was left
+                // on purpose: the plugin's /tmp is Zellij's temp folder on
+                // the host.
                 if let Some(lobby) = self.live.iter().find(|s| s.is_current_session) {
                     let _ = std::fs::write(format!("/tmp/{QUIT_MARKER_PREFIX}{}", lobby.name), "");
                 }
@@ -471,13 +472,28 @@ impl HubShell {
 
     /// "New" with a folder: resolve it on the host first (~, a relative
     /// path, whether it exists); the result arrives as RunCommandResult.
+    ///
+    /// The plugin is wasm, so the shell that resolves it is the host's:
+    /// pwsh on Windows, sh on Linux.
     fn check_folder(&mut self, text: &str) {
-        let script = "$p = $env:ZJ_HUB_FOLDER; if (Test-Path -LiteralPath $p -PathType Container) { \
-                      (Resolve-Path -LiteralPath $p).ProviderPath } else { exit 1 }";
+        let cwd = get_plugin_ids().initial_cwd;
+        let command: Vec<&str> = if host_is_windows(&cwd) {
+            let script = "$p = $env:ZJ_HUB_FOLDER; if (Test-Path -LiteralPath $p -PathType Container) { \
+                          (Resolve-Path -LiteralPath $p).ProviderPath } else { exit 1 }";
+            vec!["pwsh", "-NoLogo", "-NoProfile", "-Command", script]
+        } else {
+            // POSIX sh: ~ is only expanded by an interactive shell, so it is
+            // expanded here; cd ... && pwd -P prints the folder as an
+            // absolute path, and fails when it is not one.
+            let script = "p=$ZJ_HUB_FOLDER; \
+                          case $p in '~') p=$HOME ;; '~/'*) p=$HOME/${p#'~/'} ;; esac; \
+                          [ -d \"$p\" ] && cd \"$p\" && pwd -P";
+            vec!["sh", "-c", script]
+        };
         run_command_with_env_variables_and_cwd(
-            &["pwsh", "-NoLogo", "-NoProfile", "-Command", script],
+            &command,
             BTreeMap::from([("ZJ_HUB_FOLDER".to_owned(), text.to_owned())]),
-            get_plugin_ids().initial_cwd,
+            cwd,
             BTreeMap::from([(FOLDER_CONTEXT.to_owned(), String::new())]),
         );
         self.hub.set_notice(format!("Opening {text}…"));
@@ -524,6 +540,14 @@ impl HubShell {
         }
         close_self();
     }
+}
+
+/// Whether the host runs Windows, told from one of its paths: the plugin is
+/// wasm, so the target it was built for says nothing about the machine.
+fn host_is_windows(path: &std::path::Path) -> bool {
+    let text = path.to_string_lossy();
+    let drive = matches!(text.as_bytes(), [letter, b':', ..] if letter.is_ascii_alphabetic());
+    drive || text.contains('\\')
 }
 
 /// The scan's output: `root=<folder>` then one project per line, relative to
@@ -662,6 +686,15 @@ mod tests {
 
         let (_, unix) = parse_projects("root=/home/me/src\nacme/api\n");
         assert_eq!(unix[0].dir, "/home/me/src/acme/api");
+    }
+
+    #[test]
+    fn the_host_is_told_from_its_paths() {
+        use std::path::Path;
+        assert!(host_is_windows(Path::new(r"C:\Users\me\Projects")));
+        assert!(host_is_windows(Path::new(r"\\server\share\work")));
+        assert!(!host_is_windows(Path::new("/home/me/Proyectos")));
+        assert!(!host_is_windows(Path::new("/var/home/me")));
     }
 
     #[test]
