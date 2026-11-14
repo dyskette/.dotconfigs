@@ -34,6 +34,7 @@
 //! (`get_pane_running_command`), so there is no title matching and no lag.
 
 mod hub;
+mod pending;
 mod shell;
 
 use std::collections::BTreeMap;
@@ -80,6 +81,8 @@ struct Pilot {
     debug: bool,
     /// Progress of marking this session as used; see `keep_session`.
     keep: Keep,
+    /// The session this instance runs in, from `ModeUpdate`.
+    session: Option<String>,
     /// Set when this instance is the session hub (`view "hub"`) instead of
     /// the headless pilot: it then only draws and drives the hub.
     hub: Option<shell::HubShell>,
@@ -143,6 +146,7 @@ impl ZellijPlugin for Pilot {
         subscribe(&[
             EventType::PaneUpdate,
             EventType::TabUpdate,
+            EventType::ModeUpdate,
             EventType::PermissionRequestResult,
             EventType::SessionSuggestions,
             EventType::TerminalCommandSubmitted,
@@ -160,6 +164,11 @@ impl ZellijPlugin for Pilot {
             Event::PaneUpdate(manifest) => {
                 self.panes = manifest;
                 self.keep_session();
+                self.run_pending();
+            }
+            Event::ModeUpdate(mode) => {
+                self.session = mode.session_name;
+                self.run_pending();
             }
             Event::TabUpdate(tabs) => self.tabs = tabs,
             Event::SessionSuggestions(suggestions) if self.keep == Keep::Checking => {
@@ -291,6 +300,27 @@ impl Pilot {
         );
         self.log(|| format!("resize {direction:?}: {resize:?} {edge:?}"));
         resize_focused_pane_with_direction(resize, edge);
+    }
+
+    /// Carry out what the hub of another session asked of this one, now that
+    /// a client is here: add the tab it opened, or stop the session it left
+    /// (see pending.rs).
+    fn run_pending(&mut self) {
+        let Some(session) = &self.session else { return };
+        if !self.ready || get_focused_pane_info().is_err() {
+            return;
+        }
+        match pending::take(session) {
+            Some(pending::Request::NewTab { layout }) => {
+                new_tabs_with_layout(&layout);
+            }
+            Some(pending::Request::Kill { session }) => {
+                if let Err(error) = kill_sessions(&[session.as_str()]) {
+                    eprintln!("pilot: could not stop {session}: {error}");
+                }
+            }
+            None => {}
+        }
     }
 
     /// A pane that can take the Enter without anything reaching a program:

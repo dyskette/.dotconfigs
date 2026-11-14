@@ -11,9 +11,11 @@ use std::time::Duration;
 
 use zellij_tile::prelude::*;
 
-use crate::hub::model::{ProjectEntry, Row, RowId, RowKind, SessionEntry, Snapshot, TabEntry};
+use crate::hub::model::{OpenPlan, ProjectEntry, Row, RowId, RowKind, SessionEntry, Snapshot, TabEntry};
+use crate::hub::target::{self, Target};
 use crate::hub::view::{self, Frame, Preview, Style};
 use crate::hub::{Effect, Hub, Key};
+use crate::pending::{self, Request};
 
 /// Sessions whose name starts with this are lobbies: the hub's own full
 /// screen sessions, never listed and swept when nobody is in them.
@@ -21,10 +23,21 @@ pub const LOBBY_PREFIX: &str = "lobby-";
 
 /// Context tag of the project scan, to recognise its result.
 const PROJECTS_CONTEXT: &str = "hub-projects";
+/// Context tag of the folder check behind "new": its value is unused.
+const FOLDER_CONTEXT: &str = "hub-folder";
+/// Context tag of a `zellij` command run for another session; its value
+/// says what was being done, for the message when it fails.
+const ACTION_CONTEXT: &str = "hub-action";
+/// The layout a project opens with (layouts/service.kdl).
+const SERVICE_LAYOUT: &str = "service";
 /// Where the last project list is kept so the hub can show it at once.
 const PROJECTS_CACHE: &str = "/cache/hub-projects.txt";
 /// How long the cursor must rest on a row before its preview is fetched.
 const PREVIEW_DELAY_SECS: f64 = 0.15;
+/// How often the session list is read again while the hub is open. Zellij
+/// reports changes with SessionUpdate, but not promptly after the hub's own
+/// actions, and attention markers should stay current.
+const REFRESH_SECS: f64 = 1.0;
 
 pub struct HubShell {
     hub: Hub,
@@ -35,6 +48,8 @@ pub struct HubShell {
     /// Session names, most recently used first.
     history: Vec<String>,
     projects: Vec<ProjectEntry>,
+    /// The projects root, as the scan reported it.
+    root: String,
     /// The command that prints the projects root and the ranked projects
     /// (`projects_command` setting).
     projects_command: Vec<String>,
@@ -74,6 +89,7 @@ impl HubShell {
             saved: Vec::new(),
             history: Vec::new(),
             projects: Vec::new(),
+            root: String::new(),
             projects_command,
             preview: Preview::default(),
             preview_of: None,
@@ -82,7 +98,7 @@ impl HubShell {
         };
         // The list from last time, so projects are there on the first paint.
         if let Ok(cached) = std::fs::read_to_string(PROJECTS_CACHE) {
-            shell.projects = parse_projects(&cached);
+            shell.set_projects(&cached);
         }
         shell
     }
@@ -93,12 +109,10 @@ impl HubShell {
             Event::PermissionRequestResult(PermissionStatus::Granted) => {
                 self.ready = true;
                 self.claim_pane();
-                if let Ok(sessions) = get_session_list() {
-                    self.live = sessions.live_sessions;
-                    self.saved = sessions.resurrectable_sessions;
-                }
+                self.pull_sessions();
                 self.scan_projects();
                 self.refresh();
+                set_timeout(REFRESH_SECS);
             }
             Event::SessionUpdate(live, saved) => {
                 self.live = live;
@@ -112,10 +126,25 @@ impl HubShell {
             Event::RunCommandResult(code, stdout, _, context) if context.contains_key(PROJECTS_CONTEXT) => {
                 if code == Some(0) {
                     let listing = String::from_utf8_lossy(&stdout).into_owned();
-                    self.projects = parse_projects(&listing);
+                    self.set_projects(&listing);
                     // Best effort: without the cache the first paint has no projects.
                     let _ = std::fs::write(PROJECTS_CACHE, listing);
                     self.refresh();
+                }
+            }
+            Event::RunCommandResult(code, stdout, _, context) if context.contains_key(FOLDER_CONTEXT) => {
+                let folder = String::from_utf8_lossy(&stdout).trim().to_owned();
+                if code == Some(0) && !folder.is_empty() {
+                    self.open_target(target::folder_target(&folder, &self.root));
+                } else {
+                    self.hub.set_notice("No such folder".to_owned());
+                }
+            }
+            Event::RunCommandResult(code, _, stderr, context) if context.contains_key(ACTION_CONTEXT) => {
+                if code != Some(0) {
+                    let what = context.get(ACTION_CONTEXT).cloned().unwrap_or_default();
+                    let why = String::from_utf8_lossy(&stderr);
+                    self.hub.set_notice(format!("Could not {what}: {}", why.trim()));
                 }
             }
             Event::Key(key) => {
@@ -124,7 +153,13 @@ impl HubShell {
                 }
                 self.sync_preview();
             }
-            Event::Timer(_) => self.fetch_preview(),
+            // Timers are told apart by their length.
+            Event::Timer(length) if (length - PREVIEW_DELAY_SECS).abs() < 0.01 => self.fetch_preview(),
+            Event::Timer(_) => {
+                self.pull_sessions();
+                self.refresh();
+                set_timeout(REFRESH_SECS);
+            }
             Event::SessionPreview(report) => {
                 if self.wants_preview_of(&report.session_name) {
                     let screen = strip_escapes(&report.contents);
@@ -174,6 +209,20 @@ impl HubShell {
     }
 
     // --- Data ------------------------------------------------------------------------
+
+    /// Read the sessions from Zellij now.
+    fn pull_sessions(&mut self) {
+        if let Ok(sessions) = get_session_list() {
+            self.live = sessions.live_sessions;
+            self.saved = sessions.resurrectable_sessions;
+        }
+    }
+
+    fn set_projects(&mut self, listing: &str) {
+        let (root, projects) = parse_projects(listing);
+        self.root = root;
+        self.projects = projects;
+    }
 
     fn scan_projects(&self) {
         let Some((program, args)) = self.projects_command.split_first() else { return };
@@ -281,27 +330,181 @@ impl HubShell {
         match effect {
             Effect::Close => close_self(),
             Effect::Quit => quit_zellij(),
-            other => self.hub.set_notice(format!("Not available yet: {other:?}")),
+            Effect::Open(plan) => self.open(plan),
+            Effect::Kill { session } => {
+                let result = kill_sessions(&[session.as_str()]);
+                if result.is_ok() {
+                    // List it as saved at once: a second dd must find it
+                    // saved, and ask, even before Zellij's list catches up.
+                    self.live.retain(|s| s.name != session);
+                    if !self.saved.iter().any(|(name, _)| name == &session) {
+                        self.saved.push((session.clone(), Duration::ZERO));
+                    }
+                    self.refresh();
+                }
+                self.report(result, "stop the session");
+            }
+            Effect::Forget { session } => {
+                let result = delete_dead_session(&session);
+                if result.is_ok() {
+                    self.saved.retain(|(name, _)| name != &session);
+                    self.refresh();
+                }
+                self.report(result, "delete the session");
+            }
+            Effect::KillCurrent { session, switch_to: Some(next) } => {
+                // The session can only be stopped once the client has left
+                // it: the pilot of the next session does it on arrival.
+                match pending::leave(&next, &Request::Kill { session }) {
+                    Ok(()) => {
+                        switch_session(Some(&next));
+                        close_self();
+                    }
+                    Err(error) => self.hub.set_notice(format!("Could not leave the request: {error}")),
+                }
+            }
+            // Nowhere else to go: the client ends up outside Zellij (back
+            // in the lobby when it was started from the Windows Terminal
+            // profile).
+            Effect::KillCurrent { session, switch_to: None } => {
+                self.report(kill_sessions(&[session.as_str()]), "stop the session");
+            }
+            Effect::CloseTab { session, id } => {
+                if self.is_current(&session) {
+                    close_tab_with_id(id as u64);
+                } else {
+                    self.zellij_in(&session, &["close-tab-by-id", &id.to_string()], "close the tab");
+                }
+            }
+            Effect::RenameSession { from, to } => {
+                if self.is_current(&from) {
+                    rename_session(&to);
+                } else if self.live.iter().any(|s| s.name == from) {
+                    self.zellij_in(&from, &["rename-session", &to], "rename the session");
+                } else {
+                    // Zellij can only rename a session that is running.
+                    self.hub.set_notice(format!("{from} is saved: open it to rename it"));
+                }
+            }
+            Effect::RenameTab { session, id, to } => {
+                if self.is_current(&session) {
+                    rename_tab_with_id(id as u64, &to);
+                } else {
+                    self.zellij_in(&session, &["rename-tab-by-id", &id.to_string(), &to], "rename the tab");
+                }
+            }
         }
+    }
+
+    fn is_current(&self, session: &str) -> bool {
+        self.live.iter().any(|s| s.is_current_session && s.name == session)
+    }
+
+    fn report(&mut self, result: Result<(), String>, what: &str) {
+        if let Err(error) = result {
+            self.hub.set_notice(format!("Could not {what}: {error}"));
+        }
+    }
+
+    /// Run `zellij action ...` in another session. The plugin API only acts
+    /// on the session the plugin is in; the CLI reaches any running one.
+    fn zellij_in(&self, session: &str, action: &[&str], what: &str) {
+        let command: Vec<&str> = ["zellij", "--session", session, "action"].into_iter().chain(action.iter().copied()).collect();
+        run_command(&command, BTreeMap::from([(ACTION_CONTEXT.to_owned(), what.to_owned())]));
+    }
+
+    fn open(&mut self, plan: OpenPlan) {
+        match plan {
+            OpenPlan::Stay => {}
+            OpenPlan::GoToTab { position, .. } => switch_tab_to(position as u32 + 1),
+            OpenPlan::Attach { session, tab } => switch_session_with_focus(&session, tab.map(|(position, _)| position), None),
+            OpenPlan::Resurrect { session } => switch_session(Some(&session)),
+            OpenPlan::Scratch { session } => {
+                let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok();
+                switch_session_with_cwd(Some(&session), home.map(std::path::PathBuf::from));
+            }
+            OpenPlan::NewTab(target) | OpenPlan::ResurrectAndNewTab(target) | OpenPlan::NewSession(target) => {
+                return self.open_target(target);
+            }
+            OpenPlan::Path { text } => return self.check_folder(&text),
+        }
+        close_self();
+    }
+
+    /// "New" with a folder: resolve it on the host first (~, a relative
+    /// path, whether it exists); the result arrives as RunCommandResult.
+    fn check_folder(&mut self, text: &str) {
+        let script = "$p = $env:ZJ_HUB_FOLDER; if (Test-Path -LiteralPath $p -PathType Container) { \
+                      (Resolve-Path -LiteralPath $p).ProviderPath } else { exit 1 }";
+        run_command_with_env_variables_and_cwd(
+            &["pwsh", "-NoLogo", "-NoProfile", "-Command", script],
+            BTreeMap::from([("ZJ_HUB_FOLDER".to_owned(), text.to_owned())]),
+            get_plugin_ids().initial_cwd,
+            BTreeMap::from([(FOLDER_CONTEXT.to_owned(), String::new())]),
+        );
+        self.hub.set_notice(format!("Opening {text}…"));
+    }
+
+    /// Open a folder's session and tab, whatever state they are in: the
+    /// same decisions as `zj` (powershell/Zellij.psm1, Open-ZjTarget).
+    fn open_target(&mut self, target: Target) {
+        let session = self.live.iter().find(|s| s.name == target.session);
+        let open_tab = session.and_then(|s| s.tabs.iter().find(|t| t.name == target.tab).map(|t| t.position));
+        let current = session.is_some_and(|s| s.is_current_session);
+
+        // The tab is open already: just go there.
+        if let Some(position) = open_tab {
+            if current {
+                switch_tab_to(position as u32 + 1);
+            } else {
+                switch_session_with_focus(&target.session, Some(position), None);
+            }
+            return close_self();
+        }
+
+        let layout = match dump_layout(SERVICE_LAYOUT).and_then(|template| target::service_layout(&template, &target)) {
+            Ok(layout) => layout,
+            Err(error) => return self.hub.set_notice(format!("Could not read the service layout: {error}")),
+        };
+
+        if current {
+            new_tabs_with_layout(&layout);
+        } else if session.is_some() || self.saved.iter().any(|(name, _)| name == &target.session) {
+            // A running or saved session: the tab is added by its pilot
+            // once this client is in (see pending.rs).
+            if let Err(error) = pending::leave(&target.session, &Request::NewTab { layout }) {
+                return self.hub.set_notice(format!("Could not leave the request: {error}"));
+            }
+            switch_session(Some(&target.session));
+        } else {
+            switch_session_with_options(ConnectToSession {
+                name: Some(target.session.clone()),
+                layout: Some(LayoutInfo::Stringified(layout)),
+                cwd: Some(std::path::PathBuf::from(&target.dir)),
+                ..Default::default()
+            });
+        }
+        close_self();
     }
 }
 
 /// The scan's output: `root=<folder>` then one project per line, relative to
 /// the root with `/` separators, most used first.
-fn parse_projects(listing: &str) -> Vec<ProjectEntry> {
+fn parse_projects(listing: &str) -> (String, Vec<ProjectEntry>) {
     let mut lines = listing.lines().map(str::trim).filter(|l| !l.is_empty());
     let Some(root) = lines.next().and_then(|first| first.strip_prefix("root=")) else {
-        return Vec::new();
+        return (String::new(), Vec::new());
     };
     let root = root.trim_end_matches(['/', '\\']);
     let separator = if root.contains('\\') { "\\" } else { "/" };
-    lines
+    let projects = lines
         .map(|rel| {
             let rel = rel.replace('\\', "/");
             let dir = format!("{root}{separator}{}", rel.replace('/', separator));
             ProjectEntry { rel, dir }
         })
-        .collect()
+        .collect();
+    (root.to_owned(), projects)
 }
 
 /// A saved session has no screen: list its tabs and what ran in them.
@@ -412,20 +615,21 @@ mod tests {
 
     #[test]
     fn the_project_scan_is_parsed_with_the_roots_separator() {
-        let projects = parse_projects("root=C:\\Users\\me\\Projects\\\r\nacme/cerberus\r\nsentinel\r\n\r\n");
+        let (root, projects) = parse_projects("root=C:\\Users\\me\\Projects\\\r\nacme/cerberus\r\nsentinel\r\n\r\n");
+        assert_eq!(root, r"C:\Users\me\Projects");
         assert_eq!(projects.len(), 2);
         assert_eq!(projects[0].rel, "acme/cerberus");
         assert_eq!(projects[0].dir, r"C:\Users\me\Projects\acme\cerberus");
         assert_eq!(projects[1].dir, r"C:\Users\me\Projects\sentinel");
 
-        let unix = parse_projects("root=/home/me/src\nacme/api\n");
+        let (_, unix) = parse_projects("root=/home/me/src\nacme/api\n");
         assert_eq!(unix[0].dir, "/home/me/src/acme/api");
     }
 
     #[test]
     fn a_listing_without_a_root_is_ignored() {
-        assert!(parse_projects("acme/cerberus\n").is_empty());
-        assert!(parse_projects("").is_empty());
+        assert!(parse_projects("acme/cerberus\n").1.is_empty());
+        assert!(parse_projects("").1.is_empty());
     }
 
     #[test]
