@@ -33,6 +33,11 @@
 //! program a pane runs, and the plugin API answers that synchronously
 //! (`get_pane_running_command`), so there is no title matching and no lag.
 
+// The session hub's logic; the plugin shell that draws it and runs its
+// effects comes next, until then nothing here is called.
+#[allow(dead_code)]
+mod hub;
+
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
