@@ -1,0 +1,46 @@
+# Lint (shellcheck) and test the Zellij workspace commands, the bash half of
+# what powershell.yml checks on Windows. Scoped to these files: the rest of
+# bash/ predates the linter and is checked when it is next touched.
+name: bash
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'zellij/bin/**'
+      - 'zellij/plugins/build-pilot.sh'
+      - 'zellij/linux/**'
+      - 'linux/tests/**'
+      - '.github/workflows/bash.yml'
+  pull_request:
+    paths:
+      - 'zellij/bin/**'
+      - 'zellij/plugins/build-pilot.sh'
+      - 'zellij/linux/**'
+      - 'linux/tests/**'
+      - '.github/workflows/bash.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint
+        run: |
+          shellcheck --version
+          shellcheck -S warning -x \
+            zellij/bin/zj zellij/bin/zja zellij/bin/zjr zellij/bin/zj-hub-projects \
+            zellij/bin/zj-lib.sh zellij/plugins/build-pilot.sh linux/tests/zj-lib.test.sh
+
+      - name: Test
+        run: ./linux/tests/zj-lib.test.sh
