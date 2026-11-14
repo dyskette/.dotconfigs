@@ -33,10 +33,8 @@
 //! program a pane runs, and the plugin API answers that synchronously
 //! (`get_pane_running_command`), so there is no title matching and no lag.
 
-// The session hub's logic; the plugin shell that draws it and runs its
-// effects comes next, until then nothing here is called.
-#[allow(dead_code)]
 mod hub;
+mod shell;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -46,6 +44,21 @@ use zellij_tile::prelude::*;
 /// Program names (lower case, without `.exe`) that receive the navigation key
 /// instead of Zellij.
 const EDITORS: &[&str] = &["nvim", "vim", "vi"];
+
+/// Everything either view needs. Both ask for the same set: Zellij caches
+/// the last set a plugin file was granted, so a view asking for more than
+/// the other would be prompted again each time the other had run.
+/// Build-Pilot.ps1 grants this list; keep the two in step.
+pub const PERMISSIONS: &[PermissionType] = &[
+    PermissionType::ReadApplicationState,
+    PermissionType::ChangeApplicationState,
+    PermissionType::WriteToStdin,
+    PermissionType::RunCommands,
+    PermissionType::OpenTerminalsOrPlugins,
+    PermissionType::RunActionsAsUser,
+    // The hub's previews of other sessions.
+    PermissionType::ReadPaneContents,
+];
 
 /// Name given to agent panes; layouts use the same one (layouts/*.kdl).
 const AGENT_PANE: &str = "agent";
@@ -67,6 +80,9 @@ struct Pilot {
     debug: bool,
     /// Progress of marking this session as used; see `keep_session`.
     keep: Keep,
+    /// Set when this instance is the session hub (`view "hub"`) instead of
+    /// the headless pilot: it then only draws and drives the hub.
+    hub: Option<shell::HubShell>,
 }
 
 /// Zellij 0.46 treats a session nobody pressed Enter in as disposable: when
@@ -112,20 +128,18 @@ register_plugin!(Pilot);
 
 impl ZellijPlugin for Pilot {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
+        if configuration.get("view").is_some_and(|v| v == "hub") {
+            self.hub = Some(shell::HubShell::load(&configuration));
+            return;
+        }
         self.agent_command = configuration
             .get("agent_command")
             .map(|c| c.split_whitespace().map(str::to_owned).collect())
             .unwrap_or_default();
         self.debug = configuration.get("debug").is_some_and(|v| v == "true");
 
-        request_permission(&[
-            PermissionType::ReadApplicationState,
-            PermissionType::ChangeApplicationState,
-            PermissionType::WriteToStdin,
-            PermissionType::RunCommands,
-            PermissionType::OpenTerminalsOrPlugins,
-            PermissionType::RunActionsAsUser,
-        ]);
+        request_permission(PERMISSIONS);
+
         subscribe(&[
             EventType::PaneUpdate,
             EventType::TabUpdate,
@@ -139,6 +153,9 @@ impl ZellijPlugin for Pilot {
     }
 
     fn update(&mut self, event: Event) -> bool {
+        if let Some(hub) = &mut self.hub {
+            return hub.update(event);
+        }
         match event {
             Event::PaneUpdate(manifest) => {
                 self.panes = manifest;
@@ -176,7 +193,16 @@ impl ZellijPlugin for Pilot {
         false
     }
 
+    fn render(&mut self, rows: usize, cols: usize) {
+        if let Some(hub) = &mut self.hub {
+            hub.render(rows, cols);
+        }
+    }
+
     fn pipe(&mut self, message: PipeMessage) -> bool {
+        if self.hub.is_some() {
+            return false; // pipes are pilot's commands
+        }
         self.log(|| format!("pipe {} {:?} (ready: {})", message.name, message.payload, self.ready));
         // A CLI pipe (`zellij pipe`) ends with a message without payload;
         // every command carries one, so that one is skipped instead of

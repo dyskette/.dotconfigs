@@ -67,10 +67,10 @@ Write-Host "pilot.wasm: $([math]::Round((Get-Item $output).Length / 1KB)) KB -> 
 # C:\Users\me/.dotconfigs/zellij/plugins/pilot.wasm (checked on 0.46.0).
 $cache = Join-Path $env:LOCALAPPDATA 'Zellij\cache\permissions.kdl'
 $location = "$HOME/.dotconfigs/zellij/plugins/pilot.wasm"
-# Keep this list in step with request_permission in pilot/src/main.rs:
+# Keep this list in step with PERMISSIONS in pilot/src/main.rs:
 # Zellij prompts again when the plugin asks for one that is not cached.
 $permissions = 'ReadApplicationState', 'ChangeApplicationState', 'WriteToStdin', 'RunCommands',
-    'OpenTerminalsOrPlugins', 'RunActionsAsUser'
+    'OpenTerminalsOrPlugins', 'RunActionsAsUser', 'ReadPaneContents'
 $key = $location.Replace('\', '\\')
 $node = "`"$key`" {`n" + (($permissions | ForEach-Object { "    $_`n" }) -join '') + "}`n"
 

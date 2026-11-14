@@ -433,6 +433,32 @@ function Get-ZjProjectList {
     }
 }
 
+<#
+.SYNOPSIS
+    The project list for the session hub (zellij/plugins/pilot): the root,
+    then the projects, most used first.
+.DESCRIPTION
+    The hub runs this in the background (projects_command in config.kdl) and
+    caches the result, so it never waits for PowerShell.
+.OUTPUTS
+    "root=<folder>", then one project per line relative to the root with /
+    separators, ranked by zoxide and then by name.
+#>
+function Get-ZjHubProject {
+    [OutputType([string])]
+    param([string]$Root = (Get-ZjProjectRoot))
+
+    "root=$Root"
+    $rank = @{}
+    $i = 0
+    if (Get-Command zoxide -CommandType Application -ErrorAction Ignore) {
+        foreach ($path in zoxide query --list 2>$null) { $rank[$path.TrimEnd('\')] ??= $i++ }
+    }
+    Get-ZjProjectList -Root $Root |
+        Sort-Object { $r = $rank[(Join-Path $Root $_)]; if ($null -eq $r) { [int]::MaxValue } else { $r } }, { $_ } |
+        ForEach-Object { $_.Replace('\', '/') }
+}
+
 # --- Zellij calls ---------------------------------------------------------------
 
 <#
@@ -716,4 +742,4 @@ Register-ArgumentCompleter -Native -CommandName zellij -ScriptBlock {
     (TabExpansion2 -inputScript $commandAst.Extent.Text -cursorColumn $column).CompletionMatches
 }
 
-Export-ModuleMember -Function zj, zja, zjr, Get-ZjTarget, Get-ZjProjectList, Get-ProjectTask, Wait-ZjClient, Open-ZjTab
+Export-ModuleMember -Function zj, zja, zjr, Get-ZjTarget, Get-ZjProjectList, Get-ZjHubProject, Get-ProjectTask, Wait-ZjClient, Open-ZjTab

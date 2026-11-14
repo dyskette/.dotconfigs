@@ -18,6 +18,7 @@
 pub mod fuzzy;
 pub mod model;
 pub mod target;
+pub mod view;
 
 use std::collections::BTreeSet;
 
@@ -101,8 +102,9 @@ pub struct Hub {
     half_page: usize,
     /// Whether this hub is the lobby (no session to return to).
     lobby: bool,
-    /// Whether the starting cursor position was chosen yet.
-    placed: bool,
+    /// Whether a key was pressed yet; before that the cursor is still being
+    /// put on its starting row as the data arrives.
+    touched: bool,
 }
 
 impl Hub {
@@ -120,7 +122,7 @@ impl Hub {
             notice: None,
             half_page: 5,
             lobby,
-            placed: false,
+            touched: false,
         }
     }
 
@@ -147,6 +149,10 @@ impl Hub {
     pub fn is_lobby(&self) -> bool {
         self.lobby
     }
+    /// Show a one-line message until the next key.
+    pub fn set_notice(&mut self, text: String) {
+        self.notice = Some(text);
+    }
     pub fn set_half_page(&mut self, rows: usize) {
         self.half_page = rows.max(1);
     }
@@ -168,21 +174,19 @@ impl Hub {
     // --- Data ----------------------------------------------------------------------
 
     /// Replace what is listed. The cursor stays on its row when the row is
-    /// still there; the first time there is something to show it starts on
-    /// the previous session, so opening the hub and pressing Enter toggles
-    /// between the last two sessions.
+    /// still there; before the first key it is put on the previous session,
+    /// so opening the hub and pressing Enter toggles between the last two.
     pub fn set_snapshot(&mut self, snapshot: Snapshot) {
         self.snapshot = snapshot;
         self.rebuild();
-        if !self.placed && self.rows.iter().any(Row::selectable) {
-            self.placed = true;
-            if self.query.is_empty() {
-                let previous = self.rows.iter().find(|row| {
-                    matches!(row.kind, RowKind::Session { running: true, current: false, .. })
-                });
-                if let Some(id) = previous.and_then(Row::id) {
-                    self.cursor = Some(id);
-                }
+        // Until a key is pressed the data is still arriving (sessions,
+        // history and projects come separately), so keep choosing.
+        if !self.touched && self.query.is_empty() {
+            let previous = self.rows.iter().find(|row| {
+                matches!(row.kind, RowKind::Session { running: true, current: false, .. })
+            });
+            if let Some(id) = previous.and_then(Row::id) {
+                self.cursor = Some(id);
             }
         }
     }
@@ -235,6 +239,7 @@ impl Hub {
     // --- Keys ----------------------------------------------------------------------
 
     pub fn handle_key(&mut self, key: Key) -> Vec<Effect> {
+        self.touched = true;
         self.notice = None;
         if self.overlay.is_some() {
             return self.overlay_key(key);
@@ -557,6 +562,18 @@ mod tests {
         assert_eq!(label(&hub), "globex", "the previous session, not the current one");
         assert_eq!(hub.enter_hint().as_deref(), Some("attach globex"));
         assert_eq!(hub.handle_key(Key::Enter), [Effect::Open(OpenPlan::Attach { session: "globex".into(), tab: None })]);
+    }
+
+    #[test]
+    fn the_starting_row_is_chosen_again_while_data_arrives() {
+        // Zellij reports the current session first, the others a moment later.
+        let mut hub = Hub::new(false);
+        let mut first = sample();
+        first.sessions.retain(|s| s.current);
+        hub.set_snapshot(first);
+        assert_eq!(label(&hub), "acme");
+        hub.set_snapshot(sample());
+        assert_eq!(label(&hub), "globex", "the previous session, now that it is known");
     }
 
     #[test]

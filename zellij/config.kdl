@@ -50,6 +50,15 @@ keybinds preset="unlock-first" unlock="Alt g" {
         // Not Alt z (zoxide in the shell) or Alt Enter (a newline in OpenCode).
         bind "Alt m" { ToggleFocusFullscreen; }
 
+        // Alt s: the session hub (sessions, saved sessions and projects in
+        // one list, vim keys). Also on Alt g w.
+        bind "Alt s" {
+            LaunchOrFocusPlugin "hub" {
+                floating true
+                move_to_focused_tab true
+            }
+        }
+
         // Alt a: to the tab's agent and back (starts one if the tab has none).
         bind "Alt a" { MessagePlugin "pilot" { name "agent"; payload "toggle"; }; }
 
@@ -157,6 +166,15 @@ plugins {
     // starts an agent pane when a tab has none; zja is in powershell/Zellij.psm1.
     pilot location="file:~/.dotconfigs/zellij/plugins/pilot.wasm" {
         agent_command "pwsh -NoLogo -Command zja; exit $LASTEXITCODE"
+    }
+
+    // The session hub: the same plugin drawing one list of running sessions,
+    // saved sessions and projects (plugins/pilot/src/hub). projects_command
+    // prints the projects root and the projects, most used first; the hub
+    // runs it in the background and shows the last result meanwhile.
+    hub location="file:~/.dotconfigs/zellij/plugins/pilot.wasm" {
+        view "hub"
+        projects_command "pwsh -NoLogo -NoProfile -Command [Console]::OutputEncoding=[Text.Encoding]::UTF8;Import-Module ~/.dotconfigs/powershell/Zellij.psm1 -DisableNameChecking;Get-ZjHubProject"
     }
 }
 
