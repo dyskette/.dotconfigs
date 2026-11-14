@@ -14,7 +14,7 @@
 -- agent, Zellij's click-to-open) to it, through pipe_path() below.
 --
 -- The agent bridge (<leader>i...) pastes file references, selections and
--- diagnostics into the tab's agent pane.
+-- diagnostics into the tab's agent pane. <leader>sp opens the session hub.
 local M = {}
 
 -- Directions: Zellij's name for each, and whether it moves along columns.
@@ -321,133 +321,17 @@ function M.send_diagnostics()
   M.send_to_agent(table.concat(lines, "\n") .. "\n")
 end
 
--- --- Projects picker ------------------------------------------------------------------
+-- --- The session hub -------------------------------------------------------------------
 
--- Same rules as Get-ZjProjectList in powershell/Zellij.psm1.
-local markers = {
-  "^%.git$",
-  "%.sln$",
-  "%.slnx$",
-  "%.csproj$",
-  "^package%.json$",
-  "^pyproject%.toml$",
-  "^requirements%.txt$",
-  "^Cargo%.toml$",
-  "^go%.mod$",
-  "^pom%.xml$",
-  "^build%.gradle",
-}
-local skip = { "^%.", "^node_modules$", "^bin$", "^obj$", "^dist$", "^target$", "^__MACOSX$" }
-
-local function matches_any(name, patterns)
-  for _, p in ipairs(patterns) do
-    if name:match(p) then
-      return true
-    end
-  end
-  return false
-end
-
----@return string root, string[] relative folders
-local function project_list()
-  local root = vim.env.ZJ_PROJECTS or vim.fs.joinpath(vim.env.USERPROFILE or vim.env.HOME, "Projects")
-  local found, queue = {}, { { path = root, rel = nil, level = 0 } }
-  while #queue > 0 do
-    local item = table.remove(queue, 1)
-    local children = {}
-    for name, kind in vim.fs.dir(item.path) do
-      if kind == "directory" and not matches_any(name, skip) then
-        table.insert(children, name)
-      end
-    end
-    table.sort(children, function(a, b)
-      return a:lower() < b:lower()
-    end)
-    for _, name in ipairs(children) do
-      local path = vim.fs.joinpath(item.path, name)
-      local rel = item.rel and (item.rel .. "/" .. name) or name
-      table.insert(found, rel)
-      local is_project = false
-      for entry in vim.fs.dir(path) do
-        if matches_any(entry, markers) then
-          is_project = true
-          break
-        end
-      end
-      if item.level + 1 < 3 and not is_project then
-        table.insert(queue, { path = path, rel = rel, level = item.level + 1 })
-      end
-    end
-  end
-  return root, found
-end
-
---- Pick a project and open it with zj: its client's session, its own tab.
-function M.projects()
+--- Open the session hub (zellij/README.md, "The hub"): running sessions,
+--- saved sessions and projects in one list. The same popup as Alt s; pilot
+--- opens it for this client.
+function M.hub()
   if not in_zellij() then
-    vim.notify("The projects picker opens Zellij sessions; start nvim inside Zellij", vim.log.levels.WARN)
+    vim.notify("The session hub is part of Zellij; start nvim inside Zellij", vim.log.levels.WARN)
     return
   end
-  local root, list = project_list()
-
-  local live = {}
-  local sessions = vim.system({ "zellij", "list-sessions", "--no-formatting" }, { text = true }):wait(3000)
-  for line in (sessions.stdout or ""):gmatch("[^\n]+") do
-    local name = line:match("^(%S+) %[Created")
-    if name and not line:find("EXITED", 1, true) then
-      live[name] = true
-    end
-  end
-
-  -- Most used first, as zj does: zoxide's order, then the rest by name.
-  local rank = {}
-  local z = vim.system({ "zoxide", "query", "--list" }, { text = true }):wait(3000)
-  local i = 0
-  for path in (z.stdout or ""):gmatch("[^\r\n]+") do
-    i = i + 1
-    rank[vim.fs.normalize(path):lower()] = rank[vim.fs.normalize(path):lower()] or i
-  end
-
-  local items = {}
-  for idx, rel in ipairs(list) do
-    local dir = vim.fs.joinpath(root, rel)
-    -- Same name rule as ConvertTo-ZjSessionName (powershell/Zellij.psm1).
-    local client = rel:match("^[^/]+"):gsub("[^%w%.%-_]", "_"):gsub("^%.+", ""):gsub("%.+$", "")
-    table.insert(items, {
-      text = rel,
-      file = dir,
-      live = live[client] or false,
-      order = rank[vim.fs.normalize(dir):lower()] or (100000 + idx),
-    })
-  end
-  table.sort(items, function(a, b)
-    return a.order < b.order
-  end)
-
-  Snacks.picker.pick({
-    source = "zellij_projects",
-    title = "Projects (● running session)",
-    items = items,
-    preview = "file",
-    format = function(item)
-      return { { item.live and "● " or "  ", "DiagnosticOk" }, { item.text } }
-    end,
-    confirm = function(picker, item)
-      picker:close()
-      if not item then
-        return
-      end
-      local psm1 = vim.fs.normalize(vim.fn.resolve(vim.fn.expand("~/.dotconfigs/powershell/Zellij.psm1")))
-      local command = ("Import-Module '%s' -DisableNameChecking; zj '%s'"):format(psm1, item.file:gsub("'", "''"))
-      vim.system({ "pwsh", "-NoLogo", "-NoProfile", "-Command", command }, { text = true }, function(out)
-        if out.code ~= 0 then
-          vim.schedule(function()
-            vim.notify("zj failed: " .. vim.trim((out.stderr or "") .. (out.stdout or "")), vim.log.levels.ERROR)
-          end)
-        end
-      end)
-    end,
-  })
+  zellij({ "pipe", "--name", "hub", "--", "open" })
 end
 
 -- --- Setup ---------------------------------------------------------------------------------
@@ -476,7 +360,7 @@ function M.setup()
   vim.keymap.set("n", "<leader>ii", function()
     zellij({ "pipe", "--name", "agent", "--", "toggle" })
   end, { desc = "Agent: go to the agent pane (Alt a)" })
-  vim.keymap.set("n", "<leader>sp", M.projects, { desc = "Search projects (open in Zellij)" })
+  vim.keymap.set("n", "<leader>sp", M.hub, { desc = "Sessions and projects (the Zellij hub)" })
 
   if in_zellij() then
     vim.api.nvim_create_autocmd("VimEnter", { once = true, callback = register_host })
