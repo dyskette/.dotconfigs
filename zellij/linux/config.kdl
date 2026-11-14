@@ -57,6 +57,17 @@ keybinds preset="unlock-first" unlock="Alt g" {
         // Not Alt z (zoxide in the shell) or Alt Enter (a newline in OpenCode).
         bind "Alt m" { ToggleFocusFullscreen; }
 
+        // Alt t: raise the tab's floating layer and put it away again, from
+        // wherever the focus is. lazygit (Alt g g), yazi (Alt g y) and
+        // scratch panes (Alt g n) all live in that layer, so this is how to
+        // get back to one left open. Focus is kept on both sides, and a tab
+        // with no float yet gets a shell.
+        //
+        // This is the preset's Alt f, moved: fzf pages its preview with
+        // alt-f/alt-b (fzf/fzfrc), which the preset binding was eating in
+        // every pane. Alt t costs readline's transpose-words instead.
+        bind "Alt t" { ToggleFloatingPanes; }
+
         // Alt s: the session hub (running sessions, saved sessions and
         // projects in one list, vim keys; README: "The hub"). Also on
         // Alt g w and Alt g f, and full screen when the terminal opens on
@@ -81,9 +92,11 @@ keybinds preset="unlock-first" unlock="Alt g" {
 
         // Freed for programs: Alt p is Claude Code's model picker (pane
         // groups stay on the mouse, Alt + click); Alt i/o and Alt [/] go to
-        // Neovim (rare Zellij actions, now after Alt g: , . [ ]). OpenCode's
-        // Alt a (start of visual line) stays shadowed by the agent key.
-        unbind "Alt p" "Alt Shift p" "Alt i" "Alt o" "Alt [" "Alt ]"
+        // Neovim (rare Zellij actions, now after Alt g: , . [ ]); Alt f pages
+        // an fzf preview (fzf/fzfrc), the floating layer having moved to
+        // Alt t. OpenCode's Alt a (start of visual line) stays shadowed by
+        // the agent key.
+        unbind "Alt p" "Alt Shift p" "Alt i" "Alt o" "Alt [" "Alt ]" "Alt f"
     }
 
     // Scroll and search read like a pager in vim: g/G top and bottom, /
@@ -214,6 +227,13 @@ ui {
         hide_session_name true
     }
 }
+
+// A stack lists the panes it is not showing as titles. In a row, not the
+// default column: the service tab's stack (dev, test, shell) then reads as a
+// row of tabs, and Alt h/l steps along it, so the shell is one key away
+// whichever of the three is open. Applies to stacks made from here on; Alt g
+// p Shift s flips one that already exists.
+stacked_pane_list_orientation "horizontal"
 
 // Agents and builds print a lot.
 scroll_buffer_size 50000

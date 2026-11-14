@@ -18,9 +18,9 @@ session = client          acme
     ┌────────────── editor ──────────────┬──────── agent ────────┐
     │ nvim                               │ opencode ($ZJ_AGENT)  │
     ├────────────────────────────────────┴───────────────────────┤
-    │ dev   zjr dev    (waits for Enter)       stacked: one open, │
-    │ test  zjr test   (waits for Enter)       the others a line  │
-    │ shell                                                       │
+    ├─ dev ─┬─ test ─┬─ shell ───────────────────────────────────┤
+    │ zjr dev / zjr test wait for Enter.  Stacked, titles in a   │
+    │ row: one open, the other two a tab. Alt h/l steps along it │
     └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,7 +83,7 @@ Always available (locked too):
 
 | Key | Does |
 | --- | --- |
-| `Alt h/j/k/l`, `Alt ←↓↑→` | Move between nvim windows and Zellij panes as one grid, from any nvim mode; left/right cross into the next tab at the edge |
+| `Alt h/j/k/l`, `Alt ←↓↑→` | Move between nvim windows and Zellij panes as one grid, from any nvim mode; left/right cross into the next tab at the edge. Inside a stack they step along its titles, so `dev`, `test` and `shell` work like tabs |
 | `Alt H/J/K/L` | Move a divider that way: nvim's window divider, or the Zellij pane divider when nvim has none that way (the right/bottom divider first) |
 | `Alt 1`–`9` | Go to tab N |
 | `Alt m` | Maximize (zoom) the pane and back |
@@ -91,7 +91,8 @@ Always available (locked too):
 | `Alt a` | To this tab's agent and back (starts one if missing) |
 | `Alt u` | Next pane anywhere that needs you (agent waiting, failed tests), switching session if needed |
 | `Alt \` | Previous pane |
-| `Alt n` / `Alt f` | New pane / show or hide floating panes |
+| `Alt t` | Raise the tab's floating layer (a lazygit, yazi or scratch pane left open) and put it away; focus is kept on both sides, and a tab with no float yet gets a shell |
+| `Alt n` | New pane |
 | `Alt =` / `Alt -` | Grow / shrink pane |
 
 After `Alt g`:
