@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# zjr [dev|test|build] [-n|--dry-run]
+#
+# Run the project's dev server, tests or build (zj_project_task in zj-lib.sh
+# picks the command by project kind), and report it to Zellij's inbox.
+#
+# The service layout's dev and test panes run this, suspended until Enter: the
+# pane exits with the command's exit code, so Zellij marks it as done or
+# failed. -n prints the command without running it.
+#
+#   zjr test
+#   zjr -n
+set -uo pipefail
+
+# shellcheck source=zellij/bin/zj-lib.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/zj-lib.sh"
+
+task=dev
+dry_run=0
+
+for argument in "$@"; do
+  case $argument in
+    dev | test | build) task=$argument ;;
+    -n | --dry-run | -WhatIf | --what-if) dry_run=1 ;;
+    -h | --help)
+      sed -n '2,12p' "$(readlink -f "${BASH_SOURCE[0]}")" | sed 's/^# \?//'
+      exit 0
+      ;;
+    *)
+      printf "zjr: unknown argument '%s'; expected dev, test, build or -n.\n" "$argument" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if ! zj_project_task "$PWD" "$task"; then
+  printf '\033[33mzjr: no %s command for %s.\033[0m\n' "$task" "$PWD"
+  printf 'Add one in .zjr.json: { "dev": "...", "test": "...", "build": "..." }\n'
+  exit 2
+fi
+
+line="${ZJ_TASK_CMD[*]}"
+printf '\033[36mzjr %s (%s): %s\033[0m\n' "$task" "$ZJ_TASK_KIND" "$line"
+((dry_run)) && exit 0
+
+zj_status working "$task: $line" zjr
+"${ZJ_TASK_CMD[@]}"
+code=$?
+if ((code == 0)); then
+  zj_status 'done' "$task exited with $code" zjr
+else
+  zj_status error "$task exited with $code" zjr
+fi
+exit "$code"

@@ -1,6 +1,7 @@
 # fzf, fd, ripgrep and bat wired into bash: fzf's own key bindings and **
-# completion, fed by fd and previewed by bat and eza, plus the zj/tm session
-# pickers. The pickers with their own names (sf, sg, ...) live in files.sh.
+# completion, fed by fd and previewed by bat and eza, plus the tm session
+# picker. The pickers with their own names (sf, sg, ...) live in files.sh.
+# Zellij's own picker is the session hub (zellij/bin/zj, zellij/README.md).
 #
 #   Ctrl+t   insert files picked with fzf at the cursor
 #   Alt+c    cd into a folder picked with fzf
@@ -80,9 +81,9 @@ if [[ $- == *i* ]]; then
   eval "$(fzf --bash)"
 fi
 
-# Resolve the project directory for zj/tm: the argument if given,
-# otherwise an fzf pick from directories under ~, searched $2 levels deep
-# (default 3). Fails when cancelled.
+# Resolve the project directory for tm: the argument if given, otherwise an
+# fzf pick from directories under ~, searched $2 levels deep (default 3).
+# Fails when cancelled.
 __pick_project_dir() {
   if [[ -n "$1" ]]; then
     # -e: fail on a missing directory instead of resolving it anyway
@@ -95,30 +96,16 @@ __pick_project_dir() {
   fi
 }
 
-# Zellij session manager
-# Always uses sessions — switch-session from inside, attach --create from outside
-# With no args: fzf pick from project directories
-zj() {
-  local dir name
-
-  dir="$(__pick_project_dir "$1")" || return
-
-  name="$(basename "$dir" | tr '.' '_')"
-
-  if [[ -n "$ZELLIJ" ]]; then
-    zellij action switch-session "$name" --cwd "$dir"
-  else
-    zellij attach --create "$name" options --default-cwd "$dir"
-  fi
-}
-
-# Tmux session manager, the tmux twin of zj
-# switch-client from inside, new-session -A (attach or create) from outside
-# With no args: fzf pick from project directories
+# Tmux session manager: switch-client from inside, new-session -A (attach or
+# create) from outside. With no args: fzf pick from project directories.
+#
+# Zellij's twin was a function here too; it is now zellij/bin/zj, which opens
+# the session hub (sessions, saved sessions and projects in one list) and a
+# whole service tab per project.
 tm() {
   local dir name
 
-  # Five levels, like the tmux popups (tmux/scripts), two more than zj
+  # Five levels, like the tmux popups (tmux/scripts), two more than the hub
   dir="$(__pick_project_dir "$1" 5)" || return
 
   name="$(basename "$dir" | tr '.' '_')"

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# zja [arguments...]
+#
+# Start the coding agent for the current folder: $ZJ_AGENT (default opencode),
+# continuing the folder's last conversation if it has one.
+#
+# The service layout's agent pane runs this, so after a reboot the resurrected
+# pane picks the conversation up where it stopped. OpenCode and Claude Code
+# continue with --continue; other agents start fresh. Arguments given to zja go
+# to the agent instead.
+#
+#   zja
+#   ZJ_AGENT=claude zja
+set -euo pipefail
+
+# shellcheck source=zellij/bin/zj-lib.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/zj-lib.sh"
+
+agent=${ZJ_AGENT:-opencode}
+
+if ! command -v "$agent" >/dev/null; then
+  printf "zja: %s is not on PATH. Set ZJ_AGENT to the agent you want.\n" "$agent" >&2
+  exit 127
+fi
+
+if (($# == 0)) && zj_agent_has_conversation "$agent" "$PWD"; then
+  set -- --continue
+fi
+
+exec "$agent" "$@"

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# zj-hub-projects
+#
+# The project list for the session hub (zellij/plugins/pilot): the projects
+# root, then the projects, most used first. The hub runs this in the background
+# (projects_command in config.kdl) and caches the result, so it never waits.
+#
+# Output: "root=<folder>", then one project per line relative to the root,
+# ranked by zoxide and then by name.
+set -euo pipefail
+
+# shellcheck source=zellij/bin/zj-lib.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/zj-lib.sh"
+
+root=$(zj_project_root)
+printf 'root=%s\n' "$root"
+
+projects=$(zj_project_list "$root")
+[[ -n $projects ]] || exit 0
+
+# zoxide lists the folders it knows, most used first, so its line number is the
+# rank; everything it has not seen sorts after them, by name.
+visited=''
+if command -v zoxide >/dev/null; then
+  visited=$(zoxide query --list 2>/dev/null || true)
+fi
+
+awk -v root="$root" '
+  NR == FNR {
+    path = $0
+    sub(/\/+$/, "", path)
+    if (!(path in rank)) rank[path] = FNR
+    next
+  }
+  {
+    key = root "/" $0
+    printf "%d\t%s\n", (key in rank ? rank[key] : 2147483647), $0
+  }
+' <(printf '%s\n' "$visited") <(printf '%s\n' "$projects") | sort -k1,1n -k2,2 | cut -f2-

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# zj [folder]
+#
+# Open the session hub, or with a folder open that project: its client's
+# session, its own tab (Neovim, agent, dev, test and shell panes).
+#
+# Without arguments it opens the hub (zellij/README.md, "The hub"): one list of
+# running sessions, saved sessions and projects. Outside Zellij that is the
+# lobby, full screen; inside, the same popup as Alt s.
+#
+# With a folder it goes straight there, without the hub: inside Zellij it
+# switches this client, outside it attaches. The folder may be absolute,
+# relative, or relative to the projects root ($ZJ_PROJECTS).
+#
+#   zj
+#   zj acme/cerberus
+#   zj .
+set -euo pipefail
+
+# shellcheck source=zellij/bin/zj-lib.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/zj-lib.sh"
+
+project=${1:-}
+
+if [[ -z $project ]]; then
+  if [[ -n ${ZELLIJ:-} ]]; then
+    zellij pipe --name hub -- open >/dev/null
+  else
+    zj_lobby
+  fi
+  exit
+fi
+
+root=$(zj_project_root)
+for candidate in "$project" "$root/$project"; do
+  if [[ -d $candidate ]]; then
+    mapfile -t target < <(zj_target "$candidate" "$root")
+    zj_open_target "${target[0]}" "${target[1]}" "${target[2]}"
+    exit
+  fi
+done
+
+printf "zj: no folder '%s' here or under %s. Run zj without arguments to pick from the hub.\n" \
+  "$project" "$root" >&2
+exit 1
