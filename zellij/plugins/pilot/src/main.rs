@@ -73,9 +73,9 @@ struct Pilot {
 ///
 /// The only thing that marks a session as used is an unmodified Enter key
 /// from the user's client in a terminal pane. pilot sends one on the user's
-/// behalf: an Enter key event with no bytes, in the tab's shell pane (pwsh,
-/// which does not use the kitty keyboard protocol, so no byte is written to
-/// it), then gives focus back.
+/// behalf: an Enter key event with no bytes, in a pane running a plain shell
+/// (any session, service tab or not; shells do not use the kitty keyboard
+/// protocol, so no byte is written), then gives focus back.
 #[derive(Default, Debug, PartialEq)]
 enum Keep {
     /// Waiting for a client and a tab with a shell pane.
@@ -89,8 +89,8 @@ enum Keep {
     Done,
 }
 
-/// Name of the pane the Enter goes to (layouts/service.kdl).
-const SHELL_PANE: &str = "shell";
+/// Programs (lower case, without `.exe`) a pane may run to take the Enter.
+const SHELLS: &[&str] = &["pwsh", "powershell", "cmd", "bash", "sh", "zsh"];
 
 /// Context tag of the action pilot runs, to recognise its completion.
 const KEEP_CONTEXT: &str = "pilot-keep-session";
@@ -262,12 +262,37 @@ impl Pilot {
         resize_focused_pane_with_direction(resize, edge);
     }
 
-    /// The focused tab's shell pane, if it can take the Enter: a live terminal
-    /// that is not a held command pane (where Enter would run the command).
-    fn shell_pane(&self, tab: usize) -> Option<&PaneInfo> {
-        self.panes.panes.get(&tab)?.iter().find(|p| {
-            !p.is_plugin && p.title == SHELL_PANE && !p.is_held && !p.exited && !p.is_suppressed
-        })
+    /// A pane that can take the Enter without anything reaching a program:
+    /// a live terminal, not a held command pane (where Enter would run the
+    /// command), whose foreground program is a plain shell (`SHELLS` do not
+    /// use the kitty keyboard protocol, so an Enter without bytes writes
+    /// nothing). The focused tab first, then the others.
+    ///
+    /// A resurrected session brings every pane back held ("press Enter to
+    /// run"), plain shells included. Failing a running shell, a held pane
+    /// whose command is a shell alone (no arguments) is used: the Enter
+    /// starts that shell, which is what the user would do anyway. Held panes
+    /// running anything else (a dev server, an agent, nvim) are never used.
+    fn shell_pane(&self, focused_tab: usize) -> Option<u32> {
+        let mut tabs: Vec<usize> = self.panes.panes.keys().copied().collect();
+        tabs.sort_by_key(|tab| (*tab != focused_tab, *tab));
+        let panes = || {
+            tabs.iter()
+                .flat_map(|tab| self.panes.panes[tab].iter())
+                .filter(|p| !p.is_plugin && !p.exited && !p.is_suppressed)
+        };
+        let running = panes().filter(|p| !p.is_held).find(|p| {
+            get_pane_running_command(PaneId::Terminal(p.id))
+                .ok()
+                .and_then(|argv| argv.first().map(|program| is_shell(program)))
+                .unwrap_or(false)
+        });
+        let held = || {
+            panes()
+                .filter(|p| p.is_held)
+                .find(|p| p.terminal_command.as_deref().is_some_and(is_shell))
+        };
+        running.or_else(held).map(|p| p.id)
     }
 
     /// Once there is a client and its tab has a shell pane, ask Zellij
@@ -293,7 +318,7 @@ impl Pilot {
             self.keep = Keep::Waiting;
             return;
         };
-        let Some(shell) = self.shell_pane(tab).map(|p| p.id) else {
+        let Some(shell) = self.shell_pane(tab) else {
             self.keep = Keep::Waiting;
             return;
         };
@@ -395,6 +420,13 @@ fn program_name(program: &str) -> String {
     file.strip_suffix(".exe").map(str::to_owned).unwrap_or(file)
 }
 
+/// Whether a program, or a whole command line, is one of `SHELLS` with no
+/// arguments: `C:\...\pwsh.EXE` is, `pwsh -Command zjr dev` is not (its last
+/// path segment is not a bare program name).
+fn is_shell(command: &str) -> bool {
+    SHELLS.contains(&program_name(command.trim()).as_str())
+}
+
 fn parse_direction(payload: &str) -> Option<Direction> {
     match payload.trim() {
         "left" => Some(Direction::Left),
@@ -443,6 +475,16 @@ mod tests {
         assert_eq!(program_name("/usr/bin/nvim"), "nvim");
         assert_eq!(program_name("NVIM.EXE"), "nvim");
         assert_eq!(program_name("pwsh"), "pwsh");
+    }
+
+    #[test]
+    fn only_bare_shells_take_the_enter() {
+        assert!(is_shell(r"C:\Users\me\AppData\Local\Microsoft\WindowsApps\Microsoft.PowerShell_8wekyb3d8bbwe\pwsh.EXE"));
+        assert!(is_shell("bash"));
+        assert!(is_shell(r"C:\Windows\System32\cmd.exe "));
+        assert!(!is_shell("pwsh -NoLogo -Command zjr dev; exit $LASTEXITCODE"));
+        assert!(!is_shell(r"C:\Program Files\Neovim\bin\nvim.exe"));
+        assert!(!is_shell(r"C:\Users\me\.local\bin\opencode.exe"));
     }
 
     #[test]
