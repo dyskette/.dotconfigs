@@ -587,18 +587,52 @@ function Open-ZjTarget {
 
 <#
 .SYNOPSIS
-    Open a project: its client's session, its own tab (Neovim, agent, dev,
-    test and shell panes in its folder).
+    Start the session hub's lobby: Zellij showing the hub full screen, until
+    it is quit there with q.
 .DESCRIPTION
-    Without arguments, pick from the folders under the projects root with
-    fzf: most used first (zoxide), ● marks clients with a running session,
-    and the preview shows the git branch and the tree.
+    Each round starts a throwaway session named lobby-<id> with the lobby
+    layout (zellij/layouts/lobby.kdl). Picking something in the hub moves
+    this client to that session; when the client later detaches or the
+    session ends, the hub comes back. Quitting the hub with q leaves a
+    marker file, which ends the loop.
 
-    Inside Zellij it switches this client; outside it attaches. Alt g f opens
-    it in a floating pane.
+    Lobbies are deleted by the pilot plugin once nobody is in them.
+#>
+function Enter-ZjLobby {
+    while ($true) {
+        $name = "lobby-$([guid]::NewGuid().ToString('n').Substring(0, 8))"
+        # The hub writes this in Zellij's temp folder when it is quit with q.
+        $marker = Join-Path ([IO.Path]::GetTempPath()) "zellij\hub-quit-$name"
+        $started = [DateTime]::UtcNow
+
+        zellij --session $name --new-session-with-layout lobby
+
+        if (Test-Path -LiteralPath $marker) {
+            Remove-Item -LiteralPath $marker -ErrorAction Ignore
+            return
+        }
+        # Zellij failing to start (a config error, say) must not spin.
+        if ($LASTEXITCODE -ne 0 -or ([DateTime]::UtcNow - $started).TotalSeconds -lt 2) {
+            Write-Warning "Zellij ended right away (exit code $LASTEXITCODE); not starting the hub again."
+            return
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    Open the session hub, or with a folder open that project: its client's
+    session, its own tab (Neovim, agent, dev, test and shell panes).
+.DESCRIPTION
+    Without arguments it opens the hub (zellij/README.md, "The hub"): one
+    list of running sessions, saved sessions and projects. Outside Zellij
+    that is the lobby, full screen (Enter-ZjLobby); inside, the same popup
+    as Alt s.
+
+    With a folder it goes straight there, without the hub: inside Zellij it
+    switches this client, outside it attaches.
 .PARAMETER Project
-    A folder (absolute, relative, or relative to the projects root), or text
-    to start the picker with; a single match opens directly.
+    A folder: absolute, relative, or relative to the projects root.
 .EXAMPLE
     zj
 .EXAMPLE
@@ -609,50 +643,24 @@ function Open-ZjTarget {
 function zj {
     param([Parameter(Position = 0)][string]$Project)
 
+    if (-not $Project) {
+        if ($env:ZELLIJ) {
+            Invoke-Zellij -Arguments @('pipe', '--name', 'hub', '--', 'open') | Out-Null
+        } else {
+            Enter-ZjLobby
+        }
+        return
+    }
+
     $root = Get-ZjProjectRoot
-    $dir = $null
-    if ($Project) {
-        foreach ($candidate in $Project, (Join-Path $root $Project)) {
-            if (Test-Path -LiteralPath $candidate -PathType Container) {
-                $dir = (Resolve-Path -LiteralPath $candidate).ProviderPath
-                break
-            }
+    foreach ($candidate in $Project, (Join-Path $root $Project)) {
+        if (Test-Path -LiteralPath $candidate -PathType Container) {
+            $dir = (Resolve-Path -LiteralPath $candidate).ProviderPath
+            Open-ZjTarget (Get-ZjTarget -Directory $dir -Root $root)
+            return
         }
     }
-
-    if (-not $dir) {
-        $live = @(ConvertFrom-ZjSessionList (Invoke-Zellij -Arguments @('list-sessions', '--no-formatting') -NoThrow) |
-                Where-Object { -not $_.Exited } | ForEach-Object Name)
-
-        # Most used first: zoxide's ranking, then the rest by name.
-        $rank = @{}
-        $i = 0
-        if (Get-Command zoxide -CommandType Application -ErrorAction Ignore) {
-            foreach ($path in zoxide query --list 2>$null) { $rank[$path.TrimEnd('\')] ??= $i++ }
-        }
-        $lines = Get-ZjProjectList -Root $root |
-            Sort-Object { $r = $rank[(Join-Path $root $_)]; if ($null -eq $r) { [int]::MaxValue } else { $r } }, { $_ } |
-            ForEach-Object {
-                $session = (Get-ZjTarget -Directory (Join-Path $root $_) -Root $root).Session
-                $mark = if ($live -contains $session) { '●' } else { ' ' }
-                "$_`t$mark $_"
-            }
-
-        Push-Location -LiteralPath $root
-        try {
-            # Previews run through cmd.exe (FZF_DEFAULT_OPTS, CliTools.ps1).
-            $picked = $lines | fzf --delimiter "`t" --with-nth 2 --scheme=path --no-multi --select-1 `
-                --query "$Project" --border-label ' projects ' `
-                --header '● running session · enter opens its tab' `
-                --preview 'git -C {1} branch --show-current 2>nul & eza --tree --level=2 --color=always --icons=always --group-directories-first --git-ignore {1}'
-        } finally {
-            Pop-Location
-        }
-        if ($LASTEXITCODE -ne 0 -or -not $picked) { return }
-        $dir = Join-Path $root ($picked -split "`t")[0]
-    }
-
-    Open-ZjTarget (Get-ZjTarget -Directory $dir -Root $root)
+    Write-Error "zj: no folder '$Project' here or under $root. Run zj without arguments to pick from the hub."
 }
 
 <#
@@ -742,4 +750,4 @@ Register-ArgumentCompleter -Native -CommandName zellij -ScriptBlock {
     (TabExpansion2 -inputScript $commandAst.Extent.Text -cursorColumn $column).CompletionMatches
 }
 
-Export-ModuleMember -Function zj, zja, zjr, Get-ZjTarget, Get-ZjProjectList, Get-ZjHubProject, Get-ProjectTask, Wait-ZjClient, Open-ZjTab
+Export-ModuleMember -Function zj, zja, zjr, Enter-ZjLobby, Get-ZjTarget, Get-ZjProjectList, Get-ZjHubProject, Get-ProjectTask, Wait-ZjClient, Open-ZjTab

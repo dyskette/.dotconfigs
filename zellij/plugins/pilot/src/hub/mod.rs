@@ -185,7 +185,10 @@ impl Hub {
             let previous = self.rows.iter().find(|row| {
                 matches!(row.kind, RowKind::Session { running: true, current: false, .. })
             });
-            if let Some(id) = previous.and_then(Row::id) {
+            // Without one (the lobby after a reboot): the first row, which
+            // is the session most recently saved.
+            let start = previous.or_else(|| self.rows.iter().find(|row| row.selectable()));
+            if let Some(id) = start.and_then(Row::id) {
                 self.cursor = Some(id);
             }
         }
@@ -574,6 +577,19 @@ mod tests {
         assert_eq!(label(&hub), "acme");
         hub.set_snapshot(sample());
         assert_eq!(label(&hub), "globex", "the previous session, now that it is known");
+    }
+
+    #[test]
+    fn in_a_lobby_it_starts_on_the_most_recent_saved_session_however_data_arrives() {
+        // Projects come from the cache first, sessions a moment later.
+        let mut hub = Hub::new(true);
+        hub.set_snapshot(Snapshot { sessions: vec![], projects: sample().projects });
+        assert_eq!(label(&hub), "project acme/cerberus");
+        let mut later = sample();
+        later.sessions.retain(|s| !s.running);
+        hub.set_snapshot(later);
+        assert_eq!(label(&hub), "initech", "the session saved last, not a project");
+        assert_eq!(hub.enter_hint().as_deref(), Some("resurrect initech"));
     }
 
     #[test]

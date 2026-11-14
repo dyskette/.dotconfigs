@@ -50,8 +50,10 @@ keybinds preset="unlock-first" unlock="Alt g" {
         // Not Alt z (zoxide in the shell) or Alt Enter (a newline in OpenCode).
         bind "Alt m" { ToggleFocusFullscreen; }
 
-        // Alt s: the session hub (sessions, saved sessions and projects in
-        // one list, vim keys). Also on Alt g w.
+        // Alt s: the session hub (running sessions, saved sessions and
+        // projects in one list, vim keys; README: "The hub"). Also on
+        // Alt g w and Alt g f, and full screen when Windows Terminal opens
+        // (layouts/lobby.kdl).
         bind "Alt s" {
             LaunchOrFocusPlugin "hub" {
                 floating true
@@ -95,22 +97,10 @@ keybinds preset="unlock-first" unlock="Alt g" {
 
     // Actions one key after Alt g.
     normal {
-        // Projects: pick a client/service; opens or switches to its session
-        // and tab (powershell/Zellij.psm1, zj).
-        bind "f" {
-            Run "pwsh" "-NoLogo" "-Command" "zj" {
-                floating true
-                close_on_exit true
-                name "projects"
-                width "80%"
-                height "70%"
-                x "10%"
-                y "15%"
-            }
-            SwitchToMode "Locked"
-        }
-        bind "w" {
-            LaunchOrFocusPlugin "session-manager" {
+        // The session hub, as Alt s: w where Zellij's session manager was,
+        // f where the projects picker was. One list holds both now.
+        bind "w" "f" {
+            LaunchOrFocusPlugin "hub" {
                 floating true
                 move_to_focused_tab true
             }
@@ -174,6 +164,14 @@ plugins {
     // runs it in the background and shows the last result meanwhile.
     hub location="file:~/.dotconfigs/zellij/plugins/pilot.wasm" {
         view "hub"
+        projects_command "pwsh -NoLogo -NoProfile -Command [Console]::OutputEncoding=[Text.Encoding]::UTF8;Import-Module ~/.dotconfigs/powershell/Zellij.psm1 -DisableNameChecking;Get-ZjHubProject"
+    }
+    // The hub as a lobby: the only pane of a throwaway session, shown when
+    // no session is open yet (layouts/lobby.kdl; `zj` without arguments).
+    // q leaves Zellij there instead of closing a popup.
+    lobby location="file:~/.dotconfigs/zellij/plugins/pilot.wasm" {
+        view "hub"
+        lobby "true"
         projects_command "pwsh -NoLogo -NoProfile -Command [Console]::OutputEncoding=[Text.Encoding]::UTF8;Import-Module ~/.dotconfigs/powershell/Zellij.psm1 -DisableNameChecking;Get-ZjHubProject"
     }
 }

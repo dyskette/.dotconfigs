@@ -21,6 +21,10 @@ use crate::pending::{self, Request};
 /// screen sessions, never listed and swept when nobody is in them.
 pub const LOBBY_PREFIX: &str = "lobby-";
 
+/// A file with this prefix and the lobby's name, in Zellij's temp folder,
+/// says the lobby was quit with q rather than left for a session.
+const QUIT_MARKER_PREFIX: &str = "hub-quit-";
+
 /// Context tag of the project scan, to recognise its result.
 const PROJECTS_CONTEXT: &str = "hub-projects";
 /// Context tag of the folder check behind "new": its value is unused.
@@ -329,7 +333,15 @@ impl HubShell {
     fn run(&mut self, effect: Effect) {
         match effect {
             Effect::Close => close_self(),
-            Effect::Quit => quit_zellij(),
+            Effect::Quit => {
+                // Tell the loop that started this lobby (zj, in
+                // powershell/Zellij.psm1) that it was left on purpose: the
+                // plugin's /tmp is Zellij's temp folder on the host.
+                if let Some(lobby) = self.live.iter().find(|s| s.is_current_session) {
+                    let _ = std::fs::write(format!("/tmp/{QUIT_MARKER_PREFIX}{}", lobby.name), "");
+                }
+                quit_zellij();
+            }
             Effect::Open(plan) => self.open(plan),
             Effect::Kill { session } => {
                 let result = kill_sessions(&[session.as_str()]);

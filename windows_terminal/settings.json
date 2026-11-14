@@ -80,7 +80,7 @@
         },
         "list": [
             {
-                "commandline": "pwsh.exe -NoLogo -Command zellij --layout welcome",
+                "commandline": "pwsh.exe -NoLogo -NoExit -Command zj",
                 "guid": "{5feb229d-70ca-415c-9bec-f2e3170882ef}",
                 "hidden": false,
                 "icon": "🟩",

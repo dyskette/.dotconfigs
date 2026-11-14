@@ -1,0 +1,15 @@
+// The lobby: the session hub alone, full screen. `zj` without arguments
+// (and so the Windows Terminal profile) starts a session named lobby-<id>
+// with this layout when no session is open yet.
+//
+// Picking something in the hub moves the client to that session and closes
+// the hub's pane, which ends the lobby: it has no other pane. A lobby left
+// behind anyway (its window was closed) is swept by the next pilot that
+// sees a client (plugins/pilot, sweep_lobbies). q in the hub leaves Zellij.
+//
+// No bars: there is nothing here but the hub, which draws its own hints.
+layout {
+    pane borderless=true {
+        plugin location="lobby"
+    }
+}

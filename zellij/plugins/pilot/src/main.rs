@@ -61,6 +61,20 @@ pub const PERMISSIONS: &[PermissionType] = &[
     PermissionType::ReadPaneContents,
 ];
 
+/// The plugin alias of the hub popup (config.kdl).
+const HUB_ALIAS: &str = "hub";
+
+/// Lobbies are swept at most this often: every pane update would otherwise
+/// ask Zellij for the session list.
+const LOBBY_SWEEP_EVERY_SECS: u64 = 5;
+
+/// A lobby without a client is only swept once it is this old.
+const LOBBY_MIN_AGE_SECS: u64 = 10;
+
+fn unix_now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+}
+
 /// Name given to agent panes; layouts use the same one (layouts/*.kdl).
 const AGENT_PANE: &str = "agent";
 
@@ -83,6 +97,8 @@ struct Pilot {
     keep: Keep,
     /// The session this instance runs in, from `ModeUpdate`.
     session: Option<String>,
+    /// When lobbies were last swept (unix seconds); see `sweep_lobbies`.
+    swept_at: u64,
     /// Set when this instance is the session hub (`view "hub"`) instead of
     /// the headless pilot: it then only draws and drives the hub.
     hub: Option<shell::HubShell>,
@@ -165,10 +181,12 @@ impl ZellijPlugin for Pilot {
                 self.panes = manifest;
                 self.keep_session();
                 self.run_pending();
+                self.sweep_lobbies();
             }
             Event::ModeUpdate(mode) => {
                 self.session = mode.session_name;
                 self.run_pending();
+                self.sweep_lobbies();
             }
             Event::TabUpdate(tabs) => self.tabs = tabs,
             Event::SessionSuggestions(suggestions) if self.keep == Keep::Checking => {
@@ -234,6 +252,10 @@ impl ZellijPlugin for Pilot {
                 Err(_) => eprintln!("pilot: focus expects a terminal pane id, not '{payload}'"),
             },
             "switch" => self.switch_session(&message.args, payload),
+            // `zj` without arguments and nvim's <leader>sp: the hub, as Alt s.
+            "hub" => {
+                open_plugin_pane_floating(HUB_ALIAS, BTreeMap::new(), None, BTreeMap::new());
+            }
             // Pipes without a plugin target reach every plugin; the built-in
             // ones broadcast their own (session_panel_size, ...).
             other => self.log(|| format!("ignoring pipe '{other}'")),
@@ -300,6 +322,51 @@ impl Pilot {
         );
         self.log(|| format!("resize {direction:?}: {resize:?} {edge:?}"));
         resize_focused_pane_with_direction(resize, edge);
+    }
+
+    /// Remove lobbies nobody is in. A lobby is the hub's full-screen session
+    /// (`zj` without arguments, the Windows Terminal profile). The hub ends
+    /// its lobby itself when it leaves, by closing its only pane; this is for
+    /// the ones left behind, such as a lobby whose window was closed. They
+    /// are removed explicitly, by name, never through Zellij's own rule for
+    /// unused sessions.
+    ///
+    /// Two windows each have their own lobby with a client in it, so neither
+    /// is touched. A lobby younger than `LOBBY_MIN_AGE_SECS` is left alone
+    /// too: its client may still be connecting.
+    fn sweep_lobbies(&mut self) {
+        if !self.ready || get_focused_pane_info().is_err() {
+            return;
+        }
+        let now = unix_now();
+        if now.saturating_sub(self.swept_at) < LOBBY_SWEEP_EVERY_SECS {
+            return;
+        }
+        self.swept_at = now;
+        let Ok(sessions) = get_session_list() else { return };
+
+        let abandoned: Vec<&str> = sessions
+            .live_sessions
+            .iter()
+            .filter(|s| {
+                s.name.starts_with(shell::LOBBY_PREFIX)
+                    && s.connected_clients == 0
+                    && s.creation_time.as_secs() >= LOBBY_MIN_AGE_SECS
+            })
+            .map(|s| s.name.as_str())
+            .collect();
+        if !abandoned.is_empty() {
+            self.log(|| format!("sweeping lobbies {abandoned:?}"));
+            if let Err(error) = kill_sessions(&abandoned) {
+                eprintln!("pilot: could not stop lobbies {abandoned:?}: {error}");
+            }
+        }
+        // Stopped lobbies, from this sweep or an earlier crash, must not
+        // pile up as saved sessions.
+        let saved = sessions.resurrectable_sessions.iter().map(|(name, _)| name.as_str());
+        for lobby in abandoned.iter().copied().chain(saved).filter(|name| name.starts_with(shell::LOBBY_PREFIX)) {
+            let _ = delete_dead_session(lobby);
+        }
     }
 
     /// Carry out what the hub of another session asked of this one, now that
