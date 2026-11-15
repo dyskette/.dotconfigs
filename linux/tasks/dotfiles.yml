@@ -92,7 +92,6 @@
     - { src: "zed/keymap.json", dest: "{{ config_dir }}/zed/keymap.json" }
     - { src: "zed/settings.json", dest: "{{ config_dir }}/zed/settings.json" }
     - { src: "zellij/linux/config.kdl", dest: "{{ config_dir }}/zellij/config.kdl" }
-    - { src: "zellij/linux/layouts/service.kdl", dest: "{{ config_dir }}/zellij/layouts/service.kdl" }
     - { src: "zellij/layouts/lobby.kdl", dest: "{{ config_dir }}/zellij/layouts/lobby.kdl" }
     - { src: "zellij/themes", dest: "{{ config_dir }}/zellij/themes" }
     - { src: "zellij/plugins", dest: "{{ config_dir }}/zellij/plugins" }

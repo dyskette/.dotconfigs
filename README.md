@@ -61,8 +61,9 @@ tmux/psmux, `prefix g` and `prefix e` open lazygit and yazi over the pane.
 The workspace on both machines is Zellij: `zj` opens the session hub (running
 sessions, saved sessions and projects in one list, vim keys; `Alt s` inside a
 session), and on Windows that is what Windows Terminal's default profile
-starts. Every client is a session and every service a tab with nvim, a coding
-agent, and dev/test/shell panes. `zj` opens the hub or a folder, `zja` starts
-the agent, `zjr` runs the dev server or tests — PowerShell functions
-(`powershell/Zellij.psm1`) on Windows, scripts (`zellij/bin/`) on Linux. See
-[zellij/README.md](zellij/README.md).
+starts. Every repo is a session, and inside it every activity is a full-screen
+tab: `Alt e` the editor, `Alt a` a coding agent, `Alt g` lazygit, each started
+on demand, with floats for the ephemeral shells. `zj` opens the hub or a
+folder, `zja` starts the agent, `zjr` runs the dev server or tests — PowerShell
+functions (`powershell/Zellij.psm1`) on Windows, scripts (`zellij/bin/`) on
+Linux. See [zellij/README.md](zellij/README.md).
