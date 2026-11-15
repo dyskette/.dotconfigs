@@ -104,18 +104,23 @@ check 'quotes and backslashes are escaped' \
 
 repo_layout=$(zj_session_layout repo "$root/acme/api")
 check_true 'a repo opens on an editor tab, in its folder' \
-  grep -Fq "ui name=\"editor\" cwd=\"$root/acme/api\" focus=true" <<<"$repo_layout"
+  grep -Fq "tab name=\"editor\" cwd=\"$root/acme/api\" focus=true" <<<"$repo_layout"
 check_true 'and the pane runs Neovim' \
   grep -Fq 'pane name="editor" command="nvim"' <<<"$repo_layout"
 
 umbrella_layout=$(zj_session_layout umbrella "$root/acme")
 check_true 'an umbrella opens on an agent tab instead' \
-  grep -Fq "ui name=\"agent\" cwd=\"$root/acme\" focus=true" <<<"$umbrella_layout"
+  grep -Fq "tab name=\"agent\" cwd=\"$root/acme\" focus=true" <<<"$umbrella_layout"
 check_true 'and the pane runs the agent' \
   grep -Fq 'pane name="agent" command="zja"' <<<"$umbrella_layout"
 
 check_true 'a folder with a quote in it is escaped into the layout' \
   grep -Fq 'cwd="/tmp/a\"b"' <<<"$(zj_session_layout repo '/tmp/a"b')"
+
+# A named tab_template would reach only the tab declared here, leaving the
+# tabs Alt e/a/g open later without a status bar.
+check_true 'every tab gets the bar, including ones opened later' \
+  grep -Fq 'default_tab_template' <<<"$repo_layout"
 
 check_false 'an unknown kind is refused' \
   zj_session_layout service "$root" 2>/dev/null

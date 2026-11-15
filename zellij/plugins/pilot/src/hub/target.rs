@@ -105,17 +105,22 @@ pub fn session_layout(target: &Target) -> String {
     // Neovim's statusline already says what it is, so the editor's title row
     // goes to code. The agent keeps its row, which carries inbox markers.
     let borderless = matches!(target.kind, Kind::Repo);
+    // default_tab_template, not a named tab_template: a named one reaches
+    // only the tabs this layout declares, so the tabs opened later by
+    // Alt e/a/g came up with no status bar. Zellij turns this one into the
+    // session's new_tab_template, so every tab gets the bar however it was
+    // made.
     format!(
         r#"layout {{
     // The same one-line bar as the built-in compact layout.
-    tab_template name="ui" {{
+    default_tab_template {{
         children
         pane size=1 borderless=true {{
             plugin location="compact-bar"
         }}
     }}
 
-    ui name={name} cwd={dir} focus=true {{
+    tab name={name} cwd={dir} focus=true {{
         pane name={name} command={command} borderless={borderless}
     }}
 }}
@@ -176,13 +181,22 @@ mod tests {
     fn a_repo_opens_on_an_editor_and_an_umbrella_on_an_agent() {
         let repo = Target::new("api".into(), r"C:\Projects\acme\api".into());
         let layout = session_layout(&repo);
-        assert!(layout.contains(r#"ui name="editor" cwd="C:\\Projects\\acme\\api" focus=true"#));
+        assert!(layout.contains(r#"tab name="editor" cwd="C:\\Projects\\acme\\api" focus=true"#));
         assert!(layout.contains(r#"pane name="editor" command="nvim" borderless=true"#));
 
         let umbrella = Target::new("acme".into(), "/home/me/acme".into()).as_umbrella();
         let layout = session_layout(&umbrella);
-        assert!(layout.contains(r#"ui name="agent" cwd="/home/me/acme" focus=true"#));
+        assert!(layout.contains(r#"tab name="agent" cwd="/home/me/acme" focus=true"#));
         assert!(layout.contains(r#"pane name="agent" command="zja" borderless=false"#));
+    }
+
+    /// A named tab_template reaches only the tab declared in the layout, so
+    /// the tabs Alt e/a/g open later came up without a status bar.
+    #[test]
+    fn every_tab_gets_the_bar_including_ones_opened_later() {
+        let layout = session_layout(&Target::new("x".into(), "/tmp".into()));
+        assert!(layout.contains("default_tab_template"));
+        assert!(!layout.contains("tab_template name="));
     }
 
     #[test]

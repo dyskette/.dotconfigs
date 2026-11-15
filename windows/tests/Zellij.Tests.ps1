@@ -74,13 +74,13 @@ Describe 'Get-ZjTarget' {
 Describe 'New-ZjSessionLayout' {
     It 'opens a repo on an editor, in its folder, KDL-escaped' {
         $layout = New-ZjSessionLayout -Directory 'C:\Projects\acme\api'
-        $layout | Should -Match ([regex]::Escape('ui name="editor" cwd="C:\\Projects\\acme\\api" focus=true'))
+        $layout | Should -Match ([regex]::Escape('tab name="editor" cwd="C:\\Projects\\acme\\api" focus=true'))
         $layout | Should -Match ([regex]::Escape('pane name="editor" command="nvim" borderless=true'))
     }
 
     It 'opens an umbrella on an agent instead' {
         $layout = New-ZjSessionLayout -Directory 'C:\Projects\acme' -Kind 'Umbrella'
-        $layout | Should -Match ([regex]::Escape('ui name="agent" cwd="C:\\Projects\\acme" focus=true'))
+        $layout | Should -Match ([regex]::Escape('tab name="agent" cwd="C:\\Projects\\acme" focus=true'))
         $layout | Should -Match ([regex]::Escape('pane name="agent"'))
         $layout | Should -Match 'borderless=false'
     }
@@ -90,8 +90,13 @@ Describe 'New-ZjSessionLayout' {
             Should -Match ([regex]::Escape('cwd="C:\\odd\"name"'))
     }
 
-    It 'keeps the one-line bar the compact layout has' {
-        New-ZjSessionLayout -Directory 'C:\Projects\api' | Should -Match 'plugin location="compact-bar"'
+    It 'gives every tab the bar, including ones opened later' {
+        # A named tab_template would reach only the tab declared in the
+        # layout, leaving the tabs Alt e/a/g open later without a bar.
+        $layout = New-ZjSessionLayout -Directory 'C:\Projects\api'
+        $layout | Should -Match 'plugin location="compact-bar"'
+        $layout | Should -Match 'default_tab_template'
+        $layout | Should -Not -Match 'tab_template name='
     }
 }
 

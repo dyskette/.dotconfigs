@@ -143,17 +143,21 @@ function New-ZjSessionLayout {
         $borderless = 'true'
     }
 
+    # default_tab_template, not a named tab_template: a named one reaches only
+    # the tabs this layout declares, so the tabs opened later by Alt e/a/g came
+    # up with no status bar. Zellij turns this one into the session's
+    # new_tab_template, so every tab gets the bar however it was made.
     @"
 layout {
     // The same one-line bar as the built-in compact layout.
-    tab_template name="ui" {
+    default_tab_template {
         children
         pane size=1 borderless=true {
             plugin location="compact-bar"
         }
     }
 
-    ui name=$(ConvertTo-KdlString $name) cwd=$(ConvertTo-KdlString $Directory) focus=true {
+    tab name=$(ConvertTo-KdlString $name) cwd=$(ConvertTo-KdlString $Directory) focus=true {
         pane name=$(ConvertTo-KdlString $name) command=$(ConvertTo-KdlString $command) borderless=$borderless
     }
 }
