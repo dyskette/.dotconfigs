@@ -28,14 +28,6 @@
 //! - `switch` (payload: a KDL layout or `-`; args `session`, `tab`, `cwd`,
 //!   `pane`): moves the user's client to another session, used by `zj`
 //!   (powershell/Zellij.psm1). See `switch_session` for why it lives here.
-//! - `editor-chooser` (payload: a path; args `pane`): the file the editor in
-//!   that pane wants yazi to write its picks to. Sent once by each nvim as it
-//!   registers itself (nvim/lua/config/zellij.lua).
-//! - `yazi` (payload: `open`, or a folder): opens yazi floating over the
-//!   focused tab, pointed at that tab's editor chooser file. `open` is the
-//!   keybinding asking; with an editor focused pilot writes Alt+y to it and
-//!   nvim pipes `yazi` back with its buffer's folder, which pilot cannot
-//!   know (it only sees where nvim was started). See `open_yazi`.
 //!
 //! Why a plugin instead of plain keybindings: a keybinding cannot ask which
 //! program a pane runs, and the plugin API answers that synchronously
@@ -110,27 +102,7 @@ struct Pilot {
     /// Set when this instance is the session hub (`view "hub"`) instead of
     /// the headless pilot: it then only draws and drives the hub.
     hub: Option<shell::HubShell>,
-    /// Where the editor in each terminal pane wants yazi to write the files
-    /// it picks, by pane id (`editor-chooser`). Entries outlive the nvim that
-    /// sent them; a stale one only means yazi writes a file nobody reads.
-    chooser: BTreeMap<u32, String>,
-    /// The yazi pane this plugin opened, so it can be closed once yazi quits.
-    /// The plugin API has no `close_on_exit`, which the keybinding that opened
-    /// yazi before this used.
-    yazi: Option<u32>,
 }
-
-/// Name given to the yazi float, matching the keybinding it replaced.
-const YAZI_PANE: &str = "yazi";
-
-/// Payload of the `yazi` pipe that means "open it where the editor is",
-/// rather than a folder to open it in. Never a folder itself: the editor
-/// always answers with an absolute path.
-const YAZI_ASK: &str = "open";
-
-/// The key pilot writes to an editor to ask where its buffer is: Alt+y in
-/// legacy encoding, which nvim maps (nvim/lua/config/zellij.lua).
-const YAZI_KEY: u8 = b'y';
 
 /// Zellij 0.46 treats a session nobody pressed Enter in as disposable: when
 /// the session manager (Alt g w, the inbox, the session card) switches away
@@ -207,7 +179,6 @@ impl ZellijPlugin for Pilot {
         match event {
             Event::PaneUpdate(manifest) => {
                 self.panes = manifest;
-                self.close_finished_yazi();
                 self.keep_session();
                 self.run_pending();
                 self.sweep_lobbies();
@@ -281,8 +252,6 @@ impl ZellijPlugin for Pilot {
                 Err(_) => eprintln!("pilot: focus expects a terminal pane id, not '{payload}'"),
             },
             "switch" => self.switch_session(&message.args, payload),
-            "editor-chooser" => self.register_chooser(&message.args, payload),
-            "yazi" => self.open_yazi(payload),
             // `zj` without arguments and nvim's <leader>sp: the hub, as Alt s.
             "hub" => {
                 open_plugin_pane_floating(HUB_ALIAS, BTreeMap::new(), None, BTreeMap::new());
@@ -561,135 +530,6 @@ impl Pilot {
         };
         if let Some(PaneId::Terminal(id)) = open_command_pane(command, BTreeMap::new()) {
             rename_terminal_pane(id, AGENT_PANE);
-        }
-    }
-
-    /// Record where the editor in a pane wants yazi to write the files it
-    /// picks. Sent by each nvim as it registers itself, so that pilot never
-    /// has to guess the path (it cannot expand `~` or read nvim's state dir).
-    fn register_chooser(&mut self, args: &BTreeMap<String, String>, payload: &str) {
-        let Some(pane) = args.get("pane").and_then(|p| p.parse::<u32>().ok()) else {
-            eprintln!("pilot: editor-chooser needs a pane argument");
-            return;
-        };
-        self.log(|| format!("editor in pane {pane} chooses into {payload}"));
-        self.chooser.insert(pane, payload.to_owned());
-    }
-
-    /// The tab's editor pane: the focused one when it runs an editor, else
-    /// the first pane in the tab that does. One editor per tab is the rule
-    /// the whole workspace follows (nvim/lua/config/zellij.lua).
-    fn editor_pane(&self, tab: usize, focused: PaneId) -> Option<u32> {
-        if let PaneId::Terminal(id) = focused
-            && is_editor(focused)
-        {
-            return Some(id);
-        }
-        self.panes
-            .panes
-            .get(&tab)?
-            .iter()
-            .filter(|p| !p.is_plugin && !p.exited && !p.is_suppressed)
-            .find(|p| is_editor(PaneId::Terminal(p.id)))
-            .map(|p| p.id)
-    }
-
-    /// Open yazi floating over the focused tab.
-    ///
-    /// `--chooser-file` is what makes this cheap: yazi writes the files the
-    /// user picks to that file and quits, and the tab's nvim (which is
-    /// watching it) opens them. The keybinding this replaced let yazi run its
-    /// own opener, which started a whole second nvim just to hand the path
-    /// over flatten.nvim and exit - four processes per file opened, on
-    /// machines where a process can cost hundreds of milliseconds.
-    ///
-    /// Where it opens: the folder in `payload`, or the focused pane's own
-    /// when the keybinding asks (`YAZI_ASK`). With an editor focused the
-    /// pane's folder is the wrong answer - it is where nvim was started, not
-    /// where the file being read lives - so nvim is asked first and pipes
-    /// `yazi` back with its buffer's folder. A shell pane needs no such
-    /// detour: its working directory is already what the user means.
-    ///
-    /// Without a chooser file (no editor in the tab, or an nvim that has not
-    /// registered yet) yazi is opened plain, in the pane's folder, and opens
-    /// files the usual way.
-    fn open_yazi(&mut self, payload: &str) {
-        let Ok((tab, focused)) = get_focused_pane_info() else {
-            return;
-        };
-        let chooser = self.editor_pane(tab, focused).and_then(|id| self.chooser.get(&id));
-
-        // Only an nvim that registered a chooser file has the keymap that
-        // answers this; asking any other editor would open nothing at all.
-        if payload == YAZI_ASK && chooser.is_some() && is_editor(focused) {
-            self.log(|| format!("asking the editor in {focused:?} where its buffer is"));
-            write_to_pane_id(vec![0x1b, YAZI_KEY], focused);
-            return;
-        }
-
-        let cwd = match payload {
-            YAZI_ASK => get_pane_cwd(focused).ok(),
-            dir => Some(PathBuf::from(dir)),
-        };
-        self.log(|| format!("yazi in {cwd:?}, chooser {chooser:?}"));
-
-        let mut args: Vec<String> = Vec::new();
-        // The folder as yazi's entry argument, not only as the working
-        // directory: Zellij hands a command the PWD of its own server (where
-        // the terminal opened), and yazi takes PWD over its working
-        // directory, so it would otherwise always open $HOME. The keybinding
-        // this replaced needed `env -u PWD` for the same reason.
-        if let Some(cwd) = &cwd {
-            args.push(cwd.to_string_lossy().into_owned());
-        }
-        if let Some(chooser) = chooser {
-            args.push("--chooser-file".to_owned());
-            args.push(chooser.clone());
-        }
-
-        let command = CommandToRun {
-            path: PathBuf::from(YAZI_PANE),
-            args,
-            cwd,
-            border_style: None,
-        };
-        let coordinates = FloatingPaneCoordinates::new(
-            Some("5%".to_owned()),
-            Some("5%".to_owned()),
-            Some("90%".to_owned()),
-            Some("90%".to_owned()),
-            None,
-            None,
-        );
-        if let Some(PaneId::Terminal(id)) = open_command_pane_floating(command, coordinates, BTreeMap::new()) {
-            rename_terminal_pane(id, YAZI_PANE);
-            self.yazi = Some(id);
-        }
-    }
-
-    /// Close the yazi float once yazi has quit, which the keybinding that
-    /// opened it did with `close_on_exit`. The plugin API has no equivalent,
-    /// so the pane is closed here instead of being left held ("press Enter to
-    /// re-run") over the tab.
-    fn close_finished_yazi(&mut self) {
-        let Some(id) = self.yazi else {
-            return;
-        };
-        let pane = self
-            .panes
-            .panes
-            .values()
-            .flatten()
-            .find(|p| !p.is_plugin && p.id == id);
-        match pane {
-            Some(pane) if pane.exited || pane.is_held => {
-                self.log(|| format!("closing the yazi float in pane {id}"));
-                close_terminal_pane(id);
-                self.yazi = None;
-            }
-            // Gone already (the user closed it): stop tracking it.
-            None => self.yazi = None,
-            Some(_) => {}
         }
     }
 }
