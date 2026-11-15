@@ -2,6 +2,7 @@
 # Session switcher for tmux and psmux (run by Git Bash on Windows).
 #
 #   session-switcher.sh              run the switcher (from a popup)
+#   session-switcher.sh list         called back by fzf to load the list
 #   session-switcher.sh preview N    called back by fzf for item N
 #   session-switcher.sh kill N
 #
@@ -104,9 +105,16 @@ run() {
     trap 'rm -rf "$SWITCH_STATE"' EXIT
     fzf_callbacks "$0"
     export SWITCH_SELF="$SELF"
+    # Exists before the list does, so a preview that runs first finds no item
+    # instead of failing to open the file.
+    : >"$SWITCH_STATE/items"
 
-    out="$(cmd_list | fzf \
+    # fzf opens empty and loads the list itself (start:reload), so the popup
+    # draws at once instead of after list-sessions and sort; under Git Bash
+    # each of those forks is slow. The list stays in MRU order.
+    out="$(fzf </dev/null \
         --with-shell "$FZF_SHELL" \
+        --bind "start:reload($SELF list)" \
         --ansi --reverse --border none --info inline-right \
         --delimiter $'\t' --with-nth 2 \
         --header 'enter switch · ctrl-x twice: kill' \
