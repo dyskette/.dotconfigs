@@ -202,20 +202,21 @@ function M.pipe_path()
 end
 
 --- Record this nvim as its pane's editor, unless it is a flatten guest.
+---@return boolean registered whether this nvim is its pane's editor
 local function register_host()
   local dir = registry_dir()
   if not dir or edits_in_place() then
-    return
+    return false
   end
   local ok, flatten = pcall(require, "flatten")
   if ok and flatten.is_guest() then
-    return
+    return false
   end
   vim.fn.mkdir(dir, "p")
   local file = vim.fs.joinpath(dir, vim.env.ZELLIJ_PANE_ID)
   local fd = io.open(file, "w")
   if not fd then
-    return
+    return false
   end
   fd:write(vim.v.servername, "\n")
   fd:close()
@@ -224,6 +225,7 @@ local function register_host()
       os.remove(file)
     end,
   })
+  return true
 end
 
 --- flatten's guest_data hook: the pane the request comes from, so the host
@@ -231,6 +233,136 @@ end
 ---@return table
 function M.guest_data()
   return { zellij_pane = vim.env.ZELLIJ_PANE_ID }
+end
+
+-- --- Files picked in the yazi float ------------------------------------------------
+
+--- Kept alive for the session: a collected fs_event stops watching.
+---@type uv.uv_fs_event_t?
+local chooser_watcher = nil
+
+--- Where yazi writes what the user picks in the tab's float (Alt g y), beside
+--- this pane's registry entry. pilot is told the path and passes it to yazi as
+--- `--chooser-file` (zellij/plugins/pilot, `open_yazi`).
+---@return string?
+local function chooser_file()
+  local dir = registry_dir()
+  if not dir then
+    return nil
+  end
+  return vim.fs.joinpath(dir, vim.env.ZELLIJ_PANE_ID .. ".chooser")
+end
+
+--- Open the files yazi wrote, the first one in the current window and the
+--- rest into the buffer list (`l` and Enter open every selected file;
+--- yazi/init.lua sets smart-enter's open_multi).
+---
+--- The file is removed as it is read, so a path is never opened twice and a
+--- leftover cannot open anything at the next start.
+---@param path string
+local function open_chosen(path)
+  local file = io.open(path, "r")
+  if not file then
+    return
+  end
+  local text = file:read("*a")
+  file:close()
+  os.remove(path)
+
+  local first = true
+  for line in text:gmatch("[^\r\n]+") do
+    local chosen = vim.trim(line)
+    if chosen ~= "" then
+      local name = vim.fn.fnameescape(chosen)
+      if first then
+        vim.cmd.edit(name)
+        first = false
+      else
+        vim.cmd.badd(name)
+      end
+    end
+  end
+end
+
+--- Watch for the files picked in the yazi float, and tell pilot where to
+--- point yazi at them.
+---
+--- This is what keeps opening a file free of processes: yazi writes the path
+--- and quits, and this nvim opens it. Letting yazi run its own opener instead
+--- started a second nvim (plus a shell, a `list-panes` and a focus pipe) only
+--- to hand the path to this one through flatten.nvim.
+local function watch_chooser()
+  local path = chooser_file()
+  local dir = registry_dir()
+  if not path or not dir then
+    return
+  end
+  -- A file left behind by a crash must not open at the next start.
+  os.remove(path)
+
+  local watcher = vim.uv.new_fs_event()
+  if not watcher then
+    return
+  end
+  local name = vim.fs.basename(path)
+  -- The folder, not the file: the file does not exist yet, and watching a
+  -- path that is created and removed each time stops reporting after the
+  -- first one.
+  local ok = watcher:start(dir, {}, function(err, filename)
+    if err or filename ~= name then
+      return
+    end
+    vim.schedule(function()
+      open_chosen(path)
+    end)
+  end)
+  if not ok then
+    return
+  end
+  chooser_watcher = watcher
+
+  -- pilot cannot work the path out for itself: it is a WebAssembly plugin
+  -- with no way to expand `~` or find nvim's state folder.
+  zellij({ "pipe", "--name", "editor-chooser", "--args", "pane=" .. vim.env.ZELLIJ_PANE_ID, "--", path })
+
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    callback = function()
+      if chooser_watcher then
+        chooser_watcher:stop()
+        chooser_watcher = nil
+      end
+      os.remove(path)
+    end,
+  })
+end
+
+--- Open the yazi float (Alt g y) beside the file being read.
+---
+--- pilot writes <M-y> here when Alt g y is pressed with this nvim focused:
+--- it can see where nvim was started, but not which file is open, and the
+--- folder worth browsing is the buffer's, not the project root. Twin files
+--- sit next to each other, so opening at the root meant walking back down
+--- the tree every time.
+---
+--- Buffers without a file of their own (terminals, pickers, the dashboard)
+--- fall back to the working directory, which is what pilot would have used.
+function M.open_yazi()
+  if not in_zellij() then
+    return -- nothing sends this key outside Zellij; a stray Alt+y is not an ask
+  end
+  local dir
+  if vim.bo.buftype == "" then
+    local name = vim.api.nvim_buf_get_name(0)
+    if name ~= "" then
+      dir = vim.fs.dirname(name)
+    end
+  end
+  if not dir or vim.fn.isdirectory(dir) == 0 then
+    dir = vim.fn.getcwd()
+  end
+  -- The folder travels as the payload, not an --args entry: those are
+  -- comma separated, and a folder may contain a comma.
+  zellij({ "pipe", "--name", "yazi", "--", dir })
 end
 
 --- Focus a Zellij terminal pane by id (this one by default), through pilot:
@@ -362,8 +494,24 @@ function M.setup()
   end, { desc = "Agent: go to the agent pane (Alt a)" })
   vim.keymap.set("n", "<leader>sp", M.hub, { desc = "Sessions and projects (the Zellij hub)" })
 
+  -- Not a key to press: pilot writes it when Alt g y is pressed here. In
+  -- every mode, so it answers while typing too, and without leaving the mode
+  -- (nothing is inserted; the float takes focus by itself).
+  vim.keymap.set({ "n", "i", "x", "t" }, "<M-y>", M.open_yazi, {
+    desc = "Open the yazi float in this buffer's folder (sent by Alt g y)",
+  })
+
   if in_zellij() then
-    vim.api.nvim_create_autocmd("VimEnter", { once = true, callback = register_host })
+    vim.api.nvim_create_autocmd("VimEnter", {
+      once = true,
+      callback = function()
+        -- Only the tab's editor watches for picks: a flatten guest is about
+        -- to hand its files over and exit.
+        if register_host() then
+          watch_chooser()
+        end
+      end,
+    })
   end
 end
 

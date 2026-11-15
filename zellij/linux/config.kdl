@@ -141,16 +141,20 @@ keybinds preset="unlock-first" unlock="Alt g" {
             }
             SwitchToMode "Locked"
         }
+        // yazi, through pilot rather than a `Run` node, so that it is told
+        // the chooser file of the tab's nvim (plugins/pilot, `open_yazi`).
+        // A file picked in it is then written to that file and read by the
+        // nvim watching it, instead of yazi starting a second nvim to hand
+        // the path over: four processes per file opened, which is what the
+        // workspace costs on machines where a process is slow to start.
+        //
+        // pilot passes the folder as yazi's entry argument, which also
+        // settles the PWD problem the `Run` node here needed `env -u PWD`
+        // for: Zellij starts a command in the focused pane's folder but
+        // hands it the PWD of its own server (where the terminal opened:
+        // $HOME), and yazi takes PWD over its working directory.
         bind "y" {
-            Run "yazi" {
-                floating true
-                close_on_exit true
-                name "yazi"
-                width "90%"
-                height "90%"
-                x "5%"
-                y "5%"
-            }
+            MessagePlugin "pilot" { name "yazi"; payload "open"; }
             SwitchToMode "Locked"
         }
         // A scratch shell that floats over the tab; Alt f hides and shows it.
