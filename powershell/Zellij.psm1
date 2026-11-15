@@ -1,17 +1,22 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-    Zellij workspace commands: zj (projects), zja (agent), zjr (dev/test/build).
+    Zellij workspace commands: zj (repos), zja (agent), zjr (dev/test/build).
 .DESCRIPTION
-    Imported by the profile. The layout these feed is zellij/layouts/service.kdl
-    and the plugin they talk to is zellij/plugins/pilot; zellij/README.md has
-    the whole workflow.
+    Imported by the profile. The plugin these talk to is
+    zellij/plugins/pilot; zellij/README.md has the whole workflow and
+    zellij/decisions/0001-workspace-model.md the reasoning.
 
-    Projects live under $env:ZJ_PROJECTS (default ~/Projects) as
-    <client>/<service> (or <client>/<group>/<service>). Each client is one
-    Zellij session and each service one tab in it, so `zj acme/cerberus`
-    lands in session "acme", tab "cerberus". A project directly under the
-    root is its own session with one tab.
+    One session per repo, named after the repo's own folder however deep it
+    sits under $env:ZJ_PROJECTS (default ~/Projects): `zj acme/cerberus`
+    lands in session "cerberus". Clients are a way of filing folders, not a
+    level of the workspace, because moving between repos is as often across
+    clients as within one.
+
+    A session holds one tab per activity (editor, agent, lazygit), opened on
+    demand by Alt e/a/g, so a new session starts with just the one tab. The
+    second kind of session is the umbrella: rooted at the parent of several
+    repos and opening on an agent instead of an editor.
 #>
 
 Set-StrictMode -Version Latest
@@ -62,33 +67,30 @@ function ConvertTo-ZjSessionName {
 
 <#
 .SYNOPSIS
-    Where a folder opens: the session (its client), the tab (its own name)
-    and the folder itself.
+    Where a folder opens: the session and the folder itself.
+.DESCRIPTION
+    One session per repo, named after the repo's own folder however deep it
+    sits under the projects root, so the client folder above it does not
+    come into it (zellij/decisions/0001-workspace-model.md).
 .PARAMETER Directory
-    The project folder.
+    The repo folder.
 .PARAMETER Root
-    The projects root; a folder outside it becomes its own session.
+    Accepted and ignored; kept so callers that pass one keep working.
 #>
 function Get-ZjTarget {
     [OutputType([pscustomobject])]
     param(
         [Parameter(Mandatory)][string]$Directory,
-        [string]$Root = (Get-ZjProjectRoot)
+        [string]$Root = (Get-ZjProjectRoot),
+        [ValidateSet('Repo', 'Umbrella')][string]$Kind = 'Repo'
     )
 
     $full = [IO.Path]::GetFullPath($Directory).TrimEnd('\', '/')
-    $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
-    $leaf = Split-Path -Leaf $full
-
-    $client = $leaf
-    if ($full.StartsWith($rootFull + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
-        $client = $full.Substring($rootFull.Length + 1).Split([char[]]'\/')[0]
-    }
 
     [pscustomobject]@{
-        Session = ConvertTo-ZjSessionName $client
-        Tab = $leaf
+        Session = ConvertTo-ZjSessionName (Split-Path -Leaf $full)
         Directory = $full
+        Kind = $Kind
     }
 }
 
@@ -105,30 +107,57 @@ function ConvertTo-KdlString {
 
 <#
 .SYNOPSIS
-    The service layout for one tab, with its name and folder filled in.
+    The layout a new session opens with: one tab holding one activity, full
+    screen, in the session's folder.
 .DESCRIPTION
-    layouts/service.kdl names its tab "service" and has no cwd, so it also
-    works as a plain layout file. Zellij's --cwd is ignored for sessions
-    started in the background, and a layout passed to an existing session
-    cannot be renamed afterwards, so the name and folder go into the KDL.
-.PARAMETER Template
-    The text of layouts/service.kdl.
+    A repo opens on the editor; an umbrella opens on the agent, which is the
+    whole point of one. Zellij's --cwd is ignored for sessions started in the
+    background and a layout cannot be renamed afterwards, so the name and
+    folder have to be in the KDL.
+
+    Written out here rather than patched into layouts/service.kdl: one pane
+    is shorter than the code that found an anchor and substituted into it,
+    and there is no file to fall out of step with. The Linux twin is
+    zj_session_layout in zellij/bin/zj-lib.sh.
+.PARAMETER Kind
+    Repo or Umbrella.
 #>
-function New-ZjServiceLayout {
+function New-ZjSessionLayout {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
         Justification = 'Returns a string; nothing is changed.')]
     [OutputType([string])]
     param(
-        [Parameter(Mandatory)][string]$Template,
-        [Parameter(Mandatory)][string]$Name,
-        [Parameter(Mandatory)][string]$Directory
+        [Parameter(Mandatory)][string]$Directory,
+        [ValidateSet('Repo', 'Umbrella')][string]$Kind = 'Repo'
     )
 
-    $anchor = 'ui name="service" focus=true'
-    if (-not $Template.Contains($anchor)) {
-        throw "The service layout no longer contains '$anchor'; update New-ZjServiceLayout to match it."
+    # Neovim's statusline already says what it is, so the editor's title row
+    # goes to code. The agent keeps its row, which carries inbox markers.
+    if ($Kind -eq 'Umbrella') {
+        $name = 'agent'
+        $command = 'pwsh -NoLogo -Command zja; exit $LASTEXITCODE'
+        $borderless = 'false'
+    } else {
+        $name = 'editor'
+        $command = 'nvim'
+        $borderless = 'true'
     }
-    $Template.Replace($anchor, "ui name=$(ConvertTo-KdlString $Name) cwd=$(ConvertTo-KdlString $Directory) focus=true")
+
+    @"
+layout {
+    // The same one-line bar as the built-in compact layout.
+    tab_template name="ui" {
+        children
+        pane size=1 borderless=true {
+            plugin location="compact-bar"
+        }
+    }
+
+    ui name=$(ConvertTo-KdlString $name) cwd=$(ConvertTo-KdlString $Directory) focus=true {
+        pane name=$(ConvertTo-KdlString $name) command=$(ConvertTo-KdlString $command) borderless=$borderless
+    }
+}
+"@
 }
 
 <#
@@ -480,15 +509,6 @@ function Invoke-Zellij {
 
 <#
 .SYNOPSIS
-    The service layout template (layouts/service.kdl in Zellij's config folder).
-#>
-function Get-ZjServiceTemplate {
-    $configDir = if ($env:ZELLIJ_CONFIG_DIR) { $env:ZELLIJ_CONFIG_DIR } else { Join-Path $env:APPDATA 'Zellij\config' }
-    Get-Content -LiteralPath (Join-Path $configDir 'layouts\service.kdl') -Raw
-}
-
-<#
-.SYNOPSIS
     Wait until a session has a client attached, so a tab added to it gets a
     real size (a session nobody looks at is too small for the layout).
 #>
@@ -509,26 +529,13 @@ function Wait-ZjClient {
 
 <#
 .SYNOPSIS
-    In a session with a client, focus the target's tab, adding it first if
-    it is missing.
-#>
-function Open-ZjTab {
-    param([Parameter(Mandatory)][pscustomobject]$Target)
-
-    $tabs = ConvertFrom-ZjTabList (Invoke-Zellij -Arguments @('--session', $Target.Session, 'action', 'list-tabs') -NoThrow)
-    if ($tabs | Where-Object Name -EQ $Target.Tab) {
-        Invoke-Zellij -Arguments @('--session', $Target.Session, 'action', 'go-to-tab-name', $Target.Tab) | Out-Null
-    } else {
-        # With --session, --layout-string adds the tab to that session and
-        # focuses it for the clients in it.
-        $layout = New-ZjServiceLayout -Template (Get-ZjServiceTemplate) -Name $Target.Tab -Directory $Target.Directory
-        Invoke-Zellij -Arguments @('--session', $Target.Session, '--layout-string', $layout) | Out-Null
-    }
-}
-
-<#
-.SYNOPSIS
-    Open a target: its session, then its tab, from inside Zellij or outside.
+    Open a target: go to its session, creating it when it is not there yet,
+    from inside Zellij or outside.
+.DESCRIPTION
+    A session is a whole repo now, so there is no tab to find or add: being
+    in the session is the whole of arriving, and the activities inside it
+    are opened on demand with Alt e, Alt a and Alt g. The Linux twin is
+    zj_open_target in zellij/bin/zj-lib.sh.
 #>
 function Open-ZjTarget {
     param([Parameter(Mandatory)][pscustomobject]$Target)
@@ -537,21 +544,15 @@ function Open-ZjTarget {
     $existing = $sessions | Where-Object Name -EQ $Target.Session
 
     if ($env:ZELLIJ) {
-        if ($env:ZELLIJ_SESSION_NAME -eq $Target.Session) {
-            Open-ZjTab $Target
-            return
-        }
+        if ($env:ZELLIJ_SESSION_NAME -eq $Target.Session) { return }
         # `zellij action switch-session` would move the CLI's own connection,
         # not this client; the pilot plugin moves the client focused on this
         # pane (zellij/plugins/pilot, "switch").
         $payload = if ($existing) { '-' } else {
-            New-ZjServiceLayout -Template (Get-ZjServiceTemplate) -Name $Target.Tab -Directory $Target.Directory
+            New-ZjSessionLayout -Directory $Target.Directory -Kind $Target.Kind
         }
         Invoke-Zellij -Arguments @('pipe', '--name', 'switch',
             '--args', "session=$($Target.Session),pane=$env:ZELLIJ_PANE_ID", '--', $payload) | Out-Null
-        if ($existing -and (Wait-ZjClient $Target.Session)) {
-            Open-ZjTab $Target
-        }
         return
     }
 
@@ -559,7 +560,7 @@ function Open-ZjTarget {
         # -n reads a file, and only at start-up, so the file can go when the
         # client returns (detach or quit).
         $file = Join-Path ([IO.Path]::GetTempPath()) "zj-$($Target.Session)-$([guid]::NewGuid().ToString('n')).kdl"
-        New-ZjServiceLayout -Template (Get-ZjServiceTemplate) -Name $Target.Tab -Directory $Target.Directory |
+        New-ZjSessionLayout -Directory $Target.Directory -Kind $Target.Kind |
             Set-Content -LiteralPath $file -Encoding utf8NoBOM
         try {
             zellij --session $Target.Session --new-session-with-layout $file
@@ -569,18 +570,7 @@ function Open-ZjTarget {
         return
     }
 
-    # An existing (or resurrectable) session: the tab is added or focused
-    # once this client is in, from a background thread, because attaching
-    # holds the console until detach.
-    $job = Start-ThreadJob -ScriptBlock {
-        $target = $using:Target
-        if (Wait-ZjClient $target.Session -TimeoutSeconds 30) { Open-ZjTab $target }
-    } -InitializationScript ([scriptblock]::Create("Import-Module '$($script:ModuleFile.Replace("'", "''"))'"))
-    try {
-        zellij attach $Target.Session
-    } finally {
-        Remove-Job -Job $job -Force -ErrorAction Ignore
-    }
+    zellij attach $Target.Session
 }
 
 # --- Commands ---------------------------------------------------------------------
@@ -641,7 +631,13 @@ function Enter-ZjLobby {
     zj .
 #>
 function zj {
-    param([Parameter(Position = 0)][string]$Project)
+    param(
+        [Parameter(Position = 0)][string]$Project,
+        # Open it as an umbrella: rooted at a folder holding several repos
+        # and starting on an agent rather than an editor, for the questions
+        # that span them.
+        [Alias('u')][switch]$Umbrella
+    )
 
     if (-not $Project) {
         if ($env:ZELLIJ) {
@@ -656,7 +652,8 @@ function zj {
     foreach ($candidate in $Project, (Join-Path $root $Project)) {
         if (Test-Path -LiteralPath $candidate -PathType Container) {
             $dir = (Resolve-Path -LiteralPath $candidate).ProviderPath
-            Open-ZjTarget (Get-ZjTarget -Directory $dir -Root $root)
+            $kind = if ($Umbrella) { 'Umbrella' } else { 'Repo' }
+            Open-ZjTarget (Get-ZjTarget -Directory $dir -Root $root -Kind $kind)
             return
         }
     }
@@ -668,8 +665,8 @@ function zj {
     Start the coding agent for the current folder: $env:ZJ_AGENT (default
     opencode), continuing the folder's last conversation if it has one.
 .DESCRIPTION
-    The service layout's agent pane runs this, so after a reboot the
-    resurrected pane picks the conversation up where it stopped. OpenCode
+    The agent tab runs this (Alt a, or the first tab of an umbrella
+    session), so after a reboot the resurrected pane picks the conversation up where it stopped. OpenCode
     and Claude Code continue with --continue; other agents start fresh.
     Arguments given to zja go to the agent instead.
 .EXAMPLE
@@ -691,9 +688,11 @@ function zja {
     Run the project's dev server, tests or build (see Get-ProjectTask), and
     report it to Zellij's inbox.
 .DESCRIPTION
-    The service layout's dev and test panes run this, suspended until Enter,
-    as `zjr dev; exit $LASTEXITCODE`: $LASTEXITCODE is the command's, so the
-    pane exits with it and Zellij marks the pane as done or failed.
+    Run by hand, usually from a scratch float (Alt n), as
+    `zjr dev; exit $LASTEXITCODE`: $LASTEXITCODE is the command's, so the
+    pane exits with it and Zellij marks it as done or failed and the inbox
+    reports it. No layout pane runs it any more, since long-running services
+    live outside the terminal.
 .PARAMETER Task
     dev (default), test or build.
 .PARAMETER WhatIf
@@ -750,4 +749,4 @@ Register-ArgumentCompleter -Native -CommandName zellij -ScriptBlock {
     (TabExpansion2 -inputScript $commandAst.Extent.Text -cursorColumn $column).CompletionMatches
 }
 
-Export-ModuleMember -Function zj, zja, zjr, Enter-ZjLobby, Get-ZjTarget, Get-ZjProjectList, Get-ZjHubProject, Get-ProjectTask, Wait-ZjClient, Open-ZjTab
+Export-ModuleMember -Function zj, zja, zjr, Enter-ZjLobby, Get-ZjTarget, New-ZjSessionLayout, Get-ZjProjectList, Get-ZjHubProject, Get-ProjectTask, Wait-ZjClient

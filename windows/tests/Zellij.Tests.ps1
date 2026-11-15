@@ -15,8 +15,6 @@ param()
 BeforeAll {
     $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     Import-Module (Join-Path $repo 'powershell\Zellij.psm1') -Force -DisableNameChecking
-    $template = Get-Content -LiteralPath (Join-Path $repo 'zellij\layouts\service.kdl') -Raw
-
     # A project folder in TestDrive with the given files (relative path ->
     # content).
     function Build-TestProject {
@@ -37,20 +35,20 @@ AfterAll {
 }
 
 Describe 'Get-ZjTarget' {
-    It 'maps <Relative> to session <Session>, tab <Tab>' -TestCases @(
-        @{ Relative = 'acme\cerberus'; Session = 'acme'; Tab = 'cerberus' }
-        @{ Relative = 'acme\cerberus\ORDERS_API'; Session = 'acme'; Tab = 'ORDERS_API' }
-        @{ Relative = 'sentinel'; Session = 'sentinel'; Tab = 'sentinel' }
-        @{ Relative = 'my client\app.v2'; Session = 'my_client'; Tab = 'app.v2' }
+    # One session per repo: the client folder it sits under is not part of it.
+    It 'names <Relative> after its own folder: <Session>' -TestCases @(
+        @{ Relative = 'acme\cerberus'; Session = 'cerberus' }
+        @{ Relative = 'acme\cerberus\ORDERS_API'; Session = 'ORDERS_API' }
+        @{ Relative = 'sentinel'; Session = 'sentinel' }
+        @{ Relative = 'my client\app.v2'; Session = 'app.v2' }
     ) {
         $target = Get-ZjTarget -Directory "C:\Projects\$Relative" -Root 'C:\Projects'
         $target.Session | Should -Be $Session
-        $target.Tab | Should -Be $Tab
         $target.Directory | Should -Be "C:\Projects\$Relative"
     }
 
-    It 'matches the root without regard to case or a trailing separator' {
-        (Get-ZjTarget -Directory 'c:\projects\acme\api\' -Root 'C:\Projects\').Session | Should -Be 'acme'
+    It 'ignores a trailing separator' {
+        (Get-ZjTarget -Directory 'c:\projects\acme\api\' -Root 'C:\Projects\').Session | Should -Be 'api'
     }
 
     It 'never starts or ends a session name with a dot (Zellij cannot find those)' -TestCases @(
@@ -61,35 +59,39 @@ Describe 'Get-ZjTarget' {
         (Get-ZjTarget -Directory $Folder -Root 'C:\Projects').Session | Should -Be $Session
     }
 
-    It 'makes a folder outside the root its own session' {
-        $target = Get-ZjTarget -Directory 'D:\work\tool' -Root 'C:\Projects'
-        $target.Session | Should -Be 'tool'
-        $target.Tab | Should -Be 'tool'
+    It 'treats a folder outside the root no differently' {
+        (Get-ZjTarget -Directory 'D:\work\tool' -Root 'C:\Projects').Session | Should -Be 'tool'
+        (Get-ZjTarget -Directory 'C:\ProjectsOld\acme\api' -Root 'C:\Projects').Session | Should -Be 'api'
     }
 
-    It 'does not treat a sibling with the same prefix as inside the root' {
-        (Get-ZjTarget -Directory 'C:\ProjectsOld\acme\api' -Root 'C:\Projects').Session | Should -Be 'api'
+    It 'is a repo unless asked for an umbrella' {
+        (Get-ZjTarget -Directory 'C:\Projects\acme\api' -Root 'C:\Projects').Kind | Should -Be 'Repo'
+        (Get-ZjTarget -Directory 'C:\Projects\acme' -Root 'C:\Projects' -Kind 'Umbrella').Kind |
+            Should -Be 'Umbrella'
     }
 }
 
-Describe 'New-ZjServiceLayout' {
-    It 'names the tab and sets its folder, KDL-escaped' {
-        $layout = InModuleScope Zellij -Parameters @{ Template = $template } {
-            New-ZjServiceLayout -Template $Template -Name 'api "v2"' -Directory 'C:\Projects\acme\api'
-        }
-        $layout | Should -Match ([regex]::Escape('ui name="api \"v2\"" cwd="C:\\Projects\\acme\\api" focus=true'))
-        $layout | Should -Not -Match 'ui name="service"'
+Describe 'New-ZjSessionLayout' {
+    It 'opens a repo on an editor, in its folder, KDL-escaped' {
+        $layout = New-ZjSessionLayout -Directory 'C:\Projects\acme\api'
+        $layout | Should -Match ([regex]::Escape('ui name="editor" cwd="C:\\Projects\\acme\\api" focus=true'))
+        $layout | Should -Match ([regex]::Escape('pane name="editor" command="nvim" borderless=true'))
     }
 
-    It 'fails loudly when the template no longer has the anchor' {
-        { InModuleScope Zellij { New-ZjServiceLayout -Template 'layout { }' -Name a -Directory b } } |
-            Should -Throw '*no longer contains*'
+    It 'opens an umbrella on an agent instead' {
+        $layout = New-ZjSessionLayout -Directory 'C:\Projects\acme' -Kind 'Umbrella'
+        $layout | Should -Match ([regex]::Escape('ui name="agent" cwd="C:\\Projects\\acme" focus=true'))
+        $layout | Should -Match ([regex]::Escape('pane name="agent"'))
+        $layout | Should -Match 'borderless=false'
     }
 
-    It 'keeps the pane names pilot and the README rely on' {
-        foreach ($name in 'editor', 'agent', 'dev', 'test', 'shell') {
-            $template | Should -Match "pane name=`"$name`""
-        }
+    It 'escapes a quote in the folder' {
+        New-ZjSessionLayout -Directory 'C:\odd"name' |
+            Should -Match ([regex]::Escape('cwd="C:\\odd\"name"'))
+    }
+
+    It 'keeps the one-line bar the compact layout has' {
+        New-ZjSessionLayout -Directory 'C:\Projects\api' | Should -Match 'plugin location="compact-bar"'
     }
 }
 
