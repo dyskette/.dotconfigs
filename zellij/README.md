@@ -101,7 +101,7 @@ After `Alt g`:
 | --- | --- |
 | `w` / `f` | The session hub (as `Alt s`) |
 | `i` | Inbox: every agent and long command in every session, by status |
-| `g` / `y` | lazygit / yazi in a float, in the pane's folder; files they open land in the tab's nvim |
+| `g` / `y` | lazygit / yazi in a float, in the pane's folder; files they open land in the tab's nvim (yazi without starting a process, see "Picking files in the yazi float") |
 | `e` | This pane's scrollback in nvim, in place (search, motions, yank) |
 | `n` | Scratch floating shell |
 | `z` | Fullscreen the pane (same as `Alt m`) |
@@ -197,6 +197,33 @@ waits for (commit and rebase messages, an agent's prompt file in the temp
 folder from OpenCode's editor key or Claude Code's `Ctrl g`) end with `:w`,
 and focus goes back to the pane that asked. A bare `nvim` still starts its own
 instance; so does the scrollback editor.
+
+**Picking files in the yazi float.** `Alt g y` goes through pilot rather than
+a `Run` keybinding, so yazi can be started with `--chooser-file` pointing at
+the tab editor's own file (`<session>/<pane>.chooser`, beside its registry
+entry). Picking a file writes the path there and quits yazi; the nvim watching
+that file opens it. Each nvim tells pilot its path once, as it registers.
+
+**It opens where you are.** With nvim focused, pilot writes `Alt+y` to it and
+nvim answers with the folder of the buffer being read, so yazi opens beside
+the current file rather than at the project root. Pilot cannot work this out
+by itself: all it can see is the folder nvim was *started* in, which is the
+root for the whole session. Twin files sit next to each other, so opening at
+the root meant walking back down the tree on every trip. From a shell pane no
+detour is needed - its working directory is already the right answer - and a
+buffer with no file of its own (a terminal, a picker) falls back to nvim's
+working directory.
+
+This is for machines where starting a process is slow, and the cost compounds:
+letting yazi run its own opener instead meant a shell, a **whole second nvim**,
+a `zellij action list-panes` and a focus pipe for every file opened, where the
+second nvim existed only to hand the path to the first through flatten.nvim.
+Picking a file now costs nothing beyond yazi itself.
+
+As in the nvim float (which yazi.nvim has always opened with
+`--chooser-file`), every kind of file comes back to nvim rather than going to
+a system viewer. `Alt g y` behaves the same way as `<leader>e` now, instead of
+differing from it.
 
 **Agent bridge** (normal mode; pastes into the agent's prompt without
 submitting, then focuses it):
