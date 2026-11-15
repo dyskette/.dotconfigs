@@ -10,6 +10,10 @@
 #
 #   fzf_callbacks SCRIPT   set FZF_SHELL (for --with-shell) and SELF (the
 #                          command that runs SCRIPT from an fzf binding)
+#   new_state_file NAME    REPLY: a new empty file for a popup's state
+#
+# Everything a popup runs before fzf draws delays the popup, and under Git Bash
+# each fork costs 20-40 ms, so the helpers here fork as little as they can.
 #   in_client              true when running inside a tmux/psmux client
 #   current_session        REPLY: the session the popup was opened from
 #   ago SECONDS_SINCE_EPOCH  print "now", "5m", "3h" or "2d" ("new" when
@@ -19,6 +23,10 @@ us=$'\x1f'
 
 if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
     win=1
+    # Started as usr\bin\bash.exe (psmux.conf) rather than through Git's
+    # bin\bash.exe launcher, nothing puts /usr/bin ahead of System32, and
+    # sort or find would be Windows' own.
+    [[ "$PATH" == /usr/bin:* ]] || PATH="/usr/bin:$PATH"
     sep='\'
     mux=psmux
     home="$USERPROFILE"
@@ -43,15 +51,36 @@ fi
 # fzf.exe on Windows would try $SHELL (/usr/bin/bash, an MSYS path it cannot
 # start), so its child commands go through cmd, which starts Git Bash by its
 # 8.3 path: quotes do not survive fzf handing the line to cmd, and 8.3 paths
-# have no spaces to quote.
+# have no spaces to quote. One cygpath converts both paths.
 fzf_callbacks() {
     if ((win)); then
+        local short=()
         FZF_SHELL='cmd.exe /d /c'
-        SELF="$(cygpath -d "$BASH") $(cygpath -d "$1")"
+        mapfile -t short < <(cygpath -d "$BASH" "$1")
+        SELF="${short[0]} ${short[1]}"
     else
         FZF_SHELL='bash -c'
         printf -v SELF 'bash %q' "$1"
     fi
+}
+
+# Without mktemp, which would fork: noclobber makes bash create the file with
+# O_EXCL, so an existing file, or a symlink planted under a guessed name, is
+# never written through; a taken name just draws another.
+new_state_file() {
+    local i noclobber=0
+    [[ $- == *C* ]] && noclobber=1
+    set -C
+    for ((i = 0; i < 16; i++)); do
+        REPLY="${TMPDIR:-/tmp}/$1.$$.$RANDOM"
+        if { : >"$REPLY"; } 2>/dev/null; then
+            ((noclobber)) || set +C
+            return 0
+        fi
+    done
+    ((noclobber)) || set +C
+    REPLY=""
+    return 1
 }
 
 in_client() {

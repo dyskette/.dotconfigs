@@ -14,9 +14,10 @@
 # The preview is the window's actual screen.
 set -u
 export LC_ALL=C.UTF-8
-here="$(cd "$(dirname "$0")" && pwd)"
+# Trimmed without dirname, which would fork (see mux-lib.sh); fzf calls back
+# with a Windows path (backslashes) on psmux.
 # shellcheck source=mux-lib.sh
-source "$here/mux-lib.sh"
+source "${BASH_SOURCE[0]%[\\/]*}/mux-lib.sh"
 
 prompt='window ❯ '
 
@@ -94,8 +95,8 @@ cmd_list() {
     for i in "${!targets[@]}"; do
         fit "${heads[i]}" "$width"
         printf '%s\x1f%s\t%s  %s\n' "${keys[i]}" "${targets[i]}" "$REPLY" "${tails[i]}"
-    done | sort -t$'\x1f' -k1,1n -s | cut -d$'\x1f' -f2- >"$SWITCH_STATE/items"
-    cat "$SWITCH_STATE/items"
+    done | sort -t$'\x1f' -k1,1n -s | cut -d$'\x1f' -f2- >"$SWITCH_ITEMS"
+    cat "$SWITCH_ITEMS"
 }
 
 # REPLY: the target of item $1.
@@ -109,7 +110,7 @@ item() {
             return 0
         fi
         i=$((i + 1))
-    done <"$SWITCH_STATE/items"
+    done <"$SWITCH_ITEMS"
     return 1
 }
 
@@ -145,14 +146,13 @@ fail() {
 
 run() {
     local out target sess idx cur err
-    SWITCH_STATE="$(mktemp -d)"
-    export SWITCH_STATE
-    trap 'rm -rf "$SWITCH_STATE"' EXIT
+    # Created empty before the list is written, so a preview that runs first
+    # finds no item instead of failing to open the file.
+    new_state_file window-switcher || return 1
+    export SWITCH_ITEMS="$REPLY"
+    trap 'rm -f "$SWITCH_ITEMS"' EXIT
     fzf_callbacks "$0"
     export SWITCH_SELF="$SELF"
-    # Exists before the list does, so a preview that runs first finds no item
-    # instead of failing to open the file.
-    : >"$SWITCH_STATE/items"
 
     # fzf opens empty and loads the list itself (start:reload), as in
     # session-switcher.sh: the popup draws at once, the Alt-Tab order stays.

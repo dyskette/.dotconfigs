@@ -280,10 +280,13 @@ run() {
         # start), so its child commands go through cmd: the reload is a plain
         # `type`, and the callbacks start Git Bash. Every path is in 8.3 form,
         # which has no spaces, because quotes do not survive fzf handing the
-        # command line to cmd.
+        # command line to cmd. One cygpath converts all three, since every
+        # fork here delays the popup (mux-lib.sh).
+        local short=()
         shell='cmd.exe /d /c'
-        self="$(cygpath -d "$BASH") $(cygpath -d "$0")"
-        export DIRPICK_RELOAD="type $(cygpath -d "$DIRPICK_STATE/items")"
+        mapfile -t short < <(cygpath -d "$BASH" "$0" "$DIRPICK_STATE/items")
+        self="${short[0]} ${short[1]}"
+        export DIRPICK_RELOAD="type ${short[2]}"
     else
         shell='bash -c'
         printf -v self 'bash %q' "$0"
