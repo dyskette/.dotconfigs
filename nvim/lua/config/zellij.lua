@@ -8,13 +8,16 @@
 -- Zellij's pilot plugin (zellij/plugins/pilot) sends both here when this nvim
 -- has focus, and handles them itself in every other pane.
 --
--- One editor per tab: the nvim a service tab starts registers itself as the
--- tab's editor. flatten.nvim (plugins/terminal.lua) sends files opened by
--- `nvim` anywhere else in the tab (lazygit, yazi, the shell's sf/sg, the
--- agent, Zellij's click-to-open) to it, through pipe_path() below.
+-- One editor per session: the nvim in the editor tab registers itself, and
+-- flatten.nvim (plugins/terminal.lua) sends files opened by `nvim` anywhere
+-- else in the session (lazygit's `e`, the shell's sf/sg, the agent, Zellij's
+-- click-to-open) to it, through pipe_path() below. Per session and not per
+-- tab because lazygit has a tab of its own now, so its `e` reaches the editor
+-- across tabs (zellij/decisions/0001-workspace-model.md).
 --
 -- The agent bridge (<leader>i...) pastes file references, selections and
--- diagnostics into the tab's agent pane. <leader>sp opens the session hub.
+-- diagnostics into the session's agent, which `Alt a` opens in its own tab.
+-- <leader>sp opens the session hub.
 local M = {}
 
 -- Directions: Zellij's name for each, and whether it moves along columns.
@@ -48,14 +51,18 @@ local function zellij(args, on_done)
   end)
 end
 
---- The terminal panes in this pane's tab, from `zellij action list-panes`.
+--- Every terminal pane in this session, from `zellij action list-panes`.
 --- Synchronous (~30 ms); nil outside Zellij or on failure.
+---
+--- The whole session, not this tab: a tab holds one activity now, so the
+--- agent this nvim pastes into is in a tab of its own
+--- (zellij/decisions/0001-workspace-model.md).
 ---@return table[]?
-local function tab_panes()
+local function session_panes()
   if not in_zellij() then
     return nil
   end
-  local out = vim.system({ "zellij", "action", "list-panes", "--json", "--tab" }, { text = true }):wait(3000)
+  local out = vim.system({ "zellij", "action", "list-panes", "--json" }, { text = true }):wait(3000)
   if out.code ~= 0 then
     return nil
   end
@@ -63,15 +70,8 @@ local function tab_panes()
   if not ok or type(panes) ~= "table" then
     return nil
   end
-  local me = tonumber(vim.env.ZELLIJ_PANE_ID)
-  local tab
-  for _, pane in ipairs(panes) do
-    if not pane.is_plugin and pane.id == me then
-      tab = pane.tab_id
-    end
-  end
   return vim.tbl_filter(function(pane)
-    return not pane.is_plugin and pane.tab_id == tab
+    return not pane.is_plugin
   end, panes)
 end
 
@@ -145,7 +145,7 @@ local function registry_dir()
   return vim.fs.joinpath(vim.fn.stdpath("state"), "zellij", session)
 end
 
---- Files this nvim must edit itself rather than hand to the tab's editor:
+--- Files this nvim must edit itself rather than hand to the session's editor:
 --- Zellij's edit-scrollback dump, which belongs to the pane it came from.
 ---@return boolean
 local function edits_in_place()
@@ -157,9 +157,15 @@ local function edits_in_place()
   return false
 end
 
---- flatten.nvim's pipe_path hook: the server of the tab's editor nvim, or
---- nil to be a host. Runs at startup of every nvim, so it only asks Zellij
---- for the pane list when another editor of this session is registered.
+--- flatten.nvim's pipe_path hook: the server of this session's editor nvim,
+--- or nil to be a host. Runs at startup of every nvim.
+---
+--- One editor per session, so the registry answers this on its own: any
+--- entry that is not this pane's is the editor, and connecting to it either
+--- works or proves it stale. Finding it used to cost a `list-panes` call, to
+--- work out which panes shared a tab, which is a whole process on the
+--- critical path of opening a file from lazygit
+--- (zellij/decisions/0001-workspace-model.md).
 ---@return string|integer|nil
 function M.pipe_path()
   if vim.env.NVIM then
@@ -171,19 +177,9 @@ function M.pipe_path()
   end
 
   local me = vim.env.ZELLIJ_PANE_ID
-  local registered = {}
   for name in vim.fs.dir(dir) do
     if name ~= me then
-      registered[tonumber(name)] = vim.fs.joinpath(dir, name)
-    end
-  end
-  if next(registered) == nil then
-    return nil
-  end
-
-  for _, pane in ipairs(tab_panes() or {}) do
-    local file = registered[pane.id]
-    if file then
+      local file = vim.fs.joinpath(dir, name)
       local fd = io.open(file, "r")
       local address = fd and fd:read("*l")
       if fd then
@@ -245,10 +241,11 @@ end
 
 -- --- Agent bridge -------------------------------------------------------------------
 
---- The tab's agent pane id (the pane named "agent").
+--- The session's agent pane id (the pane named "agent"), which lives in a
+--- tab of its own that `Alt a` opens.
 ---@return integer?
 local function agent_pane()
-  for _, pane in ipairs(tab_panes() or {}) do
+  for _, pane in ipairs(session_panes() or {}) do
     if pane.title == "agent" then
       return pane.id
     end
@@ -264,7 +261,7 @@ function M.send_to_agent(text)
   end
   local pane = agent_pane()
   if not pane then
-    vim.notify("This tab has no agent pane (Alt a starts one)", vim.log.levels.WARN)
+    vim.notify("This session has no agent (Alt a starts one)", vim.log.levels.WARN)
     return
   end
   zellij({ "action", "paste", "--pane-id", "terminal_" .. pane, "--", text }, function()
@@ -358,8 +355,8 @@ function M.setup()
     desc = "Agent: send diagnostics (line, or buffer with a count)",
   })
   vim.keymap.set("n", "<leader>ii", function()
-    zellij({ "pipe", "--name", "agent", "--", "toggle" })
-  end, { desc = "Agent: go to the agent pane (Alt a)" })
+    zellij({ "pipe", "--name", "activity", "--", "agent" })
+  end, { desc = "Agent: go to the agent tab (Alt a)" })
   vim.keymap.set("n", "<leader>sp", M.hub, { desc = "Sessions and projects (the Zellij hub)" })
 
   if in_zellij() then

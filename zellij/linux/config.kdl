@@ -1,7 +1,8 @@
-// Zellij 0.46 workspace on Linux: one session per client, one tab per
-// service, and in each tab Neovim, a coding agent and a stack of
-// run/test/shell panes. The workflow, the keys and the runbook are in
-// zellij/README.md.
+// Zellij 0.46 workspace on Linux: one session per repo, one tab per activity
+// (editor, agent, lazygit) shown full screen, and floats for the ephemeral
+// shells. Moving between repos is the hub's job, which is the busiest key
+// here. The reasoning is in zellij/decisions/0001-workspace-model.md; the
+// workflow, the keys and the runbook are in zellij/README.md.
 //
 // This is the Linux twin of zellij/config.kdl (Windows). Everything portable
 // is shared through ~/.config/zellij: themes/, layouts/lobby.kdl and
@@ -14,64 +15,66 @@
 
 // --- Keys ---------------------------------------------------------------------
 //
-// unlock-first: Zellij starts locked, so every key reaches Neovim, the shell
-// and the agent. Alt g unlocks (normal mode); from there one letter picks a
-// mode (p pane, t tab, r resize, m move, s scroll, o session) or one of the
-// actions below. Esc or Enter locks again.
+// No prefix and no modes, bar one: Zellij stays locked and every binding is
+// an Alt key in the shared block below, so there is never a mode to be in or
+// to leave (zellij/decisions/0001-workspace-model.md).
 //
-// Alt g and not the preset's Ctrl g: Ctrl g is live ripgrep in the shell
-// (bash/bashrc.d/files.sh) and "edit prompt in $EDITOR" in Claude Code.
+// The rule is: Alt moves, Alt+Shift nudges a divider, and a letter goes to
+// the thing it names. The old Alt g unlock is gone, and with it the split
+// where some letters acted and others changed mode, which never became
+// muscle memory. Ctrl a is left to readline, where three quarters of the day
+// is spent.
 //
-// Bindings here are applied on top of the preset.
-keybinds preset="unlock-first" unlock="Alt g" {
-    shared_among "normal" "locked" {
+// The one mode is Alt r, sticky resize: hjkl repeat, Esc leaves. Repeated
+// resizing during a presentation is worth it.
+keybinds clear-defaults=true {
+    // Locked is the only mode you are ever in, so every binding lives here
+    // and every other key reaches Neovim, the shell and the agent untouched.
+    locked {
         // Alt h/j/k/l: one set of keys across Neovim windows and Zellij
-        // panes. The pilot plugin (plugins/pilot) hands them to Neovim when
-        // it has focus (nvim/lua/config/zellij.lua) and moves Zellij's focus
-        // otherwise; left/right cross into the neighbouring tab at the edge.
+        // panes. pilot hands them to Neovim when it has focus
+        // (nvim/lua/config/zellij.lua) and moves Zellij's focus otherwise;
+        // left and right cross into the neighbouring tab at the edge, which
+        // is how you get from the editor to the agent and back.
         bind "Alt h" "Alt Left" { MessagePlugin "pilot" { name "nav"; payload "left"; }; }
         bind "Alt j" "Alt Down" { MessagePlugin "pilot" { name "nav"; payload "down"; }; }
         bind "Alt k" "Alt Up" { MessagePlugin "pilot" { name "nav"; payload "up"; }; }
         bind "Alt l" "Alt Right" { MessagePlugin "pilot" { name "nav"; payload "right"; }; }
 
-        // Alt H/J/K/L: move a divider that way, the same in both layers.
-        // In Neovim its window divider, else (or with none that way) the
-        // Zellij pane divider. Terminals send Alt+Shift+h as Alt + "H".
+        // Alt H/J/K/L: nudge a divider that way. In Neovim its window
+        // divider, else (or with none that way) the Zellij pane divider.
+        // Terminals send Alt+Shift+h as Alt + "H".
         bind "Alt H" { MessagePlugin "pilot" { name "resize"; payload "left"; }; }
         bind "Alt J" { MessagePlugin "pilot" { name "resize"; payload "down"; }; }
         bind "Alt K" { MessagePlugin "pilot" { name "resize"; payload "up"; }; }
         bind "Alt L" { MessagePlugin "pilot" { name "resize"; payload "right"; }; }
 
-        // Alt 1-9: straight to a tab, like a count before gt.
-        bind "Alt 1" { GoToTab 1; }
-        bind "Alt 2" { GoToTab 2; }
-        bind "Alt 3" { GoToTab 3; }
-        bind "Alt 4" { GoToTab 4; }
-        bind "Alt 5" { GoToTab 5; }
-        bind "Alt 6" { GoToTab 6; }
-        bind "Alt 7" { GoToTab 7; }
-        bind "Alt 8" { GoToTab 8; }
-        bind "Alt 9" { GoToTab 9; }
+        // Alt r: the one mode, for resizing repeatedly without holding a
+        // modifier (presentations). Esc leaves.
+        bind "Alt r" { SwitchToMode "Resize"; }
 
-        // Alt m: maximize (zoom) the pane and back, as <C-w>| then <C-w>=.
-        // Not Alt z (zoxide in the shell) or Alt Enter (a newline in OpenCode).
-        bind "Alt m" { ToggleFocusFullscreen; }
+        // Alt e/a/g: the editor, the agent, lazygit. Each is a tab of its
+        // own, full screen; pressing the key while already there goes back
+        // where you came from, and a session without that tab yet gets one,
+        // started in the focused pane's folder (plugins/pilot, `activity`).
+        // Nothing starts by itself: often a question is a grep away.
+        bind "Alt e" { MessagePlugin "pilot" { name "activity"; payload "editor"; }; }
+        bind "Alt a" { MessagePlugin "pilot" { name "activity"; payload "agent"; }; }
+        bind "Alt g" { MessagePlugin "pilot" { name "activity"; payload "lazygit"; }; }
 
-        // Alt t: raise the tab's floating layer and put it away again, from
-        // wherever the focus is. lazygit (Alt g g), yazi (Alt g y) and
-        // scratch panes (Alt g n) all live in that layer, so this is how to
-        // get back to one left open. Focus is kept on both sides, and a tab
-        // with no float yet gets a shell.
+        // Alt t raises the tab's floating layer and puts it away again; Alt n
+        // adds a scratch shell to it. Floats hold everything ephemeral:
+        // spawn a shell, do a thing, quit.
         //
-        // This is the preset's Alt f, moved: fzf pages its preview with
-        // alt-f/alt-b (fzf/fzfrc), which the preset binding was eating in
-        // every pane. Alt t costs readline's transpose-words instead.
+        // Alt t and not the preset's Alt f: fzf pages its preview with
+        // alt-f/alt-b (fzf/fzfrc), which that binding was eating in every
+        // pane. Alt t costs readline's transpose-words instead.
         bind "Alt t" { ToggleFloatingPanes; }
+        bind "Alt n" { NewFloatingPane; }
 
-        // Alt s: the session hub (running sessions, saved sessions and
-        // projects in one list, vim keys; README: "The hub"). Also on
-        // Alt g w and Alt g f, and full screen when the terminal opens on
-        // `zj` (layouts/lobby.kdl).
+        // Alt s: the hub (running sessions, saved sessions and projects in
+        // one list, vim keys; README: "The hub"). The way between repos, and
+        // so the most used key here.
         bind "Alt s" {
             LaunchOrFocusPlugin "hub" {
                 floating true
@@ -79,93 +82,43 @@ keybinds preset="unlock-first" unlock="Alt g" {
             }
         }
 
-        // Alt a: to the tab's agent and back (starts one if the tab has none).
-        bind "Alt a" { MessagePlugin "pilot" { name "agent"; payload "toggle"; }; }
-
-        // Alt u: the next pane anywhere that needs you (agent waiting for
-        // approval, failed test run, finished build), switching session if
-        // it has to.
+        // Alt c: the inbox, what every agent and long command in every
+        // session is doing (Alt Enter types into a preview without
+        // switching). Alt u goes to the next pane anywhere that needs you,
+        // switching session if it has to.
+        bind "Alt c" { ToggleSessionCard; }
         bind "Alt u" { GoToNextAttention; }
 
-        // Alt \ toggles to the previously focused pane.
+        // Alt m zooms a pane and back; Alt \ returns to the last one.
+        bind "Alt m" { ToggleFocusFullscreen; }
         bind "Alt \\" { FocusLastPane; }
 
-        // Freed for programs: Alt p is Claude Code's model picker (pane
-        // groups stay on the mouse, Alt + click); Alt i/o and Alt [/] go to
-        // Neovim (rare Zellij actions, now after Alt g: , . [ ]); Alt f pages
-        // an fzf preview (fzf/fzfrc), the floating layer having moved to
-        // Alt t. OpenCode's Alt a (start of visual line) stays shadowed by
-        // the agent key.
-        unbind "Alt p" "Alt Shift p" "Alt i" "Alt o" "Alt [" "Alt ]" "Alt f"
+        // Alt v: this pane's scrollback in Neovim, with motions, text
+        // objects and yank. There is no scroll mode and no search mode:
+        // handing the buffer to the editor beats a pager for someone who
+        // lives in one, and it keeps the promise that there are no modes.
+        bind "Alt v" { EditScrollback; }
+
+        bind "Alt T" { ToggleTheme; }
+        bind "Alt d" { Detach; }
+        // Asks first, with detach preselected (on_quit below), so closing
+        // never kills an agent by accident.
+        bind "Alt q" { Quit; }
     }
 
-    // Scroll and search read like a pager in vim: g/G top and bottom, /
-    // search, n/N next and previous match, e or v the whole scrollback in
-    // Neovim (motions, text objects, yank) in place of the pane.
-    scroll {
-        bind "g" { ScrollToTop; }
-        bind "G" { ScrollToBottom; }
-        bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
-        bind "v" { EditScrollback; SwitchToMode "Locked"; }
-    }
-    search {
-        bind "N" { Search "up"; }
-        bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
-        bind "g" { ScrollToTop; }
-        bind "G" { ScrollToBottom; }
-    }
-
-    // Actions one key after Alt g.
-    normal {
-        // The session hub, as Alt s: w where Zellij's session manager was,
-        // f where the projects picker was. One list holds both now.
-        bind "w" "f" {
-            LaunchOrFocusPlugin "hub" {
-                floating true
-                move_to_focused_tab true
-            }
-            SwitchToMode "Locked"
-        }
-        // The inbox: what every agent and long command in every session is
-        // doing (Alt Enter types into a preview without switching).
-        bind "i" { ToggleSessionCard; SwitchToMode "Locked"; }
-        bind "g" {
-            Run "lazygit" {
-                floating true
-                close_on_exit true
-                name "lazygit"
-                width "90%"
-                height "90%"
-                x "5%"
-                y "5%"
-            }
-            SwitchToMode "Locked"
-        }
-        bind "y" {
-            Run "yazi" {
-                floating true
-                close_on_exit true
-                name "yazi"
-                width "90%"
-                height "90%"
-                x "5%"
-                y "5%"
-            }
-            SwitchToMode "Locked"
-        }
-        // A scratch shell that floats over the tab; Alt f hides and shows it.
-        bind "n" { NewFloatingPane; SwitchToMode "Locked"; }
-        bind "z" { ToggleFocusFullscreen; SwitchToMode "Locked"; }
-        // This pane's scrollback in Neovim, without going through scroll mode.
-        bind "e" { EditScrollback; SwitchToMode "Locked"; }
-        // Arrangements and tab order, moved here from Alt [ ] i o.
-        bind "Space" { NextSwapLayout; SwitchToMode "Locked"; }
-        bind "[" { PreviousSwapLayout; SwitchToMode "Locked"; }
-        bind "]" { NextSwapLayout; SwitchToMode "Locked"; }
-        bind "," { MoveTab "Left"; SwitchToMode "Locked"; }
-        bind "." { MoveTab "Right"; SwitchToMode "Locked"; }
-        bind "T" { ToggleTheme; SwitchToMode "Locked"; }
-        bind "d" { Detach; }
+    // The one mode. Entered with Alt r, left with Esc, Enter or Alt r again.
+    resize {
+        bind "h" "Left" { Resize "Increase Left"; }
+        bind "j" "Down" { Resize "Increase Down"; }
+        bind "k" "Up" { Resize "Increase Up"; }
+        bind "l" "Right" { Resize "Increase Right"; }
+        bind "H" { Resize "Decrease Left"; }
+        bind "J" { Resize "Decrease Down"; }
+        bind "K" { Resize "Decrease Up"; }
+        bind "L" { Resize "Decrease Right"; }
+        bind "=" "+" { Resize "Increase"; }
+        bind "-" { Resize "Decrease"; }
+        bind "Esc" "Enter" "Alt r" { SwitchToMode "Locked"; }
     }
 }
 
@@ -208,14 +161,19 @@ load_plugins {
 
 // --- Behaviour -------------------------------------------------------------------
 
-// Linux: bash with ~/.bashrc, so zj, zja, zjr and the fzf tools exist in
-// every pane (Windows: pwsh).
+// Linux: bash with ~/.bashrc, so zj, zja and the fzf tools exist in every
+// pane (Windows: pwsh).
 default_shell "bash"
-// One-line bar (tabs, mode, sessions with something for you); the service
-// layout uses the same one.
+// One-line bar: the tabs are the activities (editor, agent, lazygit), plus
+// the sessions with something for you.
 default_layout "compact"
-// Ctrl q (unlocked) asks first, with detach preselected: closing never kills
-// agents by accident.
+// Locked, always. The keybindings are all Alt keys bound in the locked
+// block, and Alt r is the only way into another mode, so this is where every
+// session starts and where it returns. With clear-defaults there is no
+// preset to imply it.
+default_mode "locked"
+// Alt q asks first, with detach preselected: closing never kills agents by
+// accident.
 on_quit "ask_detach"
 
 pane_frames true
@@ -228,11 +186,10 @@ ui {
     }
 }
 
-// A stack lists the panes it is not showing as titles. In a row, not the
-// default column: the service tab's stack (dev, test, shell) then reads as a
-// row of tabs, and Alt h/l steps along it, so the shell is one key away
-// whichever of the three is open. Applies to stacks made from here on; Alt g
-// p Shift s flips one that already exists.
+// A stack lists the panes it is not showing as titles, in a row rather than
+// the default column, so Alt h/l steps along it. Tabs hold one activity each
+// now, so stacks are rare: this is for the occasional long-running process
+// split off beside an activity.
 stacked_pane_list_orientation "horizontal"
 
 // Agents and builds print a lot.
@@ -248,7 +205,7 @@ serialize_pane_viewport true
 scrollback_lines_to_serialize 2000
 
 // Open the nested session prompt only when asked (ssh into a box running
-// Zellij): zoom in with Alt g o f.
+// Zellij).
 nested_session_handling "ask"
 
 // The web server stays off; start it on demand with `zellij web` (README:
@@ -259,9 +216,9 @@ web_sharing "off"
 // --- Attention: the inbox, tab markers and notifications --------------------------
 //
 // OpenCode reports working / waiting / idle and Claude Code working / needs you / done themselves
-// (OSC 7501); the shell prompt marks each command's start and exit code
-// (OSC 133, bash/bashrc.d/prompt.sh); zjr reports dev servers and test runs
-// (zellij/bin/zjr).
+// (OSC 7501), and the shell prompt marks each command's start and exit code
+// (OSC 133, bash/bashrc.d/prompt.sh). Long commands in a float are tracked
+// the same way, so a build started in a scratch shell still reports.
 attention {
     enabled true
     frame_markers true

@@ -13,10 +13,12 @@
 //! - `nav-pane`: the same move without the Neovim check, sent by Neovim when it
 //!   is at its own edge (`zellij action move-focus` from a pane has no client
 //!   to move).
-//! - `agent` (payload `toggle`): jumps to the pane named `agent` in the current tab, or back to
-//!   the previous pane when the agent already has focus. A tab without one
-//!   gets a new agent pane, started in the focused pane's directory with the
-//!   command from the `agent_command` setting.
+//! - `activity` (payload `editor`, `agent` or `lazygit`): goes to the tab
+//!   holding that activity, back where it came from when already there, or
+//!   starts it in a new tab named for it, in the focused pane's directory.
+//!   The commands come from the `editor_command`, `agent_command` and
+//!   `git_command` settings. One activity per tab, full screen, started on
+//!   demand: see zellij/decisions/0001-workspace-model.md.
 //! - `resize` (payload `left|right|up|down`): Alt+Shift+h/j/k/l. Neovim gets
 //!   the key and moves its window divider; other panes move a Zellij pane
 //!   divider. `resize-pane` skips the Neovim check (Neovim's fallback when
@@ -75,8 +77,40 @@ fn unix_now() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
-/// Name given to agent panes; layouts use the same one (layouts/*.kdl).
+/// Name given to agent panes, which is how Neovim's agent bridge finds one
+/// (nvim/lua/config/zellij.lua).
 const AGENT_PANE: &str = "agent";
+
+/// One thing to be doing, each in a tab of its own, full screen. A tab is
+/// named for its activity, and that name is how it is found again: `Alt e`,
+/// `Alt a` and `Alt g` go to one, or start it in a new tab when the session
+/// has none (zellij/decisions/0001-workspace-model.md).
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Activity {
+    Editor,
+    Agent,
+    Git,
+}
+
+impl Activity {
+    /// The tab name, which doubles as the key the pipe takes.
+    fn name(self) -> &'static str {
+        match self {
+            Activity::Editor => "editor",
+            Activity::Agent => "agent",
+            Activity::Git => "lazygit",
+        }
+    }
+
+    fn parse(name: &str) -> Option<Self> {
+        match name.trim() {
+            "editor" => Some(Activity::Editor),
+            "agent" => Some(Activity::Agent),
+            "lazygit" | "git" => Some(Activity::Git),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Default)]
 struct Pilot {
@@ -87,6 +121,13 @@ struct Pilot {
     tabs: Vec<TabInfo>,
     /// The agent launcher, split on whitespace (`agent_command` setting).
     agent_command: Vec<String>,
+    /// The editor and lazygit launchers (`editor_command`, `git_command`),
+    /// so that a tab can be started for either.
+    editor_command: Vec<String>,
+    git_command: Vec<String>,
+    /// The tab that had focus before the current one, so that going to an
+    /// activity you are already on takes you back where you came from.
+    last_tab: Option<usize>,
     /// Set once the user granted the permissions; commands before that would
     /// fail silently.
     ready: bool,
@@ -151,10 +192,18 @@ impl ZellijPlugin for Pilot {
             self.hub = Some(shell::HubShell::load(&configuration));
             return;
         }
-        self.agent_command = configuration
-            .get("agent_command")
-            .map(|c| c.split_whitespace().map(str::to_owned).collect())
-            .unwrap_or_default();
+        let command = |key: &str, fallback: &str| -> Vec<String> {
+            configuration
+                .get(key)
+                .map(String::as_str)
+                .unwrap_or(fallback)
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect()
+        };
+        self.agent_command = command("agent_command", "");
+        self.editor_command = command("editor_command", "nvim");
+        self.git_command = command("git_command", "lazygit");
         self.debug = configuration.get("debug").is_some_and(|v| v == "true");
 
         request_permission(PERMISSIONS);
@@ -188,7 +237,16 @@ impl ZellijPlugin for Pilot {
                 self.run_pending();
                 self.sweep_lobbies();
             }
-            Event::TabUpdate(tabs) => self.tabs = tabs,
+            Event::TabUpdate(tabs) => {
+                // Remember where focus came from, so that Alt a pressed on
+                // the agent goes back rather than nowhere.
+                let before = self.tabs.iter().find(|t| t.active).map(|t| t.position);
+                let after = tabs.iter().find(|t| t.active).map(|t| t.position);
+                if before.is_some() && before != after {
+                    self.last_tab = before;
+                }
+                self.tabs = tabs;
+            }
             Event::SessionSuggestions(suggestions) if self.keep == Keep::Checking => {
                 if suggestions.command_submitted {
                     self.keep = Keep::Done;
@@ -242,7 +300,10 @@ impl ZellijPlugin for Pilot {
                 Some(direction) => self.navigate(direction, message.name == "nav"),
                 None => eprintln!("pilot: nav expects left, right, up or down, not '{payload}'"),
             },
-            "agent" => self.toggle_agent(),
+            "activity" => match Activity::parse(payload) {
+                Some(kind) => self.activity(kind),
+                None => eprintln!("pilot: activity expects editor, agent or lazygit, not '{payload}'"),
+            },
             "resize" | "resize-pane" => match parse_direction(payload) {
                 Some(direction) => self.resize(direction, message.name == "resize"),
                 None => eprintln!("pilot: resize expects left, right, up or down, not '{payload}'"),
@@ -463,22 +524,56 @@ impl Pilot {
         self.keep = Keep::Marking(focused);
     }
 
-    /// Focus the tab's agent pane, return from it, or start one.
-    fn toggle_agent(&self) {
-        let Ok((tab, focused)) = get_focused_pane_info() else {
+    /// Go to the tab holding an activity, back where you came from if it is
+    /// already showing, or start it in a new tab.
+    ///
+    /// Nothing is started with a session: often a question is a grep away and
+    /// no agent is wanted, and the editor is the only thing a session opens
+    /// with (zellij/decisions/0001-workspace-model.md).
+    fn activity(&self, kind: Activity) {
+        let existing = self.tabs.iter().find(|tab| tab.name == kind.name());
+        self.log(|| format!("{kind:?}: tab {:?}, last {:?}", existing.map(|t| t.position), self.last_tab));
+
+        match existing {
+            // Already here: back to the tab this came from.
+            Some(tab) if tab.active => {
+                if let Some(back) = self.last_tab {
+                    go_to_tab(back as u32 + 1);
+                }
+            }
+            Some(tab) => go_to_tab(tab.position as u32 + 1),
+            None => self.start_activity(kind),
+        }
+    }
+
+    /// Open an activity in a new tab, in the focused pane's folder.
+    fn start_activity(&self, kind: Activity) {
+        let command = match kind {
+            Activity::Editor => &self.editor_command,
+            Activity::Agent => &self.agent_command,
+            Activity::Git => &self.git_command,
+        };
+        let Some((program, args)) = command.split_first() else {
+            eprintln!("pilot: no command configured for the {} tab", kind.name());
             return;
         };
 
-        let agent = self
-            .panes
-            .panes
-            .get(&tab)
-            .and_then(|panes| panes.iter().find(|p| !p.is_plugin && p.title == AGENT_PANE));
+        let cwd = get_focused_pane_info().ok().and_then(|(_, pane)| get_pane_cwd(pane).ok());
+        let to_run = CommandToRun {
+            path: PathBuf::from(program),
+            args: args.to_vec(),
+            cwd,
+            border_style: None,
+        };
 
-        match agent {
-            Some(agent) if PaneId::Terminal(agent.id) == focused => focus_last_pane(),
-            Some(agent) => focus_terminal_pane(agent.id, false, false),
-            None => self.start_agent(focused),
+        let (tab, pane) = open_command_pane_in_new_tab(to_run, BTreeMap::new());
+        if let Some(tab) = tab {
+            rename_tab_with_id(tab as u64, kind.name());
+        }
+        // The agent is found by pane title, not only by tab, because Neovim's
+        // agent bridge pastes into it from another tab.
+        if let (Activity::Agent, Some(PaneId::Terminal(id))) = (kind, pane) {
+            rename_terminal_pane(id, AGENT_PANE);
         }
     }
 
@@ -515,23 +610,6 @@ impl Pilot {
         switch_session_with_options(request);
     }
 
-    /// Open an agent pane next to the focused one, in the same directory.
-    fn start_agent(&self, focused: PaneId) {
-        let Some((program, args)) = self.agent_command.split_first() else {
-            eprintln!("pilot: no agent_command configured");
-            return;
-        };
-
-        let command = CommandToRun {
-            path: PathBuf::from(program),
-            args: args.to_vec(),
-            cwd: get_pane_cwd(focused).ok(),
-            border_style: None,
-        };
-        if let Some(PaneId::Terminal(id)) = open_command_pane(command, BTreeMap::new()) {
-            rename_terminal_pane(id, AGENT_PANE);
-        }
-    }
 }
 
 /// Whether the pane's foreground program is one of `EDITORS`.
