@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# zj [folder]
+# zj [-u] [folder]
 #
-# Open the session hub, or with a folder open that project: its client's
-# session, its own tab (Neovim, agent, dev, test and shell panes).
+# Open the session hub, or with a folder open that folder's session: one
+# session per repo, starting on the editor, with the agent and lazygit a key
+# away (Alt a, Alt g).
 #
 # Without arguments it opens the hub (zellij/README.md, "The hub"): one list of
 # running sessions, saved sessions and projects. Outside Zellij that is the
@@ -12,13 +13,24 @@
 # switches this client, outside it attaches. The folder may be absolute,
 # relative, or relative to the projects root ($ZJ_PROJECTS).
 #
+# -u opens it as an umbrella instead: rooted at a folder holding several
+# repos and starting on an agent rather than an editor, for the questions
+# that span them (zellij/decisions/0001-workspace-model.md).
+#
 #   zj
 #   zj acme/cerberus
 #   zj .
+#   zj -u acme
 set -euo pipefail
 
 # shellcheck source=zellij/bin/zj-lib.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/zj-lib.sh"
+
+kind=repo
+if [[ ${1:-} == -u || ${1:-} == --umbrella ]]; then
+  kind=umbrella
+  shift
+fi
 
 project=${1:-}
 
@@ -35,7 +47,7 @@ root=$(zj_project_root)
 for candidate in "$project" "$root/$project"; do
   if [[ -d $candidate ]]; then
     mapfile -t target < <(zj_target "$candidate" "$root")
-    zj_open_target "${target[0]}" "${target[1]}" "${target[2]}"
+    zj_open_target "${target[0]}" "${target[1]}" "$kind"
     exit
   fi
 done

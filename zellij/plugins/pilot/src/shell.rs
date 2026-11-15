@@ -13,7 +13,7 @@ use zellij_tile::prelude::*;
 
 use crate::hub::model::{OpenPlan, ProjectEntry, Row, RowId, RowKind, SessionEntry, Snapshot, TabEntry};
 use crate::hub::schedule::Schedule;
-use crate::hub::target::{self, Target};
+use crate::hub::target::{self, Kind, Target};
 use crate::hub::view::{self, Frame, Preview, Style};
 use crate::hub::{Effect, Hub, Key};
 use crate::pending::{self, Request};
@@ -33,8 +33,17 @@ const FOLDER_CONTEXT: &str = "hub-folder";
 /// Context tag of a `zellij` command run for another session; its value
 /// says what was being done, for the message when it fails.
 const ACTION_CONTEXT: &str = "hub-action";
-/// The layout a project opens with (layouts/service.kdl).
-const SERVICE_LAYOUT: &str = "service";
+/// Value of FOLDER_CONTEXT when the folder is to open as an umbrella; the
+/// kind has to survive the round trip to the host that resolves the path.
+const UMBRELLA_TAG: &str = "umbrella";
+
+/// The FOLDER_CONTEXT value for a kind.
+fn kind_tag(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Repo => "repo",
+        Kind::Umbrella => UMBRELLA_TAG,
+    }
+}
 /// Where the last project list is kept so the hub can show it at once.
 const PROJECTS_CACHE: &str = "/cache/hub-projects.txt";
 /// The hub's only timer (see hub/schedule.rs). The cursor must rest on a row
@@ -153,7 +162,12 @@ impl HubShell {
             Event::RunCommandResult(code, stdout, _, context) if context.contains_key(FOLDER_CONTEXT) => {
                 let folder = String::from_utf8_lossy(&stdout).trim().to_owned();
                 if code == Some(0) && !folder.is_empty() {
-                    self.open_target(target::folder_target(&folder, &self.root));
+                    let target = target::folder_target(&folder, &self.root);
+                    let target = match context.get(FOLDER_CONTEXT).map(String::as_str) {
+                        Some(UMBRELLA_TAG) => target.as_umbrella(),
+                        _ => target,
+                    };
+                    self.open_target(target);
                 } else {
                     self.hub.set_notice("No such folder".to_owned());
                 }
@@ -462,10 +476,8 @@ impl HubShell {
                 let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok();
                 switch_session_with_cwd(Some(&session), home.map(std::path::PathBuf::from));
             }
-            OpenPlan::NewTab(target) | OpenPlan::ResurrectAndNewTab(target) | OpenPlan::NewSession(target) => {
-                return self.open_target(target);
-            }
-            OpenPlan::Path { text } => return self.check_folder(&text),
+            OpenPlan::NewSession(target) => return self.open_target(target),
+            OpenPlan::Path { text, kind } => return self.check_folder(&text, kind),
         }
         close_self();
     }
@@ -475,7 +487,7 @@ impl HubShell {
     ///
     /// The plugin is wasm, so the shell that resolves it is the host's:
     /// pwsh on Windows, sh on Linux.
-    fn check_folder(&mut self, text: &str) {
+    fn check_folder(&mut self, text: &str, kind: Kind) {
         let cwd = get_plugin_ids().initial_cwd;
         let command: Vec<&str> = if host_is_windows(&cwd) {
             let script = "$p = $env:ZJ_HUB_FOLDER; if (Test-Path -LiteralPath $p -PathType Container) { \
@@ -494,50 +506,36 @@ impl HubShell {
             &command,
             BTreeMap::from([("ZJ_HUB_FOLDER".to_owned(), text.to_owned())]),
             cwd,
-            BTreeMap::from([(FOLDER_CONTEXT.to_owned(), String::new())]),
+            BTreeMap::from([(FOLDER_CONTEXT.to_owned(), kind_tag(kind).to_owned())]),
         );
         self.hub.set_notice(format!("Opening {text}…"));
     }
 
-    /// Open a folder's session and tab, whatever state they are in: the
-    /// same decisions as `zj` (powershell/Zellij.psm1, Open-ZjTarget).
+    /// Open a repo that has no session yet: make one, rooted at its folder,
+    /// starting on the activity its kind calls for. The same decisions as
+    /// `zj` (zellij/bin/zj-lib.sh, `zj_open_target`).
+    ///
+    /// A repo whose session is already running or saved never reaches here.
+    /// It is listed under Running or Saved and attaches or resurrects like
+    /// any other session, because a repo *is* a session now; the old model
+    /// had to add a tab to the client's session, which is why this used to
+    /// hand a layout to the other session's pilot through pending.rs.
     fn open_target(&mut self, target: Target) {
-        let session = self.live.iter().find(|s| s.name == target.session);
-        let open_tab = session.and_then(|s| s.tabs.iter().find(|t| t.name == target.tab).map(|t| t.position));
-        let current = session.is_some_and(|s| s.is_current_session);
-
-        // The tab is open already: just go there.
-        if let Some(position) = open_tab {
-            if current {
-                switch_tab_to(position as u32 + 1);
-            } else {
-                switch_session_with_focus(&target.session, Some(position), None);
-            }
+        let exists = self.live.iter().any(|s| s.name == target.session)
+            || self.saved.iter().any(|(name, _)| name == &target.session);
+        if exists {
+            // It appeared since the list was built: go to it rather than
+            // start a second session on the same folder.
+            switch_session(Some(&target.session));
             return close_self();
         }
 
-        let layout = match dump_layout(SERVICE_LAYOUT).and_then(|template| target::service_layout(&template, &target)) {
-            Ok(layout) => layout,
-            Err(error) => return self.hub.set_notice(format!("Could not read the service layout: {error}")),
-        };
-
-        if current {
-            new_tabs_with_layout(&layout);
-        } else if session.is_some() || self.saved.iter().any(|(name, _)| name == &target.session) {
-            // A running or saved session: the tab is added by its pilot
-            // once this client is in (see pending.rs).
-            if let Err(error) = pending::leave(&target.session, &Request::NewTab { layout }) {
-                return self.hub.set_notice(format!("Could not leave the request: {error}"));
-            }
-            switch_session(Some(&target.session));
-        } else {
-            switch_session_with_options(ConnectToSession {
-                name: Some(target.session.clone()),
-                layout: Some(LayoutInfo::Stringified(layout)),
-                cwd: Some(std::path::PathBuf::from(&target.dir)),
-                ..Default::default()
-            });
-        }
+        switch_session_with_options(ConnectToSession {
+            name: Some(target.session.clone()),
+            layout: Some(LayoutInfo::Stringified(target::session_layout(&target))),
+            cwd: Some(std::path::PathBuf::from(&target.dir)),
+            ..Default::default()
+        });
         close_self();
     }
 }

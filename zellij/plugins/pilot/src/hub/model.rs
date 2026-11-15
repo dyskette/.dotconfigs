@@ -8,7 +8,7 @@
 use std::collections::BTreeSet;
 
 use super::fuzzy;
-use super::target::{self, Target};
+use super::target::{self, Kind, Target};
 
 /// Saved sessions older than this sink to the bottom of their section. They
 /// are never deleted automatically.
@@ -69,14 +69,6 @@ pub struct Snapshot {
     pub projects: Vec<ProjectEntry>,
 }
 
-/// Whether a project's client session exists.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SessionState {
-    Running,
-    Saved,
-    Missing,
-}
-
 /// Identity of a selectable row, stable across list rebuilds.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RowId {
@@ -110,7 +102,6 @@ pub enum RowKind {
     Project {
         rel: String,
         target: Target,
-        session: SessionState,
     },
     /// "+ create <name>": a new empty session named after the filter text.
     Create { name: String },
@@ -160,16 +151,12 @@ pub enum OpenPlan {
     Attach { session: String, tab: Option<(usize, String)> },
     /// A saved session.
     Resurrect { session: String },
-    /// A project whose client session is running without this service.
-    NewTab(Target),
-    /// A project whose client session is saved.
-    ResurrectAndNewTab(Target),
-    /// A project whose client has no session.
+    /// A repo with no session yet, which opening creates.
     NewSession(Target),
     /// An empty session with this name.
     Scratch { session: String },
     /// A folder typed at the "new" prompt, resolved when it is opened.
-    Path { text: String },
+    Path { text: String, kind: Kind },
 }
 
 impl OpenPlan {
@@ -181,11 +168,10 @@ impl OpenPlan {
             OpenPlan::Attach { tab: Some((_, name)), session } => format!("attach {session}, tab {name}"),
             OpenPlan::Attach { session, tab: None } => format!("attach {session}"),
             OpenPlan::Resurrect { session } => format!("resurrect {session}"),
-            OpenPlan::NewTab(t) => format!("new tab in {}", t.session),
-            OpenPlan::ResurrectAndNewTab(t) => format!("resurrect {}, new tab {}", t.session, t.tab),
             OpenPlan::NewSession(t) => format!("new session \"{}\"", t.session),
             OpenPlan::Scratch { session } => format!("create \"{session}\""),
-            OpenPlan::Path { text } => format!("open folder {text}"),
+            OpenPlan::Path { text, kind: Kind::Repo } => format!("open folder {text}"),
+            OpenPlan::Path { text, kind: Kind::Umbrella } => format!("open {text} as an umbrella"),
         }
     }
 }
@@ -203,11 +189,9 @@ pub fn plan_for(row: &Row) -> Option<OpenPlan> {
         RowKind::Tab { session, position, name, .. } => {
             OpenPlan::Attach { session: session.clone(), tab: Some((*position, name.clone())) }
         }
-        RowKind::Project { target, session, .. } => match session {
-            SessionState::Running => OpenPlan::NewTab(target.clone()),
-            SessionState::Saved => OpenPlan::ResurrectAndNewTab(target.clone()),
-            SessionState::Missing => OpenPlan::NewSession(target.clone()),
-        },
+        // A repo with no session yet; one that has a session is listed
+        // under Running or Saved instead, and opens like any other session.
+        RowKind::Project { target, .. } => OpenPlan::NewSession(target.clone()),
         RowKind::Create { name } => OpenPlan::Scratch { session: name.clone() },
     })
 }
@@ -249,19 +233,16 @@ fn open_projects(snapshot: &Snapshot) -> Vec<Row> {
         .projects
         .iter()
         .filter_map(|project| {
-            let target = target::project_target(&project.rel, &project.dir);
-            let session = snapshot.sessions.iter().find(|s| s.name == target.session);
-            let state = match session {
-                Some(s) if s.running => {
-                    if s.tabs.iter().any(|t| t.name == target.tab) {
-                        return None;
-                    }
-                    SessionState::Running
-                }
-                Some(_) => SessionState::Saved,
-                None => SessionState::Missing,
-            };
-            Some(Row::plain(RowKind::Project { rel: project.rel.clone(), target, session: state }))
+            let target = target::folder_target(&project.dir, "");
+            // A repo that already has a session is listed under Running or
+            // Saved, so Projects is exactly the repos never opened: the three
+            // states the hub distinguishes, one section each. The old model
+            // had to compare tab names here, because a project was a tab
+            // inside its client's session rather than a session of its own.
+            if snapshot.sessions.iter().any(|s| s.name == target.session) {
+                return None;
+            }
+            Some(Row::plain(RowKind::Project { rel: project.rel.clone(), target }))
         })
         .collect()
 }

@@ -50,11 +50,11 @@ check_false() {
   fi
 }
 
-# The target of a folder as "session|tab|dir".
+# The target of a folder as "session|dir".
 target_of() {
   local fields
   mapfile -t fields < <(zj_target "$1" "$2")
-  printf '%s|%s|%s' "${fields[0]}" "${fields[1]}" "${fields[2]}"
+  printf '%s|%s' "${fields[0]}" "${fields[1]}"
 }
 
 # What zjr would run, as "kind: command".
@@ -83,38 +83,42 @@ check 'a name of dots is a placeholder' '_' "$(zj_session_name '...')"
 root="$work/Projects"
 mkdir -p "$root/acme/cerberus" "$root/acme/group/orders" "$root/sentinel" "$work/elsewhere/.tool"
 
-check 'client and service' \
-  "acme|cerberus|$root/acme/cerberus" "$(target_of "$root/acme/cerberus" "$root")"
-check 'a group keeps the client and the leaf' \
-  "acme|orders|$root/acme/group/orders" "$(target_of "$root/acme/group/orders" "$root")"
-check 'a project at the root is its own session' \
-  "sentinel|sentinel|$root/sentinel" "$(target_of "$root/sentinel" "$root")"
+# One session per repo: the client folder it sits under is not part of it.
+check 'a repo is named after itself, not its client' \
+  "cerberus|$root/acme/cerberus" "$(target_of "$root/acme/cerberus" "$root")"
+check 'a group makes no difference either' \
+  "orders|$root/acme/group/orders" "$(target_of "$root/acme/group/orders" "$root")"
+check 'a repo at the root is the same rule' \
+  "sentinel|$root/sentinel" "$(target_of "$root/sentinel" "$root")"
 check 'a trailing separator changes nothing' \
-  "acme|cerberus|$root/acme/cerberus" "$(target_of "$root/acme/cerberus/" "$root")"
-check 'a folder outside the root is its own session' \
-  "tool|.tool|$work/elsewhere/.tool" "$(target_of "$work/elsewhere/.tool" "$root")"
-check 'the root itself is not a project of itself' \
-  "Projects|Projects|$root" "$(target_of "$root" "$root")"
+  "cerberus|$root/acme/cerberus" "$(target_of "$root/acme/cerberus/" "$root")"
+check 'a folder outside the root is no different' \
+  "tool|$work/elsewhere/.tool" "$(target_of "$work/elsewhere/.tool" "$root")"
+check 'the root itself opens as a session too' \
+  "Projects|$root" "$(target_of "$root" "$root")"
 
-# --- The service layout -------------------------------------------------------
+# --- The session layout -------------------------------------------------------
 
 check 'quotes and backslashes are escaped' \
   '"a\\b\"c"' "$(zj_kdl_string 'a\b"c')"
 
-layout_dir="$work/config/layouts"
-mkdir -p "$layout_dir"
-cp "$repository/zellij/linux/layouts/service.kdl" "$layout_dir/service.kdl"
-ZELLIJ_CONFIG_DIR="$work/config"
+repo_layout=$(zj_session_layout repo "$root/acme/api")
+check_true 'a repo opens on an editor tab, in its folder' \
+  grep -Fq "ui name=\"editor\" cwd=\"$root/acme/api\" focus=true" <<<"$repo_layout"
+check_true 'and the pane runs Neovim' \
+  grep -Fq 'pane name="editor" command="nvim"' <<<"$repo_layout"
 
-filled=$(zj_service_layout 'api "v2"' "$root/acme/api")
-check_true 'the tab gets its name and folder' \
-  grep -Fq "ui name=\"api \\\"v2\\\"\" cwd=\"$root/acme/api\" focus=true" <<<"$filled"
-check 'the anchor is gone, exactly once' \
-  '0' "$(grep -c 'ui name="service" focus=true' <<<"$filled")"
+umbrella_layout=$(zj_session_layout umbrella "$root/acme")
+check_true 'an umbrella opens on an agent tab instead' \
+  grep -Fq "ui name=\"agent\" cwd=\"$root/acme\" focus=true" <<<"$umbrella_layout"
+check_true 'and the pane runs the agent' \
+  grep -Fq 'pane name="agent" command="zja"' <<<"$umbrella_layout"
 
-printf 'layout { }\n' >"$layout_dir/service.kdl"
-check_false 'a layout without the anchor is refused' \
-  zj_service_layout tab "$root" 2>/dev/null
+check_true 'a folder with a quote in it is escaped into the layout' \
+  grep -Fq 'cwd="/tmp/a\"b"' <<<"$(zj_session_layout repo '/tmp/a"b')"
+
+check_false 'an unknown kind is refused' \
+  zj_session_layout service "$root" 2>/dev/null
 
 # --- The project scan ---------------------------------------------------------
 

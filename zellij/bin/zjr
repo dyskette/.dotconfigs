@@ -4,9 +4,10 @@
 # Run the project's dev server, tests or build (zj_project_task in zj-lib.sh
 # picks the command by project kind), and report it to Zellij's inbox.
 #
-# The service layout's dev and test panes run this, suspended until Enter: the
-# pane exits with the command's exit code, so Zellij marks it as done or
-# failed. -n prints the command without running it.
+# Run by hand, usually from a scratch float (Alt n): the pane exits with the
+# command's exit code, so Zellij marks it as done or failed and the inbox
+# reports it. No layout pane runs it any more, since long-running services
+# live outside the terminal. -n prints the command without running it.
 #
 #   zjr test
 #   zjr -n

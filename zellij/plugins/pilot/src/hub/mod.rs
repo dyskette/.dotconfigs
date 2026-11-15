@@ -24,6 +24,7 @@ pub mod view;
 use std::collections::BTreeSet;
 
 use model::{OpenPlan, Row, RowId, RowKind, Snapshot};
+use target::Kind;
 
 /// A key as the hub sees it; the shell maps Zellij's key events to these.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,6 +74,10 @@ pub enum Effect {
 pub enum Purpose {
     /// A folder to open or a name for an empty session.
     New,
+    /// A folder to open as an umbrella: rooted above several repos and
+    /// starting on an agent, for the questions that span them. Always a
+    /// folder, never a bare session name.
+    NewUmbrella,
     RenameSession { from: String },
     RenameTab { session: String, id: usize },
 }
@@ -328,6 +333,9 @@ impl Hub {
             Key::Char('o') => {
                 self.overlay = Some(Overlay::Prompt { purpose: Purpose::New, text: String::new() });
             }
+            Key::Char('u') => {
+                self.overlay = Some(Overlay::Prompt { purpose: Purpose::NewUmbrella, text: String::new() });
+            }
             Key::Char('r') => self.start_rename(),
             Key::Char('/' | 'i') => self.mode = Mode::Insert,
             Key::Char('p') => self.preview = !self.preview,
@@ -443,7 +451,12 @@ impl Hub {
         }
         match purpose {
             Purpose::New if target::looks_like_path(text) => {
-                vec![Effect::Open(OpenPlan::Path { text: text.to_owned() })]
+                vec![Effect::Open(OpenPlan::Path { text: text.to_owned(), kind: Kind::Repo })]
+            }
+            // An umbrella is a folder by definition, so the text is taken as
+            // one whether or not it looks like a path.
+            Purpose::NewUmbrella => {
+                vec![Effect::Open(OpenPlan::Path { text: text.to_owned(), kind: Kind::Umbrella })]
             }
             Purpose::New => {
                 let name = target::session_name(text);
@@ -936,11 +949,24 @@ mod tests {
         keys(&mut hub, "o");
         assert_eq!(
             type_and_submit(&mut hub, "~/Documents/scratch"),
-            [Effect::Open(OpenPlan::Path { text: "~/Documents/scratch".into() })]
+            [Effect::Open(OpenPlan::Path { text: "~/Documents/scratch".into(), kind: Kind::Repo })]
         );
 
         keys(&mut hub, "o");
         assert_eq!(type_and_submit(&mut hub, "my notes"), [Effect::Open(OpenPlan::Scratch { session: "my_notes".into() })]);
+
+        // u takes a folder too, but opens it on an agent instead of an
+        // editor, and takes it as a folder even when it reads like a name.
+        keys(&mut hub, "u");
+        assert_eq!(
+            type_and_submit(&mut hub, "~/clients/acme"),
+            [Effect::Open(OpenPlan::Path { text: "~/clients/acme".into(), kind: Kind::Umbrella })]
+        );
+        keys(&mut hub, "u");
+        assert_eq!(
+            type_and_submit(&mut hub, "acme"),
+            [Effect::Open(OpenPlan::Path { text: "acme".into(), kind: Kind::Umbrella })]
+        );
     }
 
     #[test]

@@ -6,7 +6,8 @@
 //! right when the pane is wide, below it when it is tall and narrow, or not
 //! at all), a notice line and the hint line.
 
-use super::model::{self, Row, RowKind, SessionState};
+use super::model::{self, Row, RowKind};
+use super::target::Kind;
 use super::{Hub, Mode, Overlay, Purpose};
 
 /// How a span is drawn; the shell maps these to the theme's colours.
@@ -193,23 +194,14 @@ fn row_line(row: &Row, x: usize, y: usize, width: usize, selected: bool, saved_a
             line.with_right(right)
         }
         RowKind::Tab { name, .. } => line.push(format!("       {name}"), Style::Plain).with_right(markers(row)),
-        RowKind::Project { rel, session, .. } => {
-            let note = match session {
-                SessionState::Running => "tab ",
-                SessionState::Saved => "saved ",
-                SessionState::Missing => "",
-            };
-            line.push("   · ", Style::Dim)
-                .push(rel.clone(), Style::Plain)
-                .with_right(vec![Span { text: note.to_owned(), style: Style::Dim }])
-        }
+        RowKind::Project { rel, .. } => line.push("   · ", Style::Dim).push(rel.clone(), Style::Plain).with_right(markers(row)),
         RowKind::Create { name } => line.push("   + ", Style::Accent(1)).push(format!("create \"{name}\""), Style::Accent(1)),
     };
     line.fit()
 }
 
 const INSERT_KEYS: &str = "esc normal · ^n ^p move";
-const NORMAL_KEYS: &str = "l/h tree · o new · r rename · dd remove · / filter · ? keys";
+const NORMAL_KEYS: &str = "l/h tree · o new · u umbrella · r rename · dd remove · / filter · ? keys";
 
 const HELP: &[(&str, &str)] = &[
     ("Filter (insert mode)", ""),
@@ -226,6 +218,7 @@ const HELP: &[(&str, &str)] = &[
     ("zo zc", "unfold, fold"),
     ("Enter", "open (the hint line says how)"),
     ("o", "new: a folder to open, or a name"),
+    ("u", "new umbrella: a folder holding repos, opening on an agent"),
     ("r", "rename the session or tab"),
     ("dd", "one step down: running → saved → gone; closes a tab"),
     ("/ i", "filter"),
@@ -258,6 +251,7 @@ pub fn frame(
         Some(Overlay::Prompt { purpose, text }) => {
             let label = match purpose {
                 Purpose::New => " New (a folder, or a name): ",
+                Purpose::NewUmbrella => " New umbrella (a folder holding repos): ",
                 Purpose::RenameSession { .. } => " Rename session: ",
                 Purpose::RenameTab { .. } => " Rename tab: ",
             };
@@ -355,17 +349,15 @@ pub fn describe(row: &Row) -> Preview {
     let Some(plan) = model::plan_for(row) else { return Preview::default() };
     let mut lines = vec![format!("Enter: {}", plan.hint()), String::new()];
     let title = match &row.kind {
-        RowKind::Project { rel, target, session } => {
-            let state = match session {
-                SessionState::Running => "running",
-                SessionState::Saved => "saved, will be resurrected",
-                SessionState::Missing => "will be created",
-            };
-            lines.push(format!("Session  {} ({state})", target.session));
-            lines.push(format!("Tab      {}", target.tab));
+        RowKind::Project { rel, target } => {
+            lines.push(format!("Session  {} (will be created)", target.session));
             lines.push(format!("Folder   {}", target.dir));
             lines.push(String::new());
-            lines.push("A service tab: editor, agent, and a dev/test/shell stack.".to_owned());
+            lines.push(match target.kind {
+                Kind::Repo => "A repo: opens on the editor, with the agent and lazygit on Alt a and Alt g.",
+                Kind::Umbrella => "An umbrella: opens on an agent that can read across the repos below it.",
+            }
+            .to_owned());
             rel.clone()
         }
         RowKind::Create { name } => {

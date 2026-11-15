@@ -1,17 +1,22 @@
 # shellcheck shell=bash
-# Shared helpers for the Zellij workspace commands on Linux: zj (projects),
-# zja (agent), zjr (dev/test/build) and zj-hub-projects (the hub's project
-# list). Sourced by the scripts beside this file, never run on its own.
+# Shared helpers for the Zellij workspace commands on Linux: zj (repos),
+# zja (agent) and zj-hub-projects (the hub's project list). Sourced by the
+# scripts beside this file, never run on its own.
 #
 # The PowerShell half is powershell/Zellij.psm1 and the plugin they talk to is
 # zellij/plugins/pilot; both follow the same rules, so keep them in step
 # (zellij/README.md has the whole workflow).
 #
-# Projects live under $ZJ_PROJECTS as <client>/<service> (or
-# <client>/<group>/<service>). Each client is one Zellij session and each
-# service one tab in it, so `zj acme/cerberus` lands in session "acme", tab
-# "cerberus". A project directly under the root is its own session with one
-# tab.
+# One session per repo, named after the repo's own folder, however deep it
+# sits under $ZJ_PROJECTS: `zj acme/cerberus` lands in session "cerberus".
+# Clients are a way of filing folders, not a level of the workspace, because
+# moving between repos is as often across clients as within one.
+#
+# A session holds one tab per activity (editor, agent, lazygit), opened on
+# demand by Alt e/a/g, so a new session starts with just the one tab. The
+# second kind of session is the umbrella: rooted at the parent of several
+# repos and opening on an agent instead of an editor, for the questions that
+# span them. See zellij/decisions/0001-workspace-model.md.
 
 # Files whose presence makes a folder a project: the hub lists it and stops
 # descending, and zjr knows what to run in it.
@@ -63,29 +68,22 @@ zj_session_name() {
   printf '%s\n' "${clean:-_}"
 }
 
-# Where a folder opens. Prints three lines: the session (its client), the tab
-# (its own name) and the folder itself. A folder outside the projects root is
-# its own session.
+# Where a folder opens. Prints two lines: the session and the folder itself.
+#
+# The session is named after the folder, wherever it sits: one session per
+# repo, so the client folder it happens to live under does not come into it.
+# The root argument is accepted and ignored, so callers that still pass one
+# keep working.
 #
 #   zj_target <folder> [root]
 zj_target() {
-  local dir root leaf client rel
+  local dir
   dir=$(zj_abs_path "$1")
-  root=$(zj_abs_path "${2:-$(zj_project_root)}")
   dir=${dir%/}
-  root=${root%/}
-  leaf=${dir##*/}
-
-  client=$leaf
-  if [[ $dir == "$root"/* ]]; then
-    rel=${dir#"$root"/}
-    client=${rel%%/*}
-  fi
-
-  printf '%s\n%s\n%s\n' "$(zj_session_name "$client")" "$leaf" "$dir"
+  printf '%s\n%s\n' "$(zj_session_name "${dir##*/}")" "$dir"
 }
 
-# Zellij's own config folder: where layouts/service.kdl is read from.
+# Zellij's own config folder: where layouts/lobby.kdl is read from.
 zj_config_dir() {
   printf '%s\n' "${ZELLIJ_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/zellij}"
 }
@@ -103,32 +101,56 @@ zj_kdl_string() {
   printf '"%s"' "$value"
 }
 
-# The service layout for one tab, with its name and folder filled in.
+# The layout a new session opens with: one tab holding one activity, full
+# screen, in the session's folder.
 #
-# layouts/service.kdl names its tab "service" and has no cwd, so it also works
-# as a plain layout file. Zellij's --cwd is ignored for sessions started in the
-# background, and a layout passed to an existing session cannot be renamed
-# afterwards, so the name and folder go into the KDL.
+#   zj_session_layout <kind> <folder>
 #
-#   zj_service_layout <tab name> <folder>
-zj_service_layout() {
-  local name=$1 dir=$2 file template
-  local anchor='ui name="service" focus=true'
+# kind is "repo", which opens on the editor, or "umbrella", which opens on the
+# agent because that is the whole point of one.
+#
+# Built here instead of patching a layout file: a single-pane layout is
+# shorter than the code that used to find an anchor in layouts/service.kdl and
+# substitute into it, and there is no second copy to keep in step across the
+# two machines. Zellij's --cwd is ignored for sessions started in the
+# background and a layout cannot be renamed afterwards, so the name and folder
+# have to be in the KDL either way.
+zj_session_layout() {
+  local kind=$1 dir=$2 name command borderless
+  case $kind in
+    repo)
+      name=editor
+      command=nvim
+      # Neovim's statusline already says what it is, so the title row goes to
+      # code. The other activities keep theirs, which carry inbox markers.
+      borderless=true
+      ;;
+    umbrella)
+      name=agent
+      command=zja
+      borderless=false
+      ;;
+    *)
+      printf 'zj: unknown session kind %s (expected repo or umbrella)\n' "$kind" >&2
+      return 1
+      ;;
+  esac
 
-  file="$(zj_config_dir)/layouts/service.kdl"
-  if [[ ! -r $file ]]; then
-    printf 'zj: cannot read %s\n' "$file" >&2
-    return 1
-  fi
-  template=$(<"$file")
-  if [[ $template != *"$anchor"* ]]; then
-    printf "zj: %s no longer contains '%s'; update zj_service_layout to match it\n" "$file" "$anchor" >&2
-    return 1
-  fi
+  cat <<KDL
+layout {
+    // The same one-line bar as the built-in compact layout.
+    tab_template name="ui" {
+        children
+        pane size=1 borderless=true {
+            plugin location="compact-bar"
+        }
+    }
 
-  local tab
-  tab="ui name=$(zj_kdl_string "$name") cwd=$(zj_kdl_string "$dir") focus=true"
-  printf '%s\n' "${template/"$anchor"/"$tab"}"
+    ui name=$(zj_kdl_string "$name") cwd=$(zj_kdl_string "$dir") focus=true {
+        pane name=$(zj_kdl_string "$name") command=$(zj_kdl_string "$command") borderless=$borderless
+    }
+}
+KDL
 }
 
 # --- Zellij calls -------------------------------------------------------------
@@ -173,46 +195,31 @@ zj_wait_client() {
   return 1
 }
 
-# In a session with a client, focus the target's tab, adding it first if it is
-# missing.
+# Open a target: go to its session, creating it when it is not there yet,
+# from inside Zellij or outside.
 #
-#   zj_open_tab <session> <tab> <folder>
-zj_open_tab() {
-  local session=$1 tab=$2 dir=$3 layout
-  if zj_tabs "$session" | cut -f3 | grep -Fxq -- "$tab"; then
-    zellij --session "$session" action go-to-tab-name "$tab" >/dev/null 2>&1
-    return
-  fi
-  # With --session, --layout-string adds the tab to that session and focuses
-  # it for the clients in it.
-  layout=$(zj_service_layout "$tab" "$dir") || return 1
-  zellij --session "$session" --layout-string "$layout" >/dev/null 2>&1
-}
-
-# Open a target: its session, then its tab, from inside Zellij or outside.
+#   zj_open_target <session> <folder> [kind]
 #
-#   zj_open_target <session> <tab> <folder>
+# kind defaults to "repo". A session is a whole repo now, so there is no tab
+# to find or add: being in the session is the whole of arriving, and the
+# activities inside it are opened on demand with Alt e/a/g.
 zj_open_target() {
-  local session=$1 tab=$2 dir=$3 exists=0 payload file waiter
+  local session=$1 dir=$2 kind=${3:-repo} exists=0 payload file
 
   zj_session_exists "$session" && exists=1
 
   if [[ -n ${ZELLIJ:-} ]]; then
     if [[ ${ZELLIJ_SESSION_NAME:-} == "$session" ]]; then
-      zj_open_tab "$session" "$tab" "$dir"
-      return
+      return 0 # already here
     fi
     # `zellij action switch-session` would move the CLI's own connection, not
     # this client; the pilot plugin moves the client focused on this pane
     # (zellij/plugins/pilot, "switch").
     payload='-'
     if ((!exists)); then
-      payload=$(zj_service_layout "$tab" "$dir") || return 1
+      payload=$(zj_session_layout "$kind" "$dir") || return 1
     fi
     zellij pipe --name switch --args "session=$session,pane=${ZELLIJ_PANE_ID:-}" -- "$payload" >/dev/null
-    if ((exists)) && zj_wait_client "$session"; then
-      zj_open_tab "$session" "$tab" "$dir"
-    fi
     return
   fi
 
@@ -220,7 +227,7 @@ zj_open_target() {
     # --new-session-with-layout reads a file, and only at start-up, so the
     # file can go when the client returns (detach or quit).
     file=$(mktemp --tmpdir "zj-$session-XXXXXXXX.kdl") || return 1
-    if ! zj_service_layout "$tab" "$dir" >"$file"; then
+    if ! zj_session_layout "$kind" "$dir" >"$file"; then
       rm -f "$file"
       return 1
     fi
@@ -229,15 +236,7 @@ zj_open_target() {
     return
   fi
 
-  # An existing (or resurrectable) session: the tab is added or focused once
-  # this client is in, from the background, because attaching holds the
-  # terminal until detach.
-  (zj_wait_client "$session" 30 && zj_open_tab "$session" "$tab" "$dir") &
-  waiter=$!
   zellij attach "$session"
-  kill "$waiter" 2>/dev/null
-  wait "$waiter" 2>/dev/null
-  return 0
 }
 
 # --- The lobby ----------------------------------------------------------------
