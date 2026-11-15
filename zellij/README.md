@@ -7,36 +7,39 @@ processes; Neovim owns files, search and git.
 
 Keys, layout and workflow are the same on both. What differs is the shell and
 the commands the config names — pwsh with `powershell/Zellij.psm1` on Windows,
-bash with `zellij/bin/*` on Linux — so `config.kdl` and `layouts/service.kdl`
-exist twice (KDL has no includes and Zellij expands no variables in them).
-Everything else is one file: the keys, the themes, the lobby layout and the
-plugin.
+bash with `zellij/bin/*` on Linux — so `config.kdl` exists twice (KDL has no
+includes and Zellij expands no variables in them). Everything else is one
+file: the keys, the themes, the lobby layout and the plugin.
+
+**One session per repo, one tab per activity.** Why it is shaped this way is
+in `decisions/0001-workspace-model.md`.
 
 ```
-session = client          acme
-  tab = service             cerberus │ ORDERS_API │ ...
-    ┌────────────── editor ──────────────┬──────── agent ────────┐
-    │ nvim                               │ opencode ($ZJ_AGENT)  │
-    ├────────────────────────────────────┴───────────────────────┤
-    ├─ dev ─┬─ test ─┬─ shell ───────────────────────────────────┤
-    │ zjr dev / zjr test wait for Enter.  Stacked, titles in a   │
-    │ row: one open, the other two a tab. Alt h/l steps along it │
-    └─────────────────────────────────────────────────────────────┘
+session = repo            orders-api            (Alt s switches between them)
+  tab = activity            editor │ agent │ lazygit
+    ┌──────────────── one activity, full screen ───────────────┐
+    │ nvim                                                     │
+    │                                                          │
+    │   Alt e/a/g go to one, starting it if the session has    │
+    │   none; Alt h/l cross between them at the edge           │
+    │                                                          │
+    │   Alt t / Alt n: floats, for the ephemeral shells        │
+    └──────────────────────────────────────────────────────────┘
 ```
 
 | File | What it is |
 | --- | --- |
-| `config.kdl` | Windows: keys (unlock-first preset), behaviour, inbox, resurrection, `zellij terminal` settings |
-| `layouts/service.kdl` | Windows: one service tab, plus three swap arrangements |
-| `linux/config.kdl`, `linux/layouts/service.kdl` | The Linux twins of those two: bash, `zja`, `zjr`, `zj-hub-projects`. The rest is meant to stay word for word the same |
+| `config.kdl` | Windows: keys (no preset: `clear-defaults`, everything in the locked block), behaviour, inbox, resurrection, `zellij terminal` settings |
+| `linux/config.kdl` | The Linux twin: bash, `zja`, `zj-hub-projects`. The rest is meant to stay word for word the same |
+| `decisions/` | Why the workspace is shaped the way it is |
 | `layouts/lobby.kdl` | The hub alone, full screen: what the terminal opens on |
 | `themes/` | Everforest medium (dark and light) and Rosé Pine Dawn |
-| `plugins/pilot/` | Our own plugin (Rust → wasm). Headless in every session: Alt+hjkl across nvim and panes, the agent toggle, keeping sessions from being deleted. As a pane: the session hub (`src/hub`) |
+| `plugins/pilot/` | Our own plugin (Rust → wasm). Headless in every session: Alt+hjkl across nvim and panes, the activity tabs (`Alt e/a/g`), keeping sessions from being deleted. As a pane: the session hub (`src/hub`) |
 | `plugins/Build-Pilot.ps1`, `plugins/build-pilot.sh` | Build it and pre-grant its permissions, on Windows and on Linux |
 | `plugins/tests/` | Tools for end-to-end checks: type keys into, and read the screen of, a test window without focus |
 | `bin/` | Linux: `zj`, `zja`, `zjr`, `zj-hub-projects` and the `zj-lib.sh` they share |
-| `../powershell/Zellij.psm1` | Windows: the same commands as functions (imported by the PowerShell profile) |
 | `../nvim/lua/config/zellij.lua` | nvim's half of Alt+hjkl, the agent bridge, `<leader>sp` |
+| `../powershell/Zellij.psm1` | Windows: the same commands as functions (imported by the PowerShell profile) |
 
 ## Setup
 
@@ -49,7 +52,7 @@ session = client          acme
 ```
 
 **Linux.** `linux/tasks/dotfiles.yml` fills `~/.config/zellij` with links —
-`config.kdl` and `layouts/service.kdl` from `zellij/linux/`, `layouts/lobby.kdl`,
+`config.kdl` from `zellij/linux/`, `layouts/lobby.kdl`,
 `themes/` and `plugins/` from here — links `bin/*` into `~/.local/bin`, and
 builds the plugin. By hand:
 
@@ -76,54 +79,39 @@ they restart.
 
 ## Keys
 
-Zellij starts **locked**: every key goes to nvim, the shell or the agent.
-`Alt g` unlocks; one more key acts, and Zellij locks again.
+No prefix and no modes, bar one. Zellij stays **locked**, so every key that
+is not bound here goes to nvim, the shell or the agent, and the bindings are
+all `Alt` keys. The rule: **`Alt` moves, `Alt+Shift` nudges a divider, and a
+letter goes to the thing it names.**
 
-Always available (locked too):
+`Ctrl a` is left alone, for readline's beginning-of-line.
 
 | Key | Does |
 | --- | --- |
-| `Alt h/j/k/l`, `Alt ←↓↑→` | Move between nvim windows and Zellij panes as one grid, from any nvim mode; left/right cross into the next tab at the edge. Inside a stack they step along its titles, so `dev`, `test` and `shell` work like tabs |
+| `Alt h/j/k/l`, `Alt ←↓↑→` | Move between nvim windows and Zellij panes as one grid, from any nvim mode; left/right cross into the next tab at the edge, which is how you get from the editor to the agent and back |
 | `Alt H/J/K/L` | Move a divider that way: nvim's window divider, or the Zellij pane divider when nvim has none that way (the right/bottom divider first) |
-| `Alt 1`–`9` | Go to tab N |
-| `Alt m` | Maximize (zoom) the pane and back |
-| `Alt s` | The session hub: sessions, saved sessions and projects (see "The hub") |
-| `Alt a` | To this tab's agent and back (starts one if missing) |
+| `Alt r` | Sticky resize: `hjkl` repeat, `Esc` leaves. The only mode |
+| `Alt e` / `Alt a` / `Alt g` | The editor, agent or lazygit tab; pressing it while already there goes back where you came from, and a session without that tab yet gets one |
+| `Alt t` | Raise the tab's floating layer and put it away; focus is kept on both sides, and a tab with no float yet gets a shell |
+| `Alt n` | New scratch floating shell |
+| `Alt s` | The session hub (see "The hub"), the way between repos |
+| `Alt c` | Inbox: every agent and long command in every session, by status |
 | `Alt u` | Next pane anywhere that needs you (agent waiting, failed tests), switching session if needed |
+| `Alt m` | Maximize (zoom) the pane and back |
 | `Alt \` | Previous pane |
-| `Alt t` | Raise the tab's floating layer (a lazygit, yazi or scratch pane left open) and put it away; focus is kept on both sides, and a tab with no float yet gets a shell |
-| `Alt n` | New pane |
-| `Alt =` / `Alt -` | Grow / shrink pane |
+| `Alt v` | This pane's scrollback in nvim, with motions, text objects and yank |
+| `Alt T` | Toggle light/dark theme |
+| `Alt d` / `Alt q` | Detach / quit (quit asks, with detach preselected) |
 
-After `Alt g`:
-
-| Key | Does |
-| --- | --- |
-| `w` / `f` | The session hub (as `Alt s`) |
-| `i` | Inbox: every agent and long command in every session, by status |
-| `g` / `y` | lazygit / yazi in a float, in the pane's folder; files they open land in the tab's nvim |
-| `e` | This pane's scrollback in nvim, in place (search, motions, yank) |
-| `n` | Scratch floating shell |
-| `z` | Fullscreen the pane (same as `Alt m`) |
-| `Space`, `[` / `]` | Next / previous arrangement: code (60/40), agent (agent wide), columns (stack on the right) |
-| `,` / `.` | Move the tab left / right |
-| `T` | Toggle light/dark theme |
-| `d` | Detach |
-| `p` `t` `r` `m` `s` `o` | Pane, tab, resize, move, scroll, session modes (the status bar lists their keys) |
-
-Scroll mode (`Alt g s`) reads like a pager: `j`/`k`, `d`/`u`, `g`/`G` top and
-bottom, `/` search then `n`/`N`, `[`/`]` between prompts, `c` copies the last
-command's output (the PowerShell prompt sends OSC 133), `e` or `v` opens it all
-in nvim.
-
-Worth knowing in the other modes: `Alt g p c` renames a pane, `Alt g p v`
-watches it (every finish notifies), `Alt g p u` mutes it; `Alt g o` then `Tab`
-toggles the previous session.
+There is **no scroll mode and no search mode**: `Alt v` hands the whole
+scrollback to nvim, which beats a pager for someone who lives in one, and it
+keeps the promise that there are no modes. The mouse still scrolls.
 
 Left to programs: `Alt p` (Claude Code's model picker), `Ctrl g` (live ripgrep
 in the shell, edit-prompt in Claude Code), `Alt Enter` (newline in OpenCode),
-`Alt z` (zoxide in the shell), `Alt i/o/[/]` (nvim). OpenCode's `Alt a` (start
-of visual line) is the one program key the agent toggle shadows.
+`Alt z` (zoxide in the shell), `Alt i/o/[/]` and `Alt f` (nvim, fzf's preview
+paging). Without a prefix there is no way to send a key Zellij has taken, so
+`Alt e`, `Alt a` and `Alt g` were picked to miss what the agents use.
 
 ## The hub
 
@@ -136,8 +124,8 @@ two sizes:
   default profile runs it, and on Linux it is what you type, or a Ghostty
   `command = zj`). Detaching from a session brings it back; `Esc` then `q`
   there leaves Zellij for a plain shell.
-- **A popup when you are in one**: `Alt s` (also `Alt g w`, `Alt g f`, `zj`
-  without arguments, and `<leader>sp` in nvim).
+- **A popup when you are in one**: `Alt s` (also `zj` without arguments, and
+  `<leader>sp` in nvim).
 
 The bottom line always says what Enter will do on the selected row: `attach`,
 `go to tab`, `resurrect`, `new tab in <session>`, `new session`, `create`.
@@ -174,25 +162,36 @@ always by name), when an agent is working or something needs you there, or
 when it is the session you are in (you are moved to the previous one). A
 second `dd` on a session just stopped therefore asks.
 
-Projects follow the same rule as `zj <folder>`: the first folder under the
-projects root is the client (the session), the last one the service (the
-tab). Saved sessions untouched for 14 days sink to the bottom of their
-section; nothing is ever deleted on its own, except lobbies nobody is in.
+Projects follow the same rule as `zj <folder>`: a session named after the
+folder itself, wherever it sits. A repo appears once — under Running or
+Saved when it has a session, under Projects when it has never been opened —
+so the three states are one section each. Saved sessions untouched for 14
+days sink to the bottom of their section; nothing is ever deleted on its
+own, except lobbies nobody is in.
 
-The inbox (`Alt g i`, `Alt u`) stays separate: it answers "what needs me?".
+`o` takes a folder to open, or a name for an empty session. `u` takes a
+folder to open as an **umbrella**: rooted above several repos and starting
+on an agent rather than an editor, for the questions that span them. Both
+accept a typed path, so a repo outside the projects root needs no detour
+through a shell (cloning still does).
+
+The inbox (`Alt c`, `Alt u`) stays separate: it answers "what needs me?".
 The hub only marks sessions and tabs with `⚑N`.
 
 ## Neovim in the workspace
 
 `nvim/lua/config/zellij.lua`, `config/autoreload.lua` and flatten.nvim
-(`plugins/terminal.lua`) make the tab's editor the centre of the tab.
+(`plugins/terminal.lua`) make the session's editor the centre of the session.
 
-**One editor per tab.** The nvim a service tab starts registers itself as the
-tab's editor, in nvim's own state folder
+**One editor per session.** The nvim in the editor tab registers itself, in
+nvim's own state folder
 (`%LOCALAPPDATA%\nvim-data\zellij\<session>\<pane>`,
-`~/.local/state/nvim/zellij/<session>/<pane>`). Any `nvim` started elsewhere in
-the tab (lazygit's `e`, yazi, `sf` / `sg` in the shell, Zellij's
-click-to-open) hands its files to it, and focus moves there. Edits a program
+`~/.local/state/nvim/zellij/<session>/<pane>`). Any `nvim` started anywhere in
+the session (lazygit's `e`, `sf` / `sg` in the shell, Zellij's
+click-to-open) hands its files to it, and focus moves there. Per session and
+not per tab because lazygit has a tab of its own now, so its `e` has to reach
+across tabs — which also means finding the editor costs no `list-panes` call,
+and so no process, on the path of opening a file. Edits a program
 waits for (commit and rebase messages, an agent's prompt file in the temp
 folder from OpenCode's editor key or Claude Code's `Ctrl g`) end with `:w`,
 and focus goes back to the pane that asked. A bare `nvim` still starts its own
@@ -215,23 +214,30 @@ unsaved changes is never overwritten; nvim asks.
 **The hub from nvim.** `<leader>sp` opens the session hub, as `Alt s` does.
 
 lazygit and a shell are reachable both ways: `<leader>gg` / `<C-\>` float
-inside nvim and close with it; `Alt g g` / `Alt g n` float in Zellij and
-outlive an nvim restart. Both send files to the same editor.
+inside nvim and close with it; `Alt g` is lazygit's own tab and `Alt n` a
+Zellij float, both outliving an nvim restart. All of them send files to the
+same editor.
+
+The file manager lives inside nvim only: `<leader>e` opens yazi at the
+current file, with the diagnostics nvim pushes into it, and opens what you
+pick in process. There is no Zellij-level yazi, because from the editor tab
+`<leader>e` is already there and from a float shell `y` is.
 
 ## A day
 
 - **Morning.** Open the terminal (`zj`): the hub, on the session you used last.
   Enter; after a reboot that resurrects it (see below).
-- **Start on a service.** `Alt s`, type part of the name, Enter. The hint
-  says what will happen: a new session for a new client, a new tab in a
-  known client's session, or just a jump to a tab that is open.
-- **In the tab.** Edit in nvim, give the agent a task (`Alt a` jumps there and
-  back), press Enter on `dev` to start the server, Enter on `test` when you
-  want them. `Alt g n` for a one-off command.
-- **Interruption.** Client X pings: `Alt s`, type, Enter; `Alt s` `Enter`
-  comes back. Agents left in client Y keep working; the tab bar and `Alt g i`
-  show when one needs you, `Alt u` takes you there.
-- **Closing the window** only detaches; so does `Alt g d`, which returns to
+- **Start on a repo.** `Alt s`, type part of the name, Enter. The hint says
+  what will happen: attach to it, resurrect it, or create it.
+- **In the session.** Edit in nvim. `Alt a` starts the agent in its own tab
+  and goes there; `Alt e` comes back. `Alt g` is lazygit. `Alt n` floats a
+  shell for a one-off command, `zjr test` in it when you want the tests.
+- **Interruption.** Another repo pings: `Alt s`, type, Enter; `Alt s` `Enter`
+  comes back. Agents left behind keep working; the tab bar and `Alt c` show
+  when one needs you, `Alt u` takes you there.
+- **A question spanning repos.** `Alt s`, `u`, the parent folder: an umbrella
+  session with an agent that can read across all of them.
+- **Closing the window** only detaches; so does `Alt d`, which returns to
   the hub.
 
 ## Reboot and resurrection
@@ -239,7 +245,7 @@ outlive an nvim restart. Both send files to the same editor.
 Sessions are saved every 30 s with each pane's last screen. After a reboot,
 a session is listed as saved (`○` in the hub); opening it (the hub, `zj`, `zellij
 attach`) brings back the tabs, panes, folders and commands; each command waits
-for Enter (`zellij attach -f <name>` runs them all at once). The agent pane runs `zja`, which continues the
+for Enter (`zellij attach -f <name>` runs them all at once). An agent tab runs `zja`, which continues the
 folder's last OpenCode (or Claude Code) conversation, so Enter there picks the work up.
 Running state (a dev server, an agent mid-task) is not restored.
 
@@ -250,7 +256,7 @@ both tabs and all panes back.
 
 - Another terminal on this machine: `zellij watch <session>` (read-only).
 - The browser or another machine: `zellij web` starts the server on
-  127.0.0.1:8082; `Alt g o s` shares the current session, and `zellij web
+  127.0.0.1:8082; `zellij action share-session` shares the current one, and `zellij web
   --create-token` (or `--create-read-only-token`) makes a login token. It
   stays off by default (`web_server false`); exposing it beyond localhost
   needs `web_server_ip`, a certificate (`web_server_cert`/`web_server_key`)
@@ -281,7 +287,10 @@ Desktop notifications are on for "needs you" and failures, off for "done".
 
 ## zjr: what runs
 
-`zjr dev|test|build` picks by project kind; `zjr -WhatIf` prints it.
+`zjr dev|test|build` picks by project kind; `zjr -WhatIf` prints it. Run it
+by hand, usually from a scratch float (`Alt n`): no layout pane runs it, as
+the long-running services live outside the terminal. The pane still exits
+with the command's code, so the inbox reports it as done or failed.
 
 | Kind | dev | test |
 | --- | --- | --- |
@@ -308,7 +317,8 @@ When it guesses wrong, put a `.zjr.json` in the folder:
 | The hub lists no projects | It runs `projects_command` (the config) in the background and caches the result: check that `Get-ZjHubProject` / `zj-hub-projects` prints `root=…` and the folders. On Linux the root is `$ZJ_PROJECTS`, or whichever of `~/Projects` and `~/Proyectos` holds folders |
 | The terminal opens a shell, not the hub | The loop ended: Zellij exited within two seconds (a config error: `zellij setup --check`), or the hub was quit with `q`. `zj` starts it again |
 | `zj`, `zja` or `zjr` not found, or the old fzf picker runs (Linux) | `~/.local/bin` must be on PATH and hold the links to `zellij/bin/*` (`ansible-playbook` with `--tags dotfiles`). The old `zj` fzf function is gone from `bash/bashrc.d/fzf.sh`; open a new shell |
-| A service tab opens named "service", in the wrong folder | `zj` and the hub replace the tab line of `layouts/service.kdl` (`ui name="service" focus=true`) with the tab's name and folder, and take the first match in the file: no comment may repeat it |
+| A session opens in the wrong folder | `zj` and the hub write the folder into the layout they create the session with (`zj_session_layout`, `New-ZjSessionLayout`, `target::session_layout`): Zellij ignores `--cwd` for a session started in the background |
+| `Alt e` / `Alt a` / `Alt g` opens a second tab instead of going to the one there | The tab is matched by name (`editor`, `agent`, `lazygit`); renaming it loses pilot's handle on it |
 | A floating "pilot" permission prompt | Answer `y` once, or run `Build-Pilot.ps1` (writes the grant) |
 | `zj` from inside does not switch | It needs pilot (`zellij action switch-session` from the CLI only moves the CLI's own connection, not your client) |
 | New panes open in the wrong folder | The prompt reports the folder with OSC 7; a program that changes folder without a prompt is not tracked |
