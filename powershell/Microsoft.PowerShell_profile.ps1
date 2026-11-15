@@ -301,12 +301,6 @@ function Select-ProjectDirectory {
     }
 }
 
-# Zellij: zj (projects: a session per client, a tab per service), zja (the
-# coding agent) and zjr (dev server, tests, build). See zellij/README.md.
-if (Get-Command zellij -CommandType Application -ErrorAction SilentlyContinue) {
-    Import-Module (Join-Path $PSScriptRoot 'Zellij.psm1') -DisableNameChecking
-}
-
 <#
 .SYNOPSIS
     psmux session manager: switch-client from inside,

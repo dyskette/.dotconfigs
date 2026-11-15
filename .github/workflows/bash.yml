@@ -1,23 +1,17 @@
-# Lint (shellcheck) and test the Zellij workspace commands, the bash half of
-# what powershell.yml checks on Windows. Scoped to these files: the rest of
-# bash/ predates the linter and is checked when it is next touched.
+# Lint (shellcheck) the bash that is checked in CI, the counterpart of what
+# powershell.yml checks on Windows. Scoped to these files: the rest of bash/
+# predates the linter and is checked when it is next touched.
 name: bash
 
 on:
   push:
     branches: [master]
     paths:
-      - 'zellij/bin/**'
-      - 'zellij/plugins/build-pilot.sh'
-      - 'zellij/linux/**'
-      - 'linux/tests/**'
+      - 'pilot/build-pilot.sh'
       - '.github/workflows/bash.yml'
   pull_request:
     paths:
-      - 'zellij/bin/**'
-      - 'zellij/plugins/build-pilot.sh'
-      - 'zellij/linux/**'
-      - 'linux/tests/**'
+      - 'pilot/build-pilot.sh'
       - '.github/workflows/bash.yml'
   workflow_dispatch:
 
@@ -38,9 +32,4 @@ jobs:
       - name: Lint
         run: |
           shellcheck --version
-          shellcheck -S warning -x \
-            zellij/bin/zj zellij/bin/zja zellij/bin/zjr zellij/bin/zj-hub-projects \
-            zellij/bin/zj-lib.sh zellij/plugins/build-pilot.sh linux/tests/zj-lib.test.sh
-
-      - name: Test
-        run: ./linux/tests/zj-lib.test.sh
+          shellcheck -S warning -x pilot/build-pilot.sh

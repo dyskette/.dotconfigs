@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # build-pilot.sh [--test]
 #
-# Builds the pilot Zellij plugin and installs it where config.kdl loads it:
-# compiles plugins/pilot for wasm32-wasip1 (adding the target through rustup
-# when it is missing) and copies the result to plugins/pilot.wasm, which the
-# Linux config loads as file:~/.config/zellij/plugins/pilot.wasm. The .wasm is
-# a build output and is not committed.
+# Builds the pilot Zellij plugin: compiles this crate for wasm32-wasip1
+# (adding the target through rustup when it is missing) and copies the result
+# to pilot/pilot.wasm. The .wasm is a build output and is not committed.
+#
+# No Zellij config loads it at the moment: zellij/config.kdl was reset to the
+# stock modes and the plugin is parked here (pilot/README.md). A config that
+# wants it again points at file:~/.dotconfigs/pilot/pilot.wasm, which is the
+# path the permissions below are granted for.
 #
 # Running sessions keep the plugin they loaded. Restart a session, or run
 # `zellij action start-or-reload-plugin pilot` in it, to pick up a new build.
@@ -16,7 +19,7 @@
 set -euo pipefail
 
 here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-crate="$here/pilot"
+crate="$here"
 target=wasm32-wasip1
 output="$here/pilot.wasm"
 run_tests=0
@@ -62,8 +65,8 @@ printf 'pilot.wasm: %s KB -> %s\n' "$(($(stat -c %s "$output") / 1024))" "$outpu
 # prefix, as it writes it when you answer the prompt yourself (checked on
 # 0.46.0).
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/zellij/permissions.kdl"
-location="$HOME/.config/zellij/plugins/pilot.wasm"
-# Keep this list in step with PERMISSIONS in pilot/src/main.rs: Zellij prompts
+location="$HOME/.dotconfigs/pilot/pilot.wasm"
+# Keep this list in step with PERMISSIONS in src/main.rs: Zellij prompts
 # again when the plugin asks for one that is not cached.
 permissions=(
   ReadApplicationState ChangeApplicationState WriteToStdin RunCommands

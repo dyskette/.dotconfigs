@@ -1,19 +1,23 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-    Builds the pilot Zellij plugin and installs it where config.kdl loads it.
+    Builds the pilot Zellij plugin.
 .DESCRIPTION
-    Compiles plugins/pilot for wasm32-wasip1 (adding the target through rustup
-    when it is missing) and copies the result to plugins/pilot.wasm, which
-    config.kdl loads as file:~/.dotconfigs/zellij/plugins/pilot.wasm. The
-    .wasm is a build output and is not committed.
+    Compiles this crate for wasm32-wasip1 (adding the target through rustup
+    when it is missing) and copies the result to pilot/pilot.wasm. The .wasm
+    is a build output and is not committed.
+
+    No Zellij config loads it at the moment: zellij/config.kdl was reset to
+    the stock modes and the plugin is parked here (pilot/README.md). A config
+    that wants it again points at file:~/.dotconfigs/pilot/pilot.wasm, which
+    is the path the permissions below are granted for.
 
     Running sessions keep the plugin they loaded. Restart a session, or run
     `zellij action start-or-reload-plugin pilot` in it, to pick up a new build.
 .PARAMETER Test
     Also run the plugin's unit tests on the host target first.
 .EXAMPLE
-    ./zellij/plugins/Build-Pilot.ps1
+    ./pilot/Build-Pilot.ps1
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -23,7 +27,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$crate = Join-Path $PSScriptRoot 'pilot'
+$crate = $PSScriptRoot
 $target = 'wasm32-wasip1'
 $output = Join-Path $PSScriptRoot 'pilot.wasm'
 
@@ -64,10 +68,10 @@ Write-Host "pilot.wasm: $([math]::Round((Get-Item $output).Length / 1KB)) KB -> 
 #
 # Zellij keys the cache by the plugin path with ~ expanded and no file:
 # prefix, as it writes it when you answer the prompt yourself:
-# C:\Users\me/.dotconfigs/zellij/plugins/pilot.wasm (checked on 0.46.0).
+# C:\Users\me/.dotconfigs/pilot/pilot.wasm (checked on 0.46.0).
 $cache = Join-Path $env:LOCALAPPDATA 'Zellij\cache\permissions.kdl'
-$location = "$HOME/.dotconfigs/zellij/plugins/pilot.wasm"
-# Keep this list in step with PERMISSIONS in pilot/src/main.rs:
+$location = "$HOME/.dotconfigs/pilot/pilot.wasm"
+# Keep this list in step with PERMISSIONS in src/main.rs:
 # Zellij prompts again when the plugin asks for one that is not cached.
 $permissions = 'ReadApplicationState', 'ChangeApplicationState', 'WriteToStdin', 'RunCommands',
     'OpenTerminalsOrPlugins', 'RunActionsAsUser', 'ReadPaneContents'

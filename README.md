@@ -58,12 +58,9 @@ In nvim, `<leader>gg` toggles lazygit and `<C-\>` a shell, both in floats
 message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one. In
 tmux/psmux, `prefix g` and `prefix e` open lazygit and yazi over the pane.
 
-The workspace on both machines is Zellij: `zj` opens the session hub (running
-sessions, saved sessions and projects in one list, vim keys; `Alt s` inside a
-session), and on Windows that is what Windows Terminal's default profile
-starts. Every repo is a session, and inside it every activity is a full-screen
-tab: `Alt e` the editor, `Alt a` a coding agent, `Alt g` lazygit, each started
-on demand, with floats for the ephemeral shells. `zj` opens the hub or a
-folder, `zja` starts the agent, `zjr` runs the dev server or tests — PowerShell
-functions (`powershell/Zellij.psm1`) on Windows, scripts (`zellij/bin/`) on
-Linux. See [zellij/README.md](zellij/README.md).
+Zellij is back to a bare config (`zellij/config.kdl`, one file for both
+machines): the stock modes, reached with `Alt a` instead of `Ctrl g`, and the
+Everforest theme. The workspace that used to be built on top of it — a session
+per repo, a tab per activity, a session hub — is gone; its Zellij plugin is
+parked in [pilot/](pilot/README.md), and session switching is tmux's job for
+now (`s`, `bash/bashrc.d/sesh.sh`).

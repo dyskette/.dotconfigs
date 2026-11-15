@@ -1,11 +1,18 @@
--- Neovim's side of the Zellij workspace (zellij/README.md).
+-- Neovim's side of the Zellij workspace.
+--
+-- The workspace it talks to is parked: zellij/config.kdl is back to the stock
+-- modes and nothing loads the pilot plugin (pilot/README.md), so everything
+-- below that crosses into Zellij — pane navigation at the edge of the layout,
+-- the agent bridge, the hub — does nothing until a config loads it again.
+-- What still works regardless is window movement inside this nvim and
+-- pipe_path(), which flatten.nvim uses.
 --
 -- Keys, in every mode, so they work while typing too:
 --   <M-h/j/k/l>  move between windows; at the edge of the layout the move
 --                continues into the neighbouring Zellij pane (or tab)
 --   <M-H/J/K/L>  move the window divider; with no divider in that direction,
 --                Zellij's pane divider moves instead
--- Zellij's pilot plugin (zellij/plugins/pilot) sends both here when this nvim
+-- Zellij's pilot plugin (pilot/) sends both here when this nvim
 -- has focus, and handles them itself in every other pane.
 --
 -- One editor per session: the nvim in the editor tab registers itself, and
@@ -13,7 +20,7 @@
 -- else in the session (lazygit's `e`, the shell's sf/sg, the agent, Zellij's
 -- click-to-open) to it, through pipe_path() below. Per session and not per
 -- tab because lazygit has a tab of its own now, so its `e` reaches the editor
--- across tabs (zellij/decisions/0001-workspace-model.md).
+-- across tabs (pilot/README.md).
 --
 -- The agent bridge (<leader>i...) pastes file references, selections and
 -- diagnostics into the session's agent, which `Alt a` opens in its own tab.
@@ -56,7 +63,7 @@ end
 ---
 --- The whole session, not this tab: a tab holds one activity now, so the
 --- agent this nvim pastes into is in a tab of its own
---- (zellij/decisions/0001-workspace-model.md).
+--- (pilot/README.md).
 ---@return table[]?
 local function session_panes()
   if not in_zellij() then
@@ -165,7 +172,7 @@ end
 --- works or proves it stale. Finding it used to cost a `list-panes` call, to
 --- work out which panes shared a tab, which is a whole process on the
 --- critical path of opening a file from lazygit
---- (zellij/decisions/0001-workspace-model.md).
+--- (pilot/README.md).
 ---@return string|integer|nil
 function M.pipe_path()
   if vim.env.NVIM then
@@ -320,7 +327,7 @@ end
 
 -- --- The session hub -------------------------------------------------------------------
 
---- Open the session hub (zellij/README.md, "The hub"): running sessions,
+--- Open the session hub (pilot/README.md): running sessions,
 --- saved sessions and projects in one list. The same popup as Alt s; pilot
 --- opens it for this client.
 function M.hub()

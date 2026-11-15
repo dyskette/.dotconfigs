@@ -1,7 +1,7 @@
 # fzf, fd, ripgrep and bat wired into bash: fzf's own key bindings and **
 # completion, fed by fd and previewed by bat and eza, plus the tm session
 # picker. The pickers with their own names (sf, sg, ...) live in files.sh.
-# Zellij's own picker is the session hub (zellij/bin/zj, zellij/README.md).
+# sesh's picker is `s` (sesh.sh).
 #
 #   Ctrl+t   insert files picked with fzf at the cursor
 #   Alt+c    cd into a folder picked with fzf
@@ -98,14 +98,10 @@ __pick_project_dir() {
 
 # Tmux session manager: switch-client from inside, new-session -A (attach or
 # create) from outside. With no args: fzf pick from project directories.
-#
-# Zellij's twin was a function here too; it is now zellij/bin/zj, which opens
-# the session hub (sessions, saved sessions and projects in one list) and a
-# whole service tab per project.
 tm() {
   local dir name
 
-  # Five levels, like the tmux popups (tmux/scripts), two more than the hub
+  # Five levels, like the tmux popups (tmux/scripts)
   dir="$(__pick_project_dir "$1" 5)" || return
 
   name="$(basename "$dir" | tr '.' '_')"
