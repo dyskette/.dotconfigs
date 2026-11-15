@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Create new tmux session from selected directory
+# Not sorted: sort would hold every line until fd finishes, and fzf could show
+# nothing until then; unsorted, the list streams in while fd walks, and fzf
+# ranks it by path once a query is typed.
 selected=$(fd --type directory --max-depth 5 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
-    sort | \
-    fzf --reverse \
+    fzf --reverse --scheme=path \
         --header="create-new-session" \
         --border=none \
         --preview-window=border-left \

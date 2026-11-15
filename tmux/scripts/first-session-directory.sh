@@ -6,10 +6,10 @@ current_session=$(tmux display-message -p '#S')
 
 # Show directory selection if this looks like a new session from terminal
 if [[ "$current_session" =~ ^[0-9]+$ ]]; then
-    # Show directory selection popup
+    # Show directory selection popup, unsorted so the list streams in while
+    # fd walks (as in new-session-from-directory.sh)
     selected=$(fd --type directory --max-depth 5 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
-        sort | \
-        fzf --reverse \
+        fzf --reverse --scheme=path \
             --header="select-working-directory" \
             --border=none \
             --preview-window=border-left \

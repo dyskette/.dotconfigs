@@ -90,8 +90,12 @@ function Select-HomeDirectory {
     $fdArguments = @('--type', 'directory', '--max-depth', $Depth, '--hidden') +
         @($Exclude | ForEach-Object { '--exclude', $_ }) + @('.', $HOME)
     # fzf exits 130 when cancelled; that is not an error, just no selection.
-    fd @fdArguments | Sort-Object |
-        fzf --reverse "--header=$Header" --border=none --preview-window=border-left `
+    # Not sorted: Sort-Object would hold every line until fd finishes, so fzf
+    # would show nothing until then. Native-to-native, pwsh 7.4+ pipes the
+    # bytes straight through, so the list streams in while fd walks; fzf ranks
+    # it by path once a query is typed.
+    fd @fdArguments |
+        fzf --reverse --scheme=path "--header=$Header" --border=none --preview-window=border-left `
             '--preview=eza --tree --git-ignore --level 2 --colour=always --icons=always {}'
 }
 
