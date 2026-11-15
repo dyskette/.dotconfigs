@@ -70,6 +70,10 @@ function Show-PsmuxMessage {
 .SYNOPSIS
 Picks a directory under $HOME with fd and fzf.
 
+.PARAMETER Depth
+How many levels under $HOME fd descends; 0 means no limit. The default, 5,
+matches bash's tm and the tmux pickers.
+
 .OUTPUTS
 The selected path, or nothing when the picker is cancelled.
 #>
@@ -77,7 +81,7 @@ function Select-HomeDirectory {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Header,
-        [int]$Depth = 3,
+        [int]$Depth = 5,
         [string[]]$Exclude = @('.git', 'node_modules', '.venv')
     )
 
@@ -87,7 +91,8 @@ function Select-HomeDirectory {
         }
     }
 
-    $fdArguments = @('--type', 'directory', '--max-depth', $Depth, '--hidden') +
+    $fdArguments = @('--type', 'directory', '--hidden') +
+        @(if ($Depth -gt 0) { '--max-depth', $Depth }) +
         @($Exclude | ForEach-Object { '--exclude', $_ }) + @('.', $HOME)
     # fzf exits 130 when cancelled; that is not an error, just no selection.
     # Not sorted: Sort-Object would hold every line until fd finishes, so fzf
