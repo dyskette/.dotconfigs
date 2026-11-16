@@ -26,27 +26,7 @@ source "${BASH_SOURCE[0]%[\\/]*}/mux-lib.sh"
 
 hints='tab enter folder · ⌫ up · ↵ new session · type c/ ~/ ../ to jump'
 
-# REPLY: $1 with exactly one trailing separator, in the platform's style.
-normdir() {
-    REPLY="$1"
-    ((win)) && REPLY="${REPLY//\//\\}"
-    while [[ "$REPLY" == *"$sep$sep" ]]; do REPLY="${REPLY%"$sep"}"; done
-    [[ "$REPLY" == *"$sep" ]] || REPLY="$REPLY$sep"
-}
-
-# REPLY: the parent folder of $1; a root is its own parent.
-parent() {
-    local d="${1%"$sep"}" p
-    if [[ -z "$d" ]]; then REPLY=/; return; fi
-    p="${d%"$sep"*}"
-    if [[ "$p" == "$d" ]]; then
-        normdir "$d"
-    elif [[ -z "$p" ]]; then
-        REPLY=/
-    else
-        normdir "$p"
-    fi
-}
+# normdir, parent and open_session come from mux-lib.sh.
 
 # REPLY: a typed path resolved (c/, c:, C:\..., ~, ~/..., and on WSL c/ for
 # /mnt/c), or empty when the text is not a path.
@@ -208,58 +188,6 @@ cmd_preview() {
     item "${1:-}" || return 0
     eza --tree --git-ignore --level 2 --colour=always --icons=always "$REPLY" 2>/dev/null ||
         ls -la "$REPLY" 2>/dev/null
-}
-
-# Print "existing<TAB>name" when a session already runs in folder $1,
-# otherwise "new<TAB>name" with a name no other folder's session uses.
-session_for() {
-    local dir="${1%"$sep"}" base name prefix n path key
-    [[ -z "$dir" ]] && dir=/
-    base="${dir##*[\\/]}"
-    [[ -z "$base" || "$dir" == / ]] && base=root
-    base="${base//[.: ]/_}"
-    normdir "$1"
-    key="$REPLY"
-    ((win)) && key="${key,,}"
-
-    declare -A taken=()
-    while IFS=$'\t' read -r n path; do
-        [[ -z "$n" ]] && continue
-        normdir "$path"
-        path="$REPLY"
-        ((win)) && path="${path,,}"
-        if [[ "$path" == "$key" ]]; then
-            printf 'existing\t%s' "$n"
-            return
-        fi
-        taken["$n"]=1
-    done < <("$mux" list-sessions -F "#{session_name}"$'\t'"#{session_path}" 2>/dev/null)
-
-    name="$base"
-    if [[ -n "${taken[$name]:-}" ]]; then
-        parent "$1"
-        prefix="${REPLY%"$sep"}"
-        prefix="${prefix##*[\\/]}"
-        prefix="${prefix//[.: ]/_}"
-        name="${prefix}_$base"
-        n=2
-        while [[ -n "${taken[$name]:-}" ]]; do
-            name="${prefix}_${base}_$n"
-            n=$((n + 1))
-        done
-    fi
-    printf 'new\t%s' "$name"
-}
-
-open_session() {
-    local kind name
-    IFS=$'\t' read -r kind name < <(session_for "$1")
-    [[ "$kind" == new ]] && "$mux" new-session -d -s "$name" -c "$1"
-    if in_client; then
-        "$mux" switch-client -t "=$name"
-    else
-        "$mux" attach -t "=$name"
-    fi
 }
 
 run() {

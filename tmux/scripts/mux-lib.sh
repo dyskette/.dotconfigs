@@ -11,13 +11,19 @@
 #   fzf_callbacks SCRIPT   set FZF_SHELL (for --with-shell) and SELF (the
 #                          command that runs SCRIPT from an fzf binding)
 #   new_state_file NAME    REPLY: a new empty file for a popup's state
-#
-# Everything a popup runs before fzf draws delays the popup, and under Git Bash
-# each fork costs 20-40 ms, so the helpers here fork as little as they can.
 #   in_client              true when running inside a tmux/psmux client
 #   current_session        REPLY: the session the popup was opened from
 #   ago SECONDS_SINCE_EPOCH  print "now", "5m", "3h" or "2d" ("new" when
 #                          empty: a session never attached)
+#   normdir DIR            REPLY: DIR with one trailing separator
+#   parent DIR             REPLY: the folder above DIR
+#   session_for DIR [NAME] REPLY: the session for DIR; session_kind: existing
+#                          or new
+#   ensure_session DIR [NAME]  REPLY: that session, created when new
+#   open_session DIR [NAME]    ensure_session, then switch or attach to it
+#
+# Everything a popup runs before fzf draws delays the popup, and under Git Bash
+# each fork costs 20-40 ms, so the helpers here fork as little as they can.
 
 us=$'\x1f'
 
@@ -112,5 +118,94 @@ ago() {
         printf '%dh' $((d / 3600))
     else
         printf '%dd' $((d / 86400))
+    fi
+}
+
+# REPLY: $1 with exactly one trailing separator, in the platform's style.
+normdir() {
+    REPLY="$1"
+    ((win)) && REPLY="${REPLY//\//\\}"
+    while [[ "$REPLY" == *"$sep$sep" ]]; do REPLY="${REPLY%"$sep"}"; done
+    [[ "$REPLY" == *"$sep" ]] || REPLY="$REPLY$sep"
+}
+
+# REPLY: the parent folder of $1; a root is its own parent.
+parent() {
+    local d="${1%"$sep"}" p
+    if [[ -z "$d" ]]; then REPLY=/; return; fi
+    p="${d%"$sep"*}"
+    if [[ "$p" == "$d" ]]; then
+        normdir "$d"
+    elif [[ -z "$p" ]]; then
+        REPLY=/
+    else
+        normdir "$p"
+    fi
+}
+
+# The session for folder $1. When one already runs there, REPLY is its name
+# and session_kind is "existing". Otherwise session_kind is "new" and REPLY a
+# name no other folder's session uses: $2 (a declared name) or the folder's
+# own name, then parent_name, parent_name_2, ... Folders compare
+# case-insensitively on Windows.
+session_for() {
+    local dir="${1%"$sep"}" base name prefix n path key
+    [[ -z "$dir" ]] && dir=/
+    if [[ -n "${2:-}" ]]; then
+        base="$2"
+    else
+        base="${dir##*[\\/]}"
+        [[ -z "$base" || "$dir" == / ]] && base=root
+    fi
+    base="${base//[.: ]/_}"
+    normdir "$1"
+    key="$REPLY"
+    ((win)) && key="${key,,}"
+
+    local -A taken=()
+    while IFS=$'\t' read -r n path; do
+        [[ -z "$n" ]] && continue
+        normdir "$path"
+        path="$REPLY"
+        ((win)) && path="${path,,}"
+        if [[ "$path" == "$key" ]]; then
+            session_kind=existing
+            REPLY="$n"
+            return
+        fi
+        taken["$n"]=1
+    done < <("$mux" list-sessions -F "#{session_name}"$'\t'"#{session_path}" 2>/dev/null)
+
+    name="$base"
+    if [[ -n "${taken[$name]:-}" ]]; then
+        parent "$1"
+        prefix="${REPLY%"$sep"}"
+        prefix="${prefix##*[\\/]}"
+        prefix="${prefix//[.: ]/_}"
+        name="${prefix}_$base"
+        n=2
+        while [[ -n "${taken[$name]:-}" ]]; do
+            name="${prefix}_${base}_$n"
+            n=$((n + 1))
+        done
+    fi
+    session_kind=new
+    REPLY="$name"
+}
+
+ensure_session() {
+    session_for "$1" "${2:-}"
+    if [[ "$session_kind" == new ]]; then
+        "$mux" new-session -d -s "$REPLY" -c "$1"
+    fi
+}
+
+# "=" makes -t match the name exactly instead of by prefix.
+open_session() {
+    ensure_session "$1" "${2:-}" || return
+    if in_client; then
+        "$mux" switch-client -t "=$REPLY"
+    else
+        "$mux" attach -t "=$REPLY"
     fi
 }
