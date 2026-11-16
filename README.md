@@ -85,4 +85,4 @@ machines): the stock modes, reached with `Alt a` instead of `Ctrl g`, and the
 Everforest theme. The workspace that used to be built on top of it — a session
 per repo, a tab per activity, a session hub — is gone; its Zellij plugin is
 parked in [pilot/](pilot/README.md), and session switching is tmux's job for
-now (`s`, `bash/bashrc.d/sesh.sh`).
+now (`prefix s`, `tm`).

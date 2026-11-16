@@ -1,7 +1,6 @@
 # fzf, fd, ripgrep and bat wired into bash: fzf's own key bindings and **
 # completion, fed by fd and previewed by bat and eza. The pickers with their
 # own names (sf, sg, ...) live in files.sh, the tm session picker in tmux.sh.
-# sesh's picker is `s` (sesh.sh).
 #
 #   Ctrl+t   insert files picked with fzf at the cursor
 #   Alt+c    cd into a folder picked with fzf
