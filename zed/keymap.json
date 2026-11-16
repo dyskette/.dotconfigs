@@ -147,13 +147,82 @@
     // AI AGENT OPERATIONS
     // ============================================================================
     {
-        "context": "(VimControl && !menu) || (AgentPanel && !Editor) || (AgentPanel > MessageEditor > Editor && VimControl && vim_mode == normal)",
+        // VimControl already covers the prompt box in normal mode.
+        "context": "(VimControl && !menu) || (AgentPanel && !Editor)",
         "bindings": {
             "space o y": "agent::AllowOnce",
             "space o shift-y": "agent::AllowAlways",
             "space o x": "agent::RejectOnce",
             "space o shift-x": "agent::RejectAll",
             "space o k": "agent::KeepAll"
+        }
+    },
+    {
+        // Workspace-level agent actions: usable from any editor in normal mode.
+        "context": "VimControl && !menu",
+        "bindings": {
+            "space o n": "agent::NewThread",
+            "space o c": ["agent::NewExternalAgentThread", { "agent": "claude-acp" }],
+            "space o d": "agent::OpenAgentDiff",
+            "space o s": "multi_workspace::FocusWorkspaceSidebar",
+            "space o ]": "multi_workspace::NextThread",      // needs the threads sidebar (ctrl-alt-j) to exist
+            "space o [": "multi_workspace::PreviousThread"
+        }
+    },
+    {
+        // Prompt box in normal mode drives the conversation output.
+        // Zed's vim keymap nulls / n N in auto-height editors, so they are free here.
+        "context": "AcpThread > Editor && VimControl && vim_mode == normal",
+        "bindings": {
+            "ctrl-d": "agent::ScrollOutputPageDown",
+            "ctrl-u": "agent::ScrollOutputPageUp",
+            "ctrl-e": "agent::ScrollOutputLineDown",
+            "ctrl-y": "agent::ScrollOutputLineUp",
+            "] ]": "agent::ScrollOutputToNextMessage",
+            "[ [": "agent::ScrollOutputToPreviousMessage",
+            "/": "agent::ToggleSearch",
+            "n": "agent::SelectNextThreadMatch",
+            "shift-n": "agent::SelectPreviousThreadMatch",
+            "space o m": "agent::OpenActiveThreadAsMarkdown",   // whole thread as a buffer: yank/search with vim
+            "space o e": "agent::ExpandMessageEditor"
+        }
+    },
+    {
+        // Thread output focused (only reachable by clicking it).
+        // !Editor leaves the edit-earlier-message box, search bar and elicitation forms alone.
+        "context": "AcpThread && !Editor",
+        "bindings": {
+            "j": "agent::ScrollOutputLineDown",
+            "k": "agent::ScrollOutputLineUp",
+            "ctrl-d": "agent::ScrollOutputPageDown",
+            "ctrl-u": "agent::ScrollOutputPageUp",
+            "g g": "agent::ScrollOutputToTop",
+            "shift-g": "agent::ScrollOutputToBottom",
+            "] ]": "agent::ScrollOutputToNextMessage",
+            "[ [": "agent::ScrollOutputToPreviousMessage",
+            "/": "agent::ToggleSearch",
+            "y": "markdown::Copy",                  // copies the mouse selection
+            "shift-y": "markdown::CopyAsMarkdown",
+            "i": "agent::FocusAgent",               // back to the prompt box
+            "space o m": "agent::OpenActiveThreadAsMarkdown"
+        }
+    },
+    {
+        // Threads sidebar (ctrl-alt-j / space o s). Zed's vim `d d` deletes permanently;
+        // make it archive instead and move delete to D.
+        "context": "ThreadsSidebar && not_searching && !Editor",
+        "bindings": {
+            "d d": "agent::ArchiveSelectedThread",
+            "shift-d": "agent::RemoveSelectedThread",
+            "r": "agent::RenameSelectedThread",
+            "q": "multi_workspace::CloseWorkspaceSidebar"
+        }
+    },
+    {
+        // ctrl-tab switcher only cycles forward; j does the same without holding ctrl.
+        "context": "ThreadSwitcher",
+        "bindings": {
+            "j": "agents_sidebar::ToggleThreadSwitcher"
         }
     },
 
