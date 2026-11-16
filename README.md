@@ -57,28 +57,28 @@ In nvim, `<leader>gg` toggles lazygit and `<C-\>` a shell, both in floats
 (toggleterm.nvim). Anything they open with `nvim` (lazygit's `e`, a commit
 message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one.
 
-In tmux every session is built with the same windows, so the tools need no
-keys of their own — `prefix 1`…`prefix 5` go to one, `prefix l` back:
+In tmux and psmux alike every session is built with the same windows, so
+the tools need no keys of their own — `prefix 1`…`prefix 5` go to one:
 
 | | |
 | --- | --- |
 | `1 yazi` `2 nvim` `3 lazygit` `4 agent` | a shell until the first time you switch to it, which starts the tool (`tmux/scripts/lazy-slot.sh`); quitting the tool leaves the shell, so the numbers never move |
 | `5 shell` | where a session opens |
 
-The nvim window is the session's editor: it listens on a socket of its own,
-and `tmux/scripts/edit.sh FILE[:LINE]` — which lazygit's `e` and yazi's
-Enter run (`lazygit/session.yml`, loaded on Linux through `LG_CONFIG_FILE`;
-`yazi/yazi.toml`'s opener) — sends files there and switches to the window,
-starting the editor first if it is not running yet. Commit messages and an
-agent's prompt files stay plain `nvim`: those have to block until the editor
-exits, which a file handed to another nvim never does.
+The nvim window is the session's editor: it listens on an address of its
+own (a socket on Linux, a named pipe on Windows), and
+`tmux/scripts/edit.sh FILE[:LINE]` — which lazygit's `e` and yazi's Enter
+run (`lazygit/session.yml` on Linux, `session-windows.yml` on Windows, both
+loaded through `LG_CONFIG_FILE`; `yazi/yazi.toml`'s opener; on Windows
+through `edit.cmd`) — sends files there and switches to the window, starting
+the editor first if it is not running yet. Commit messages and an agent's
+prompt files stay plain `nvim`: those have to block until the editor exits,
+which a file handed to another nvim never does.
 
-On psmux (Windows), `prefix g` and `prefix e` still toggle lazygit and yazi
-in a popup that keeps them running (`tmux/scripts/popup.sh`, hidden
-`popup_*` sessions). tmux dropped the popups because a popup is a second
+The tools live in windows rather than popups because a popup is a second
 client, and yazi can only wrap its terminal probe in one layer of
 passthrough: in a popup its image previews fall back to ASCII art, in a
-window they work.
+window they work (on tmux; psmux 3.4.0 passes no images through yet).
 
 ## Sessions (tmux and psmux)
 
