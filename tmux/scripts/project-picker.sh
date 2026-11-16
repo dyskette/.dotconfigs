@@ -2,12 +2,14 @@
 # Project picker for tmux and psmux (run by Git Bash on Windows). Lists, in
 # this order and without repeats:
 #
+#   ●  the folders sessions run in, most recently used first, the current
+#      one last; any folder, listed or not, under its usual marker or ·
 #   ★  the folders declared in tmux/projects.conf
 #   ▸  the folders inside its roots
 #   z  zoxide's 30 most frecent folders (not $HOME, not a root itself)
 #
-# and marks with ● the ones a session already runs in. Enter switches to that
-# session, or opens one there named as session_for (mux-lib.sh) decides.
+# Enter switches to the folder's session, or opens one there named as
+# session_for (mux-lib.sh) decides.
 #
 #   project-picker.sh [--print] [DIR]  pick a folder (or take DIR) and open
 #                                      its session; with --print, only create
@@ -39,17 +41,28 @@ expand_path() {
 }
 
 # Print one row and add it to the items file, unless the folder was listed
-# already or is skipped. $1 folder (normdir form), $2 source, $3 declared
-# name. Fields: folder, declared name, shown text. Fails when not printed.
+# already (or, from zoxide, is skipped). $1 folder (normdir form), $2 source:
+# project, root, zoxide or other; $3 declared name. Fields: folder, declared
+# name, shown text. Fails when not printed.
 emit() {
-    local dir="$1" key="$1" label="${3:-}" short mark dot=""
+    local dir="$1" key="$1" label="${3:-}" short mark dot="" sname
     ((win)) && key="${key,,}"
-    [[ -n "${seen[$key]:-}" || -n "${skip[$key]:-}" ]] && return 1
+    [[ -n "${seen[$key]:-}" ]] && return 1
+    [[ "$2" == zoxide && -n "${skip[$key]:-}" ]] && return 1
     seen["$key"]=1
 
     if [[ -z "$label" ]]; then
         label="${dir%"$sep"}"
         label="${label##*[\\/]}"
+    fi
+    # An open session shows its own name when that is not just the label made
+    # session-safe (a clash renamed it, or it predates a declared name): it is
+    # the session Enter switches to.
+    sname="${open[$key]:-}"
+    if [[ -n "$sname" ]]; then
+        [[ "$sname" != "${label//[.: ]/_}" ]] && label="$sname"
+        dot=$'  \e[33m●\e[0m'
+        [[ "$key" == "$cur_key" ]] && dot+=$' \e[2mhere\e[0m'
     fi
     short="${dir%"$sep"}"
     if [[ "${short,,}" == "${home,,}"* ]]; then
@@ -58,9 +71,9 @@ emit() {
     case "$2" in
         project) mark=$'\e[33m★\e[0m' ;;
         root) mark=$'\e[34m▸\e[0m' ;;
-        *) mark=$'\e[2mz\e[0m' ;;
+        zoxide) mark=$'\e[2mz\e[0m' ;;
+        *) mark=$'\e[2m·\e[0m' ;;
     esac
-    [[ -n "${open[$key]:-}" ]] && dot=$'  \e[33m●\e[0m'
 
     local row
     printf -v row '%s\t%s\t%s %-24s \e[2m%s\e[0m%s' "$dir" "${3:-}" "$mark" "$label" "$short" "$dot"
@@ -68,28 +81,39 @@ emit() {
     printf '%s\n' "$row" >&3
 }
 
+# REPLY: the source folder key $1 would be listed under, worked out without
+# fd or zoxide so open sessions can lead the list with their real marker:
+# project when declared, root when it lies inside a root within its depth,
+# otherwise other.
+source_of() {
+    local i rk rest seps
+    if [[ -n "${declared[$1]+set}" ]]; then
+        REPLY=project
+        return
+    fi
+    for i in "${!roots[@]}"; do
+        rk="${roots[i]}"
+        ((win)) && rk="${rk,,}"
+        [[ "$1" == "$rk"?* ]] || continue
+        rest="${1#"$rk"}"
+        rest="${rest%"$sep"}"
+        seps="${rest//[!\\\/]/}"
+        if ((${#seps} < depths[i])); then
+            REPLY=root
+            return
+        fi
+    done
+    REPLY=other
+}
+
 cmd_list() {
-    local -A seen=() skip=() open=()
-    local -a roots=() depths=()
-    local line kind path arg _ key depth i n=0
+    local -A seen=() skip=() open=() declared=()
+    local -a roots=() depths=() pdirs=() pnames=() okeys=() odirs=()
+    local line kind path arg _ key depth i n=0 last name cur cur_key="" cur_dir=""
     exec 3>"$PICK_ITEMS"
 
-    # Folders sessions run in, for the ● mark.
-    while IFS= read -r path; do
-        [[ -z "$path" ]] && continue
-        normdir "$path"
-        key="$REPLY"
-        ((win)) && key="${key,,}"
-        open["$key"]=1
-    done < <("$mux" list-sessions -F '#{session_path}' 2>/dev/null)
-
-    # zoxide knows $HOME and the roots themselves, which are not projects.
-    normdir "$home"
-    key="$REPLY"
-    ((win)) && key="${key,,}"
-    skip["$key"]=1
-
-    # Declared projects are printed as they are read; roots are walked after.
+    # projects.conf first: reading it starts no process, and the open
+    # sessions need it to know their marker.
     if [[ -r "$conf" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
             read -r kind path arg _ <<<"${line%$'\r'}"
@@ -100,19 +124,65 @@ cmd_list() {
             [[ -n "${path:-}" ]] || continue
             expand_path "$path"
             [[ -d "$REPLY" ]] || continue
+            key="$REPLY"
+            ((win)) && key="${key,,}"
             if [[ "$kind" == project ]]; then
-                emit "$REPLY" project "${arg:-}"
+                pdirs+=("$REPLY")
+                pnames+=("${arg:-}")
+                declared["$key"]="${arg:-}"
             else
                 roots+=("$REPLY")
                 depth="${arg#depth=}"
                 [[ "$depth" =~ ^[1-9][0-9]*$ ]] || depth=1
                 depths+=("$depth")
-                key="$REPLY"
-                ((win)) && key="${key,,}"
                 skip["$key"]=1
             fi
         done <"$conf"
     fi
+
+    # zoxide knows $HOME and the roots themselves, which are not projects.
+    normdir "$home"
+    key="$REPLY"
+    ((win)) && key="${key,,}"
+    skip["$key"]=1
+
+    # Open sessions lead, most recently used first, and the one this popup
+    # was opened from last (prefix w puts the current window last the same
+    # way). A folder with two sessions shows the more recent one.
+    current_session
+    cur="$REPLY"
+    while IFS=$us read -r last name path; do
+        [[ -z "$name" || -z "$path" ]] && continue
+        normdir "$path"
+        key="$REPLY"
+        ((win)) && key="${key,,}"
+        [[ -n "${open[$key]:-}" ]] && continue
+        open["$key"]="$name"
+        if [[ "$name" == "$cur" ]]; then
+            cur_key="$key"
+            cur_dir="$REPLY"
+        else
+            okeys+=("$key")
+            odirs+=("$REPLY")
+        fi
+    done < <("$mux" list-sessions -F "#{session_last_attached}${us}#{session_name}${us}#{session_path}" 2>/dev/null |
+        sort -t"$us" -k1,1rn)
+    if [[ -n "$cur_key" ]]; then
+        okeys+=("$cur_key")
+        odirs+=("$cur_dir")
+    fi
+    for i in "${!odirs[@]}"; do
+        source_of "${okeys[i]}"
+        if [[ "$REPLY" == project ]]; then
+            emit "${odirs[i]}" project "${declared[${okeys[i]}]}"
+        else
+            emit "${odirs[i]}" "$REPLY"
+        fi
+    done
+
+    for i in "${!pdirs[@]}"; do
+        emit "${pdirs[i]}" project "${pnames[i]}"
+    done
 
     # --format '{}' (fd 10.1+, which both setups install): without the
     # trailing separator fd gives folders, which would sort "app-2\" ahead of
@@ -188,7 +258,7 @@ run() {
             --bind "start:reload($SELF list)" \
             --ansi --reverse --border none --info inline-right \
             --delimiter $'\t' --with-nth 3 --tiebreak index \
-            --header '★ project · ▸ root · z zoxide · ● session open' \
+            --header '● open, recent first · ★ project · ▸ root · z zoxide' \
             --prompt "$prompt" \
             --preview "$SELF preview {n}" \
             --preview-window 'right:50%:border-left')"
