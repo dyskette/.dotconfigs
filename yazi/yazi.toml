@@ -18,9 +18,16 @@ scrolloff = 5
 # (tmux/scripts/edit.sh), and tmux switches to that window; yazi stays as it
 # was in its own. Inside nvim's yazi float the file goes to that nvim
 # instead, as before. Windows has no such session layout: plain nvim there.
+#
+# Not block: the editor is in another window, so the opener needs no
+# terminal, and yazi keeping its own matters. A blocking opener hands the
+# terminal over and probes it again on return (XTVERSION, the kitty graphics
+# queries); with the window already switched, tmux gives the terminal's
+# answers to nvim, which types them into the buffer, while yazi waits out
+# its probe timeout.
 [opener]
 edit = [
-  { run = '~/.dotconfigs/tmux/scripts/edit.sh %s', block = true, desc = "nvim (this session)", for = "unix" },
+  { run = '~/.dotconfigs/tmux/scripts/edit.sh %s', desc = "nvim (this session)", for = "unix" },
   { run = 'nvim %s', block = true, desc = "nvim", for = "windows" },
 ]
 

@@ -13,9 +13,11 @@ os:
   edit: "~/.dotconfigs/tmux/scripts/edit.sh {{filename}}"
   editAtLine: "~/.dotconfigs/tmux/scripts/edit.sh -l {{line}} {{filename}}"
   openDirInEditor: "~/.dotconfigs/tmux/scripts/edit.sh {{dir}}"
-  # The editor takes over the terminal in the one case edit.sh runs nvim
-  # itself: a session whose nvim window is not there to be started.
-  editInTerminal: true
+  # The file goes to the editor's own window, so lazygit keeps its terminal
+  # rather than handing it over and redrawing: a tool that gives the
+  # terminal away while another window takes focus gets the terminal's
+  # replies typed into that window instead (yazi/yazi.toml says more).
+  editInTerminal: false
   # Waits for the editor to exit, which a file sent to another nvim never
   # does: this one stays a plain nvim, in lazygit's own window.
   editAtLineAndWait: "nvim +{{line}} -- {{filename}}"

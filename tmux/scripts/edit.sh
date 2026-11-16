@@ -63,12 +63,29 @@ for i in "${!files[@]}"; do
     files[i]="$(readlink -f -- "${files[i]}" 2>/dev/null)" || files[i]="${files[i]}"
 done
 
-# Run nvim here, as the editor when the session has none to be.
+# The command line that starts the session's editor on the files.
+editor_command() {
+    printf -v REPLY 'nvim --listen %q' "${sock:?}"
+    [[ -n "$line" ]] && REPLY+=" +$line"
+    local f
+    for f in "${files[@]}"; do
+        printf -v REPLY '%s %q' "$REPLY" "$f"
+    done
+}
+
+# Run nvim here, when there is a terminal to run it in: called from a shell,
+# or from a tool that hands its terminal over while it waits.
 run_here() {
     local args=()
     [[ -n "$line" ]] && args+=("+$line")
     [[ -n "${sock:-}" ]] && args+=(--listen "$sock")
     exec nvim "${args[@]}" ${files[0]+--} "${files[@]}"
+}
+
+# Nowhere to put an editor and no terminal to be one in.
+give_up() {
+    printf 'edit.sh: no editor to open %s in\n' "${files[*]:-the file}" >&2
+    exit 1
 }
 
 sock=""
@@ -77,7 +94,12 @@ if [[ -z "$target" ]] && ((!win)) && [[ -n "${TMUX:-}" ]] && session_sock; then
     sock="$REPLY"
     [[ -S "$sock" ]] && target="$sock"
 fi
-[[ -z "$target" && -z "$sock" ]] && run_here
+# Outside tmux there is no session editor to reach: be one, when whoever
+# called left a terminal to be it in.
+if [[ -z "$target" && -z "$sock" ]]; then
+    [[ -t 0 ]] && run_here
+    give_up
+fi
 
 # REPLY: the window the editor lives in, by the name the layout gives it
 # (mux-lib.sh). Asking nvim where it runs would be more general, but a
@@ -102,15 +124,21 @@ focus_editor() {
 # its plugins takes the request and then moves the cursor itself, leaving
 # the file open at line 1.
 if [[ -z "$target" ]]; then
-    editor_window || run_here
-    win_id="$REPLY"
-    "$mux" set-option -wu -t "$win_id" @lazy 2>/dev/null
-    printf -v cmd 'nvim --listen %q' "$sock"
-    [[ -n "$line" ]] && cmd+=" +$line"
-    for f in "${files[@]}"; do
-        printf -v cmd '%s %q' "$cmd" "$f"
-    done
-    "$mux" send-keys -t "$win_id" "$cmd" Enter
+    editor_command
+    cmd="$REPLY"
+    if [[ -n "${sock:-}" ]] && editor_window; then
+        win_id="$REPLY"
+        "$mux" set-option -wu -t "$win_id" @lazy 2>/dev/null
+        "$mux" send-keys -t "$win_id" "$cmd" Enter
+    elif [[ -n "${sock:-}" ]]; then
+        # In a session without the layout's nvim window: give it one, which
+        # the rest of the session then opens its files in too.
+        "$mux" new-window -d -n nvim -c "$PWD" "$cmd" || run_here
+    elif [[ -t 0 ]]; then
+        run_here
+    else
+        give_up
+    fi
     focus_editor
     exit 0
 fi
