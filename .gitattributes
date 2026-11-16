@@ -1,3 +1,5 @@
 # yazi's `ya pkg` always writes LF; keep it LF on every OS so core.autocrlf
 # doesn't report it as modified on Windows.
 yazi/package.toml text eol=lf
+# Read line by line by bash (project-picker.sh), Git Bash included.
+tmux/projects.conf text eol=lf
