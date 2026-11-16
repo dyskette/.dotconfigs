@@ -65,7 +65,7 @@ A session per project. The pickers are the same bash scripts on both
 
 | | |
 | --- | --- |
-| `prefix s` / `tm` | switch session or open a project: first the folders with a session (●), most recent first; then the ones declared in `tmux/projects.conf`, the folders inside its roots, and zoxide's 30 most used |
+| `prefix s` / `tm` | switch session or open a project: first the folders with a session (●), most recent first; then the ones declared in `tmux/projects.conf`, the folders inside its roots, and zoxide's 30 most used; `ctrl-x` twice kills a session (not the one you are in) |
 | `tm DIR` | open DIR's session |
 | `prefix a` | walk to any folder, one level at a time, and open a session there |
 | `prefix w` | switch window, most recent first; `ctrl-x` twice closes one |

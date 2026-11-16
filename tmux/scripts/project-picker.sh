@@ -17,6 +17,8 @@
 #                                      attach themselves (pwsh's tm)
 #   project-picker.sh list             called back by fzf to load the list
 #   project-picker.sh preview N        called back by fzf for item N
+#   project-picker.sh kill N           ctrl-x: kill item N's session (asks
+#                                      first)
 #
 # fzf opens empty and loads the list itself (start:reload), which streams in
 # as each source answers, as in window-switcher.sh.
@@ -43,7 +45,8 @@ expand_path() {
 # Print one row and add it to the items file, unless the folder was listed
 # already (or, from zoxide, is skipped). $1 folder (normdir form), $2 source:
 # project, root, zoxide or other; $3 declared name. Fields: folder, declared
-# name, shown text. Fails when not printed.
+# name, shown text, open session's name (empty when none). Fails when not
+# printed.
 emit() {
     local dir="$1" key="$1" label="${3:-}" short mark dot="" sname
     ((win)) && key="${key,,}"
@@ -76,7 +79,7 @@ emit() {
     esac
 
     local row
-    printf -v row '%s\t%s\t%s %-24s \e[2m%s\e[0m%s' "$dir" "${3:-}" "$mark" "$label" "$short" "$dot"
+    printf -v row '%s\t%s\t%s %-24s \e[2m%s\e[0m%s\t%s' "$dir" "${3:-}" "$mark" "$label" "$short" "$dot" "$sname"
     printf '%s\n' "$row"
     printf '%s\n' "$row" >&3
 }
@@ -207,14 +210,17 @@ cmd_list() {
     exec 3>&-
 }
 
-# REPLY: the folder of item $1.
+# REPLY: the folder of item $1; item_session: the session open there, or
+# empty.
 item() {
     local i=0 line
     REPLY=""
+    item_session=""
     [[ "${1:-}" =~ ^[0-9]+$ ]] || return 1
     while IFS= read -r line; do
         if ((i == $1)); then
             REPLY="${line%%$'\t'*}"
+            item_session="${line##*$'\t'}"
             return 0
         fi
         i=$((i + 1))
@@ -226,6 +232,33 @@ cmd_preview() {
     item "${1:-}" || return 0
     eza --tree --git-ignore --level 2 --colour=always --icons=always "$REPLY" 2>/dev/null ||
         ls -la "$REPLY" 2>/dev/null
+}
+
+# Bound with transform, and pressed twice, since a session can hold hours of
+# work: the first ctrl-x only turns the prompt into the question, the second,
+# with the prompt still asking, kills. The focus binding restores the prompt
+# when the cursor moves, so both presses are always on the same session.
+# (A y/N read would need a console, which fzf.exe does not give execute.)
+# Rows without a session have nothing to kill, and the session the popup was
+# opened from is refused: killing it would take the popup down mid-action.
+cmd_kill() {
+    item "${1:-}" || return 0
+    local name="$item_session"
+    if [[ -z "$name" ]]; then
+        printf 'change-prompt:no session here ❯ '
+        return 0
+    fi
+    current_session
+    if [[ "$name" == "$REPLY" ]]; then
+        printf "change-prompt:%s is the session you are in ❯ " "$name"
+        return 0
+    fi
+    if [[ "${FZF_PROMPT:-}" != kill* ]]; then
+        printf 'change-prompt:kill %s? ctrl-x again ❯ ' "$name"
+        return 0
+    fi
+    "$mux" kill-session -t "=$name" 2>/dev/null
+    printf 'reload-sync(%s list)+change-prompt:%s' "$PICK_SELF" "$prompt"
 }
 
 run() {
@@ -252,13 +285,16 @@ run() {
         export PICK_ITEMS="$REPLY"
         trap 'rm -f "$PICK_ITEMS"' EXIT
         fzf_callbacks "$0"
+        export PICK_SELF="$SELF"
 
         out="$(fzf </dev/null \
             --with-shell "$FZF_SHELL" \
             --bind "start:reload($SELF list)" \
+            --bind "ctrl-x:transform($SELF kill {n})" \
+            --bind "focus:change-prompt($prompt)" \
             --ansi --reverse --border none --info inline-right \
             --delimiter $'\t' --with-nth 3 --tiebreak index \
-            --header '● open, recent first · ★ project · ▸ root · z zoxide' \
+            --header $'● open, recent first · ★ project · ▸ root · z zoxide\nenter open · ctrl-x twice: kill session' \
             --prompt "$prompt" \
             --preview "$SELF preview {n}" \
             --preview-window 'right:50%:border-left')"
@@ -278,5 +314,6 @@ run() {
 case "${1:-}" in
     list) cmd_list ;;
     preview) cmd_preview "${2:-}" ;;
+    kill) cmd_kill "${2:-}" ;;
     *) run "$@" ;;
 esac
