@@ -166,7 +166,9 @@
             "space o d": "agent::OpenAgentDiff",
             "space o s": "multi_workspace::FocusWorkspaceSidebar",
             "space o ]": "multi_workspace::NextThread",      // needs the threads sidebar (ctrl-alt-j) to exist
-            "space o [": "multi_workspace::PreviousThread"
+            "space o [": "multi_workspace::PreviousThread",
+            // Opened without a held modifier, the switcher stays open until enter/escape.
+            "space o t": "agents_sidebar::ToggleThreadSwitcher"
         }
     },
     {
@@ -219,10 +221,12 @@
         }
     },
     {
-        // ctrl-tab switcher only cycles forward; j does the same without holding ctrl.
+        // MRU thread switcher opened via space o t: j/k move, enter opens, escape cancels.
+        // (select_last moves one up, wrapping, once the switcher is open.)
         "context": "ThreadSwitcher",
         "bindings": {
-            "j": "agents_sidebar::ToggleThreadSwitcher"
+            "j": "agents_sidebar::ToggleThreadSwitcher",
+            "k": ["agents_sidebar::ToggleThreadSwitcher", { "select_last": true }]
         }
     },
 
