@@ -312,17 +312,31 @@
 
     // ============================================================================
     // TERMINAL
+    // Toggle with ctrl-ñ: a plain key on the latam layout (ctrl-` / ctrl-\ need
+    // AltGr there), same convention VS Code uses on Spanish keyboards.
+    // On Linux, Zed names non-ASCII keys after the US key in the same physical
+    // position (gpui_linux guess_ascii), so ctrl-ñ arrives as "ctrl-;".
+    // ctrl-z stays with the shell for job suspension.
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menu",
+        // Workspace: panels (git, project, agent output...).
+        "context": "Workspace",
         "bindings": {
-            "ctrl-z": "terminal_panel::ToggleFocus"
+            "ctrl-;": "terminal_panel::ToggleFocus"
+        }
+    },
+    {
+        // Editors bind ctrl-; by default (ToggleLineNumbers; in the agent prompt,
+        // OpenAddContextMenu, which `@` also opens). User bindings win at equal depth.
+        "context": "Editor",
+        "bindings": {
+            "ctrl-;": "terminal_panel::ToggleFocus"
         }
     },
     {
         "context": "Terminal",
         "bindings": {
-            "ctrl z": "terminal_panel::Toggle",
+            "ctrl-;": "terminal_panel::Toggle",     // hide and return to the editor
             // Deshabilitar ctrl-n y ctrl-p para permitir navegación en fzf
             "ctrl-n": null,
             "ctrl-p": null
