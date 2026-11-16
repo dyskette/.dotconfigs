@@ -17,7 +17,8 @@ scrolloff = 5
 # Enter on a text file opens it in the session's nvim
 # (tmux/scripts/edit.sh), and tmux switches to that window; yazi stays as it
 # was in its own. Inside nvim's yazi float the file goes to that nvim
-# instead, as before. Windows has no such session layout: plain nvim there.
+# instead, as before. On Windows yazi runs openers through cmd.exe, which
+# reaches the bash script through edit.cmd (%% is yazi's escape for %).
 #
 # Not block: the editor is in another window, so the opener needs no
 # terminal, and yazi keeping its own matters. A blocking opener hands the
@@ -28,7 +29,7 @@ scrolloff = 5
 [opener]
 edit = [
   { run = '~/.dotconfigs/tmux/scripts/edit.sh %s', desc = "nvim (this session)", for = "unix" },
-  { run = 'nvim %s', block = true, desc = "nvim", for = "windows" },
+  { run = '%%USERPROFILE%%\.dotconfigs\tmux\scripts\edit.cmd %s', desc = "nvim (this session)", for = "windows" },
 ]
 
 # git.yazi - per-file VCS status in the file list.

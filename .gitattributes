@@ -3,3 +3,5 @@
 yazi/package.toml text eol=lf
 # Read line by line by bash (project-picker.sh), Git Bash included.
 tmux/projects.conf text eol=lf
+# cmd.exe scripts (tmux/scripts/edit.cmd) keep cmd's own line endings.
+*.cmd text eol=crlf

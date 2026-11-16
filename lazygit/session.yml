@@ -1,17 +1,17 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/jesseduffield/lazygit/master/schema/config.json
 #
-# Layered over config.yml on Linux through LG_CONFIG_FILE
-# (bash/bashrc.d/lazygit.sh), where lazygit has a window of its own in every
-# tmux session: `e` and `o` hand the file to the session's editor
-# (tmux/scripts/edit.sh) instead of starting an nvim inside lazygit, and tmux
-# switches to the nvim window. Run from an nvim terminal instead, edit.sh
-# sends the file to that nvim, so the lazygit float keeps working as it did.
+# Layered over config.yml through LG_CONFIG_FILE (bash/bashrc.d/lazygit.sh),
+# where lazygit has a window of its own in every tmux session: `e` and `o`
+# hand the file to the session's editor (tmux/scripts/edit.sh) instead of
+# starting an nvim inside lazygit, and tmux switches to the nvim window. Run
+# from an nvim terminal instead, edit.sh sends the file to that nvim, so the
+# lazygit float keeps working as it did.
 #
-# Not on Windows: there lazygit runs these through cmd.exe, which can make
-# nothing of a bash script, so config.yml's `editPreset: nvim` stands.
+# Windows (psmux) has the same in session-windows.yml: lazygit runs these
+# through cmd.exe there, which needs edit.cmd to reach the bash script.
 os:
   edit: "~/.dotconfigs/tmux/scripts/edit.sh {{filename}}"
-  editAtLine: "~/.dotconfigs/tmux/scripts/edit.sh -l {{line}} {{filename}}"
+  editAtLine: "~/.dotconfigs/tmux/scripts/edit.sh {{filename}}:{{line}}"
   openDirInEditor: "~/.dotconfigs/tmux/scripts/edit.sh {{dir}}"
   # The file goes to the editor's own window, so lazygit keeps its terminal
   # rather than handing it over and redrawing: a tool that gives the

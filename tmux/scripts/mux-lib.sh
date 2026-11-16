@@ -1,26 +1,36 @@
-# Platform bits shared by the popup scripts that run on both tmux (Linux) and
-# psmux (Windows, under Git Bash). Source it; it defines:
+# Sessions for tmux (Linux) and psmux (Windows, run by Git Bash), shared by
+# every script in this folder. Source it.
 #
-#   win        1 under Git Bash on Windows, 0 elsewhere
-#   sep        the path separator
-#   mux        the multiplexer CLI: psmux or tmux
-#   home       the user's home folder, in the platform's own form
-#   us         the unit separator (\x1f) between fields of a -F format: a tab
-#              is IFS whitespace, so read would merge the empty fields around it
+# Platform
+#   win          1 under Git Bash on Windows, 0 elsewhere
+#   sep          the path separator
+#   mux          the multiplexer CLI: psmux or tmux
+#   home         the user's home folder, in the platform's own form
+#   us           the unit separator (\x1f) between fields of a -F format: a
+#                tab is IFS whitespace, so read would merge empty fields
 #
-#   fzf_callbacks SCRIPT   set FZF_SHELL (for --with-shell) and SELF (the
-#                          command that runs SCRIPT from an fzf binding)
-#   new_state_file NAME    REPLY: a new empty file for a popup's state
-#   in_client              true when running inside a tmux/psmux client
-#   current_session        REPLY: the session the popup was opened from
+# Helpers
+#   fzf_callbacks SCRIPT     FZF_SHELL (for --with-shell) and SELF (the
+#                            command that runs SCRIPT from an fzf binding)
+#   new_state_file NAME      REPLY: a new empty file for a popup's state
 #   ago SECONDS_SINCE_EPOCH  print "now", "5m", "3h" or "2d" ("new" when
-#                          empty: a session never attached)
-#   normdir DIR            REPLY: DIR with one trailing separator
-#   parent DIR             REPLY: the folder above DIR
-#   session_for DIR [NAME] REPLY: the session for DIR; session_kind: existing
-#                          or new
-#   ensure_session DIR [NAME]  REPLY: that session, created when new
+#                            empty: a session never attached)
+#   normdir DIR              REPLY: DIR with one trailing separator
+#   parent DIR               REPLY: the folder above DIR
+#   command_line WORD...     REPLY: the words as one line for a pane's shell
+#
+# Sessions
+#   in_client                true inside a tmux/psmux client
+#   current_session          REPLY: the session this process belongs to
+#   session_for DIR [NAME]   REPLY: the session for DIR; session_kind:
+#                            existing or new
+#   ensure_session DIR [NAME]  REPLY: that session, built when new
 #   open_session DIR [NAME]    ensure_session, then switch or attach to it
+#
+# Slots: the windows every session is built with (see build_session)
+#   slot_window SESSION NAME   REPLY: the id of SESSION's window NAME
+#   slot_start SESSION WINDOW [COMMAND]  start a slot's tool, or COMMAND
+#   editor_address SESSION     REPLY: where SESSION's nvim listens
 #
 # Everything a popup runs before fzf draws delays the popup, and under Git Bash
 # each fork costs 20-40 ms, so the helpers here fork as little as they can.
@@ -38,13 +48,14 @@ if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
     home="$USERPROFILE"
     # Keep MSYS from rewriting the Windows paths and targets handed to psmux.
     export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
-    # psmux runs a server per session, and a session's server keeps the
-    # environment of whoever started it: one created from inside another
-    # session (tm, prefix a, prefix s) carries that session's TMUX, which the
-    # CLI follows ahead of the PSMUX_TARGET_SESSION psmux sets for each popup.
-    # "switch-client" would then move the other session's client instead, so
-    # in a popup only PSMUX_TARGET_SESSION is left to route the CLI.
-    if [[ -n "${PSMUX_POPUP:-}" && -n "${PSMUX_TARGET_SESSION:-}" ]]; then
+    # psmux runs a server per session, and a server keeps the environment of
+    # whoever started it: TMUX and PSMUX_SESSION in a session created from
+    # inside another one (tm, prefix s, prefix a), or in a run-shell job,
+    # name that other session, and the CLI follows TMUX first. psmux sets
+    # PSMUX_TARGET_SESSION right in panes, popups and jobs alike, so it is
+    # the one to trust: the CLI routes by it once TMUX is gone.
+    if [[ -n "${PSMUX_TARGET_SESSION:-}" ]]; then
+        export PSMUX_SESSION="$PSMUX_TARGET_SESSION"
         unset TMUX TMUX_PANE
     fi
 else
@@ -53,6 +64,8 @@ else
     mux=tmux
     home="$HOME"
 fi
+
+# --- Helpers -----------------------------------------------------------------
 
 # fzf.exe on Windows would try $SHELL (/usr/bin/bash, an MSYS path it cannot
 # start), so its child commands go through cmd, which starts Git Bash by its
@@ -87,21 +100,6 @@ new_state_file() {
     ((noclobber)) || set +C
     REPLY=""
     return 1
-}
-
-in_client() {
-    [[ -n "${TMUX:-}" || -n "${PSMUX_POPUP:-}" ]]
-}
-
-# psmux runs a server per session, and a CLI call without -t from a popup
-# can answer for another session (the most recently attached), so psmux's
-# own note of the popup's session is used instead.
-current_session() {
-    if ((win)) && [[ -n "${PSMUX_SESSION:-}" ]]; then
-        REPLY="$PSMUX_SESSION"
-    else
-        REPLY="$("$mux" display-message -p '#S' 2>/dev/null)"
-    fi
 }
 
 ago() {
@@ -143,6 +141,39 @@ parent() {
     fi
 }
 
+# REPLY: the words as one command line for the shell a pane runs, which is
+# what send-keys types into and new-window hands a command to: pwsh under
+# psmux (each word single-quoted, ' doubled, behind the call operator, or
+# pwsh would print a quoted program name rather than run it), a POSIX shell
+# under tmux.
+command_line() {
+    local w
+    REPLY=""
+    ((win)) && REPLY="&"
+    for w in "$@"; do
+        if ((win)); then
+            w="'${w//\'/\'\'}'"
+        else
+            printf -v w '%q' "$w"
+        fi
+        REPLY+="${REPLY:+ }$w"
+    done
+}
+
+# --- Sessions ----------------------------------------------------------------
+
+in_client() {
+    [[ -n "${TMUX:-}" || -n "${PSMUX_TARGET_SESSION:-}" ]]
+}
+
+current_session() {
+    if ((win)) && [[ -n "${PSMUX_SESSION:-}" ]]; then
+        REPLY="$PSMUX_SESSION"
+    else
+        REPLY="$("$mux" display-message -p '#S' 2>/dev/null)"
+    fi
+}
+
 # The session for folder $1. When one already runs there, REPLY is its name
 # and session_kind is "existing". Otherwise session_kind is "new" and REPLY a
 # name no other folder's session uses: $2 (a declared name) or the folder's
@@ -165,11 +196,6 @@ session_for() {
     local -A taken=()
     while IFS=$'\t' read -r n path; do
         [[ -z "$n" ]] && continue
-        # popup.sh's sessions share their owner's folder but are not it.
-        if [[ "$n" == popup_* ]]; then
-            taken["$n"]=1
-            continue
-        fi
         normdir "$path"
         path="$REPLY"
         ((win)) && path="${path,,}"
@@ -198,67 +224,13 @@ session_for() {
     REPLY="$name"
 }
 
-# The windows every tmux session gets, in this order, so that prefix 1..5 is
-# the only binding needed: a tool keeps its number in every session. Each
-# tool window is a shell holding the command in @lazy, which lazy-slot.sh
-# types the first time the window is shown (tmux.conf's
-# session-window-changed hook).
-#
-# yazi is here rather than in a popup because a popup attaches a second
-# client, and yazi wraps its terminal probe in one layer of tmux
-# passthrough: the popup's own tmux unwraps it, the outer one swallows it,
-# and yazi falls back from the kitty graphics protocol to chafa. In a plain
-# window it talks to the terminal and shows images.
-#
-# psmux (Windows) keeps the popups: popup.sh, psmux.conf.
-slot_names=(yazi nvim lazygit agent shell)
-slot_cmds=(yazi nvim lazygit opencode "")
-
-# REPLY: where session $1's nvim listens. One editor per project: the nvim
-# window starts with --listen on this address and edit.sh sends every file
-# opened elsewhere in the session to it. In the runtime folder, so the
-# sockets of a login go when it does.
-session_socket() {
-    local name="${1//[^A-Za-z0-9_.-]/_}"
-    REPLY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/nvim-$name.sock"
-}
-
-# The session $1, with a window per slot, started in folder $2. Windows are
-# addressed by id (@N), which neither renumbering nor a rename can move.
-build_session() {
-    local name="$1" dir="$2" i id last="" cmd
-    session_socket "$name"
-    local sock="$REPLY"
-    for i in "${!slot_names[@]}"; do
-        if ((i == 0)); then
-            id="$("$mux" new-session -dP -F '#{window_id}' -s "$name" -c "$dir" -n "${slot_names[i]}")" || return 1
-        else
-            id="$("$mux" new-window -dP -F '#{window_id}' -t "=$name:" -c "$dir" -n "${slot_names[i]}")" || return 1
-        fi
-        # The editor's address is written into its command rather than taken
-        # from the environment: window 1 is created with the session, before
-        # anything can be put in it.
-        cmd="${slot_cmds[i]}"
-        [[ "${slot_names[i]}" == nvim ]] && cmd="nvim --listen $sock"
-        [[ -n "$cmd" ]] && "$mux" set-option -w -t "$id" @lazy "$cmd"
-        last="$id"
-    done
-    # The shell is the last slot, and where a session opens.
-    "$mux" select-window -t "$last"
-}
-
-# REPLY: the session for folder $1, created when it was not running. Held in
-# a local meanwhile: building one goes through session_socket, and REPLY is
-# what every caller reads the name from afterwards.
+# REPLY: the session for folder $1, built when it was not running. Held in a
+# local meanwhile: building one sets REPLY on the way.
 ensure_session() {
     session_for "$1" "${2:-}"
     local name="$REPLY"
     if [[ "$session_kind" == new ]]; then
-        if ((win)); then
-            "$mux" new-session -d -s "$name" -c "$1" || return 1
-        else
-            build_session "$name" "$1" || return 1
-        fi
+        build_session "$name" "$1" || return 1
     fi
     REPLY="$name"
 }
@@ -271,4 +243,113 @@ open_session() {
     else
         "$mux" attach -t "=$REPLY"
     fi
+}
+
+# --- Slots -------------------------------------------------------------------
+#
+# Every session gets the same windows, in this order, so prefix 1..5 is the
+# only binding needed: a tool keeps its number in every session.
+#
+#   1 yazi   2 nvim   3 lazygit   4 agent   5 shell
+#
+# A tool window is a shell until it is first shown: the window-change hooks
+# (tmux.conf, psmux.conf) run lazy-slot.sh, which types the tool's command
+# into it. The windows still to start are listed in the session option
+# @slots_pending as ":@1:@3:", which the hooks match with #{m:} without a
+# shell, so switching to a window with nothing to start forks nothing. (A
+# window option per window would be tmux's way; psmux 3.4.0 keeps user
+# options per session, so the list lives there on both.)
+#
+# yazi is a window rather than a popup because a popup attaches a second
+# client, and yazi wraps its terminal probe in one layer of tmux passthrough:
+# the popup's own tmux unwraps it, the outer one swallows it, and yazi falls
+# back from the kitty graphics protocol to chafa. In a plain window it talks
+# to the terminal and shows images.
+slots=(yazi nvim lazygit agent shell)
+
+# REPLY: where session $1's nvim listens. One editor per session: the nvim
+# window starts listening here, and edit.sh sends every file opened elsewhere
+# in the session to it. On Windows a named pipe, written with forward
+# slashes: MSYS strips one of the two leading backslashes of \\.\pipe\ on its
+# way to a Windows program, and nvim takes either form. Elsewhere a socket in
+# the runtime folder, so a login's sockets go when it does.
+editor_address() {
+    local name="${1//[^A-Za-z0-9_.-]/_}"
+    if ((win)); then
+        REPLY="//./pipe/nvim-$name"
+    else
+        REPLY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/nvim-$name.sock"
+    fi
+}
+
+# REPLY: the command slot $2 of session $1 starts, as a line for its shell;
+# empty for the shell slot.
+slot_command() {
+    case "$2" in
+        yazi | lazygit) command_line "$2" ;;
+        agent) command_line opencode ;;
+        nvim)
+            editor_address "$1"
+            command_line nvim --listen "$REPLY"
+            ;;
+        *) REPLY="" ;;
+    esac
+}
+
+# Session $1, with a window per slot, started in folder $2; it opens on the
+# shell. Windows are addressed by id (@N), which neither renumbering nor a
+# rename can move, and always with their session: psmux numbers ids per
+# session, each session being a server of its own.
+build_session() {
+    local name="$1" dir="$2" i id pending=":"
+    for i in "${!slots[@]}"; do
+        if ((i == 0)); then
+            id="$("$mux" new-session -dP -F '#{window_id}' -s "$name" -c "$dir" -n "${slots[i]}")" || return 1
+        else
+            id="$("$mux" new-window -dP -F '#{window_id}' -t "=$name:" -c "$dir" -n "${slots[i]}")" || return 1
+        fi
+        [[ "${slots[i]}" != shell ]] && pending+="$id:"
+    done
+    "$mux" set-option -t "=$name" @slots_pending "$pending"
+    "$mux" select-window -t "=$name:$id"
+}
+
+# REPLY: the id of session $1's window named $2. Matched here rather than with
+# list-windows -f, which psmux 3.4.0 ignores.
+slot_window() {
+    local id n
+    while IFS=$us read -r id n; do
+        if [[ "$n" == "$2" ]]; then
+            REPLY="$id"
+            return 0
+        fi
+    done < <("$mux" list-windows -t "=$1" -F "#{window_id}${us}#{window_name}" 2>/dev/null)
+    REPLY=""
+    return 1
+}
+
+# Start window $2 of session $1: type its slot's command -- or $3 -- into the
+# shell there. Without $3 only a window still pending its first start (see
+# above), with $3 any window; either way it leaves the pending list, and keys
+# are only sent to a pane at a shell prompt, never into a running program.
+# Typed rather than run in place of the shell, so quitting the tool leaves
+# the shell, the window and its number. Fails when nothing was started.
+slot_start() {
+    local s="$1" w="$2" cmd="${3:-}" pending
+    pending="$("$mux" show-options -t "=$s" -qv @slots_pending 2>/dev/null)"
+    if [[ "$pending" == *":$w:"* ]]; then
+        "$mux" set-option -t "=$s" @slots_pending "${pending/":$w:"/:}"
+    elif [[ -z "$cmd" ]]; then
+        return 1
+    fi
+    case "$("$mux" display-message -t "=$s:$w" -p '#{pane_current_command}' 2>/dev/null)" in
+        bash | sh | zsh | fish | pwsh | powershell | cmd) ;;
+        *) return 1 ;;
+    esac
+    if [[ -z "$cmd" ]]; then
+        slot_command "$s" "$("$mux" display-message -t "=$s:$w" -p '#{window_name}' 2>/dev/null)"
+        cmd="$REPLY"
+    fi
+    [[ -n "$cmd" ]] || return 1
+    "$mux" send-keys -t "=$s:$w" "$cmd" Enter
 }

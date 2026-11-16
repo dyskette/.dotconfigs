@@ -296,6 +296,15 @@ function cat {
 
 # --- Git ---------------------------------------------------------------------
 
+# lazygit reads every file in LG_CONFIG_FILE, later ones winning:
+# session-windows.yml makes `e` and `o` open files in the psmux session's
+# nvim (tmux/scripts/edit.sh, through edit.cmd), as bash/bashrc.d/lazygit.sh
+# does with session.yml on Linux.
+$env:LG_CONFIG_FILE = (
+    "$HOME\.dotconfigs\lazygit\config.yml",
+    "$HOME\.dotconfigs\lazygit\session-windows.yml"
+) -join ','
+
 function glog {
     git log --decorate=full --oneline --graph
 }

@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jesseduffield/lazygit/master/schema/config.json
+#
+# session.yml for Windows (psmux), layered over config.yml through
+# LG_CONFIG_FILE (powershell/CliTools.ps1). The same settings; only the way
+# in differs: lazygit runs these through cmd.exe, which expands %USERPROFILE%
+# and cannot start a bash script, so they go through edit.cmd.
+os:
+  edit: '%USERPROFILE%\.dotconfigs\tmux\scripts\edit.cmd {{filename}}'
+  editAtLine: '%USERPROFILE%\.dotconfigs\tmux\scripts\edit.cmd {{filename}}:{{line}}'
+  openDirInEditor: '%USERPROFILE%\.dotconfigs\tmux\scripts\edit.cmd {{dir}}'
+  editInTerminal: false
+  editAtLineAndWait: "nvim +{{line}} -- {{filename}}"
