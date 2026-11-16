@@ -198,10 +198,47 @@ session_for() {
     REPLY="$name"
 }
 
+# The windows every tmux session gets, in this order, so that prefix 1..5 is
+# the only binding needed: a tool keeps its number in every session. Each
+# tool window is a shell holding the command in @lazy, which lazy-slot.sh
+# types the first time the window is shown (tmux.conf's
+# session-window-changed hook).
+#
+# yazi is here rather than in a popup because a popup attaches a second
+# client, and yazi wraps its terminal probe in one layer of tmux
+# passthrough: the popup's own tmux unwraps it, the outer one swallows it,
+# and yazi falls back from the kitty graphics protocol to chafa. In a plain
+# window it talks to the terminal and shows images.
+#
+# psmux (Windows) keeps the popups: popup.sh, psmux.conf.
+slot_names=(yazi nvim lazygit agent shell)
+slot_cmds=(yazi nvim lazygit opencode "")
+
+# The session $1, with a window per slot, started in folder $2. Windows are
+# addressed by id (@N), which neither renumbering nor a rename can move.
+build_session() {
+    local name="$1" dir="$2" i id last=""
+    for i in "${!slot_names[@]}"; do
+        if ((i == 0)); then
+            id="$("$mux" new-session -dP -F '#{window_id}' -s "$name" -c "$dir" -n "${slot_names[i]}")" || return 1
+        else
+            id="$("$mux" new-window -dP -F '#{window_id}' -t "=$name:" -c "$dir" -n "${slot_names[i]}")" || return 1
+        fi
+        [[ -n "${slot_cmds[i]}" ]] && "$mux" set-option -w -t "$id" @lazy "${slot_cmds[i]}"
+        last="$id"
+    done
+    # The shell is the last slot, and where a session opens.
+    "$mux" select-window -t "$last"
+}
+
 ensure_session() {
     session_for "$1" "${2:-}"
     if [[ "$session_kind" == new ]]; then
-        "$mux" new-session -d -s "$REPLY" -c "$1"
+        if ((win)); then
+            "$mux" new-session -d -s "$REPLY" -c "$1"
+        else
+            build_session "$REPLY" "$1"
+        fi
     fi
 }
 

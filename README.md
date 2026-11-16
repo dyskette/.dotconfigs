@@ -55,11 +55,22 @@ Same keys and commands in both shells:
 
 In nvim, `<leader>gg` toggles lazygit and `<C-\>` a shell, both in floats
 (toggleterm.nvim). Anything they open with `nvim` (lazygit's `e`, a commit
-message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one. In
-tmux/psmux, `prefix g` and `prefix e` toggle lazygit and yazi in a popup:
-the same key hides it again, and the tool keeps running, as it was, until
-you quit it. Each session has its own, started in the pane's folder
-(`tmux/scripts/popup.sh`, which keeps them in hidden `popup_*` sessions).
+message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one.
+
+In tmux every session is built with the same windows, so the tools need no
+keys of their own — `prefix 1`…`prefix 5` go to one, `prefix l` back:
+
+| | |
+| --- | --- |
+| `1 yazi` `2 nvim` `3 lazygit` `4 agent` | a shell until the first time you switch to it, which starts the tool (`tmux/scripts/lazy-slot.sh`); quitting the tool leaves the shell, so the numbers never move |
+| `5 shell` | where a session opens |
+
+On psmux (Windows), `prefix g` and `prefix e` still toggle lazygit and yazi
+in a popup that keeps them running (`tmux/scripts/popup.sh`, hidden
+`popup_*` sessions). tmux dropped the popups because a popup is a second
+client, and yazi can only wrap its terminal probe in one layer of
+passthrough: in a popup its image previews fall back to ASCII art, in a
+window they work.
 
 ## Sessions (tmux and psmux)
 
