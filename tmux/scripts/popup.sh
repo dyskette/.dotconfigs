@@ -37,12 +37,26 @@ if ! "$mux" has-session -t "=$name" 2>/dev/null; then
     # psmux expands formats in a popup's command, so it is asked for here.
     dir="$("$mux" display-message -t "=$owner:" -p '#{pane_current_path}' 2>/dev/null)"
     [[ -d "$dir" ]] || dir="$home"
-    "$mux" new-session -d -s "$name" -c "$dir" "$tool" || exit 1
-    # Only the tool in the popup. tmux.conf sets detach-on-destroy off,
-    # which would move this client to another session, inside the popup,
-    # when the tool quits; psmux has no such option and closes anyway.
-    "$mux" set-option -t "$name" status off 2>/dev/null
-    "$mux" set-option -t "$name" detach-on-destroy on 2>/dev/null
+    if ((win)); then
+        # psmux 3.4.0 only lets a client go when the key it pressed is bound
+        # to exactly detach-client, which the client handles itself. Run by
+        # the server, as psmux.conf's if-shell does, detach-client drops the
+        # client from the server's list without telling it, and the popup
+        # stays up. psmux runs a server per session, so this one gets plain
+        # detach-client on both keys: in a command list, what follows
+        # new-session runs on the session it created.
+        "$mux" new-session -d -s "$name" -c "$dir" "$tool" \; \
+            set-option status off \; \
+            bind-key g detach-client \; \
+            bind-key e detach-client || exit 1
+    else
+        "$mux" new-session -d -s "$name" -c "$dir" "$tool" || exit 1
+        # Only the tool in the popup. tmux.conf sets detach-on-destroy off,
+        # which would move this client to another session, inside the
+        # popup, when the tool quits.
+        "$mux" set-option -t "$name" status off
+        "$mux" set-option -t "$name" detach-on-destroy on
+    fi
 fi
 
 # A client inside a client: tmux refuses to attach while TMUX is set.
