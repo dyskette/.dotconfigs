@@ -28,8 +28,8 @@
 #   open_session DIR [NAME]    ensure_session, then switch or attach to it
 #
 # Slots: the windows every session is built with (see build_session)
-#   slot_window SESSION NAME   REPLY: the id of SESSION's window NAME
-#   slot_start SESSION WINDOW [COMMAND]  start a slot's tool, or COMMAND
+#   slot_window SESSION NAME   REPLY: the index of SESSION's window NAME
+#   slot_start SESSION INDEX [COMMAND]  start a slot's tool, or COMMAND
 #   editor_address SESSION     REPLY: where SESSION's nvim listens
 #
 # Everything a popup runs before fzf draws delays the popup, and under Git Bash
@@ -252,13 +252,23 @@ open_session() {
 #
 #   1 yazi   2 nvim   3 lazygit   4 agent   5 shell
 #
-# A tool window is a shell until it is first shown: the window-change hooks
-# (tmux.conf, psmux.conf) run lazy-slot.sh, which types the tool's command
-# into it. The windows still to start are listed in the session option
-# @slots_pending as ":@1:@3:", which the hooks match with #{m:} without a
-# shell, so switching to a window with nothing to start forks nothing. (A
-# window option per window would be tmux's way; psmux 3.4.0 keeps user
-# options per session, so the list lives there on both.)
+# A tool window is a shell until it is first shown, when the tool's command is
+# typed into it, so quitting the tool leaves the shell, the window and its
+# number. Each window still to start has the session option @slot_N (N its
+# index) set, and @slots is set while any is; whoever starts window N clears
+# @slot_N:
+#
+#   psmux  the key, prefix N (psmux.conf): it types the command itself with
+#          send-keys, so nothing is spawned. psmux 3.4.0 cannot spawn from a
+#          key or hook once programs run in the session ("The handle is
+#          invalid"), and expands no formats in send-keys, so the command
+#          typed is a constant that gets the session from the pane's own
+#          PSMUX_TARGET_SESSION.
+#   tmux   the session-window-changed hook (tmux.conf), through lazy-slot.sh
+#          and slot_start; it only forks while @slots is set.
+#
+# User options are per session, not per window, because psmux 3.4.0 keeps
+# them so; and the numbers hold because common.conf turns renumbering off.
 #
 # yazi is a window rather than a popup because a popup attaches a second
 # client, and yazi wraps its terminal probe in one layer of tmux passthrough:
@@ -269,21 +279,22 @@ slots=(yazi nvim lazygit agent shell)
 
 # REPLY: where session $1's nvim listens. One editor per session: the nvim
 # window starts listening here, and edit.sh sends every file opened elsewhere
-# in the session to it. On Windows a named pipe, written with forward
-# slashes: MSYS strips one of the two leading backslashes of \\.\pipe\ on its
-# way to a Windows program, and nvim takes either form. Elsewhere a socket in
-# the runtime folder, so a login's sockets go when it does.
+# in the session to it. On Windows a named pipe named after the session as it
+# is, because psmux.conf's key spells the same name from
+# $env:PSMUX_TARGET_SESSION; written with forward slashes, since MSYS strips
+# one of the two leading backslashes of \\.\pipe\ on its way to a Windows
+# program, and nvim takes either form. Elsewhere a socket in the runtime
+# folder, so a login's sockets go when it does.
 editor_address() {
-    local name="${1//[^A-Za-z0-9_.-]/_}"
     if ((win)); then
-        REPLY="//./pipe/nvim-$name"
+        REPLY="//./pipe/nvim-${1//[\\\/]/_}"
     else
-        REPLY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/nvim-$name.sock"
+        REPLY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/nvim-${1//[^A-Za-z0-9_.-]/_}.sock"
     fi
 }
 
 # REPLY: the command slot $2 of session $1 starts, as a line for its shell;
-# empty for the shell slot.
+# empty for the shell slot. psmux.conf spells the same commands for its keys.
 slot_command() {
     case "$2" in
         yazi | lazygit) command_line "$2" ;;
@@ -297,57 +308,50 @@ slot_command() {
 }
 
 # Session $1, with a window per slot, started in folder $2; it opens on the
-# shell. Windows are addressed by id (@N), which neither renumbering nor a
-# rename can move, and always with their session: psmux numbers ids per
-# session, each session being a server of its own.
+# shell.
 build_session() {
-    local name="$1" dir="$2" i id pending=":"
+    local name="$1" dir="$2" i idx
     for i in "${!slots[@]}"; do
         if ((i == 0)); then
-            id="$("$mux" new-session -dP -F '#{window_id}' -s "$name" -c "$dir" -n "${slots[i]}")" || return 1
+            idx="$("$mux" new-session -dP -F '#{window_index}' -s "$name" -c "$dir" -n "${slots[i]}")" || return 1
         else
-            id="$("$mux" new-window -dP -F '#{window_id}' -t "=$name:" -c "$dir" -n "${slots[i]}")" || return 1
+            idx="$("$mux" new-window -dP -F '#{window_index}' -t "=$name:" -c "$dir" -n "${slots[i]}")" || return 1
         fi
-        [[ "${slots[i]}" != shell ]] && pending+="$id:"
+        [[ "${slots[i]}" != shell ]] && "$mux" set-option -t "=$name" "@slot_$idx" 1
     done
-    "$mux" set-option -t "=$name" @slots_pending "$pending"
-    "$mux" select-window -t "=$name:$id"
+    "$mux" set-option -t "=$name" @slots 1
+    "$mux" select-window -t "=$name:$idx"
 }
 
-# REPLY: the id of session $1's window named $2. Matched here rather than with
-# list-windows -f, which psmux 3.4.0 ignores.
+# REPLY: the index of session $1's window named $2. Matched here rather than
+# with list-windows -f, which psmux 3.4.0 ignores.
 slot_window() {
-    local id n
-    while IFS=$us read -r id n; do
+    local idx n
+    while IFS=$us read -r idx n; do
         if [[ "$n" == "$2" ]]; then
-            REPLY="$id"
+            REPLY="$idx"
             return 0
         fi
-    done < <("$mux" list-windows -t "=$1" -F "#{window_id}${us}#{window_name}" 2>/dev/null)
+    done < <("$mux" list-windows -t "=$1" -F "#{window_index}${us}#{window_name}" 2>/dev/null)
     REPLY=""
     return 1
 }
 
-# Start window $2 of session $1: type its slot's command -- or $3 -- into the
-# shell there. Without $3 only a window still pending its first start (see
-# above), with $3 any window. Typed rather than run in place of the shell, so
-# quitting the tool leaves the shell, the window and its number. Fails when
-# nothing was started.
+# Start window $2 (an index) of session $1: type its slot's command -- or $3
+# -- into the shell there. Without $3 only a window still waiting for its
+# first start, with $3 any window; either way it is not waiting any more.
+# Fails when nothing was started.
 #
-# Several of these run at once when windows are switched quickly (each hook
-# starts a background job), so the pending list is only read and written
-# under a lock of the session's, and a window leaves it only once its
-# command has been typed. Keys go only to a pane at a shell prompt: a shell
-# that is still loading its profile shows its helpers there (zoxide, fnm,
-# cygpath under pwsh), so the pane is waited for, for up to 15 s, rather
-# than given up on.
+# tmux's hook can run several of these at once, so the check and the start
+# happen under a lock of the session's. Keys go only to a pane at a shell
+# prompt: one still loading its profile shows its helpers (zoxide, fnm,
+# cygpath under pwsh), so it is waited for, up to 15 s.
 slot_start() {
-    local s="$1" w="$2" cmd="${3:-}" pending i rc=1 lock
+    local s="$1" w="$2" cmd="${3:-}" i rc=1 lock
     lock="${TMPDIR:-/tmp}/slots-${s//[^A-Za-z0-9_.-]/_}.lock"
     slot_lock "$lock" || return 1
-
-    pending="$("$mux" show-options -t "=$s" -qv @slots_pending 2>/dev/null)"
-    if [[ "$pending" == *":$w:"* || -n "$cmd" ]]; then
+    if [[ -n "$cmd" || -n "$("$mux" show-options -t "=$s" -qv "@slot_$w" 2>/dev/null)" ]]; then
+        "$mux" set-option -t "=$s" -u "@slot_$w"
         if [[ -z "$cmd" ]]; then
             slot_command "$s" "$("$mux" display-message -t "=$s:$w" -p '#{window_name}' 2>/dev/null)"
             cmd="$REPLY"
@@ -359,13 +363,9 @@ slot_start() {
             esac
             sleep 0.2
         done
-        if ((i < 75)) && [[ -n "$cmd" ]] && "$mux" send-keys -t "=$s:$w" "$cmd" Enter; then
-            rc=0
-        fi
-        # Started, or not to be started (the shell slot, a window that went
-        # away or never reached a prompt): either way no longer pending.
-        pending="$("$mux" show-options -t "=$s" -qv @slots_pending 2>/dev/null)"
-        [[ "$pending" == *":$w:"* ]] && "$mux" set-option -t "=$s" @slots_pending "${pending/":$w:"/:}"
+        ((i < 75)) && [[ -n "$cmd" ]] && "$mux" send-keys -t "=$s:$w" "$cmd" Enter && rc=0
+        # The hook's filter: off once no window waits.
+        "$mux" show-options -t "=$s" 2>/dev/null | grep -q '^@slot_' || "$mux" set-option -t "=$s" -u @slots
     fi
     rmdir "$lock" 2>/dev/null
     return "$rc"

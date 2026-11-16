@@ -103,12 +103,12 @@ start="$REPLY"
 
 if slot_window "$s" nvim; then
     w="$REPLY"
-    # At its prompt the window gets the editor started on the files: sent
-    # with it rather than after, because an editor still working through its
-    # plugins takes the request and then moves the cursor itself, leaving
-    # the file open at line 1. Otherwise its nvim takes them.
-    slot_start "$s" "$w" "$start" || remote_open "$addr" || give_up
+    # Its nvim takes the files; with none running (never started, or quit)
+    # the editor is started there on them: sent with it rather than after,
+    # because an editor still working through its plugins takes the request
+    # and then moves the cursor itself, leaving the file open at line 1.
+    remote_open "$addr" || slot_start "$s" "$w" "$start" || give_up
 else
-    w="$("$mux" new-window -dP -F '#{window_id}' -t "=$s:" -n nvim -c "$PWD" "$start")" || run_here
+    w="$("$mux" new-window -dP -F '#{window_index}' -t "=$s:" -n nvim -c "$PWD" "$start")" || run_here
 fi
 "$mux" select-window -t "=$s:$w"
