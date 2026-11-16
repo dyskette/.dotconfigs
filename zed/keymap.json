@@ -222,11 +222,14 @@
     },
     {
         // MRU thread switcher opened via space o t: j/k move, enter opens, escape cancels.
-        // (select_last moves one up, wrapping, once the switcher is open.)
+        // ctrl-n/ctrl-p also work while still holding ctrl after ctrl-tab
+        // (releasing ctrl confirms). select_last moves one up, wrapping, once open.
         "context": "ThreadSwitcher",
         "bindings": {
             "j": "agents_sidebar::ToggleThreadSwitcher",
-            "k": ["agents_sidebar::ToggleThreadSwitcher", { "select_last": true }]
+            "k": ["agents_sidebar::ToggleThreadSwitcher", { "select_last": true }],
+            "ctrl-n": "agents_sidebar::ToggleThreadSwitcher",
+            "ctrl-p": ["agents_sidebar::ToggleThreadSwitcher", { "select_last": true }]
         }
     },
 
