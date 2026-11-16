@@ -156,6 +156,8 @@ cmd_list() {
     cur="$REPLY"
     while IFS=$us read -r last name path; do
         [[ -z "$name" || -z "$path" ]] && continue
+        # popup.sh's sessions (lazygit, yazi) belong to another session.
+        [[ "$name" == popup_* ]] && continue
         normdir "$path"
         key="$REPLY"
         ((win)) && key="${key,,}"

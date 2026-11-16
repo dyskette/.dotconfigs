@@ -165,6 +165,11 @@ session_for() {
     local -A taken=()
     while IFS=$'\t' read -r n path; do
         [[ -z "$n" ]] && continue
+        # popup.sh's sessions share their owner's folder but are not it.
+        if [[ "$n" == popup_* ]]; then
+            taken["$n"]=1
+            continue
+        fi
         normdir "$path"
         path="$REPLY"
         ((win)) && path="${path,,}"

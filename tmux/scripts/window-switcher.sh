@@ -63,6 +63,8 @@ cmd_list() {
     local width=0 head tail home_name="${home##*[\\/]}"
     while IFS=$us read -r sess idx active last panes flags auto name title dir; do
         [[ -z "$sess" ]] && continue
+        # popup.sh's sessions (lazygit, yazi) are reached through their key.
+        [[ "$sess" == popup_* ]] && continue
         window_label "$auto" "$name" "$title"
         # The folder only when it adds something: a shell's title already is
         # its folder (~ for home), and a session is usually named after its
