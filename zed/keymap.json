@@ -11,25 +11,19 @@
 // Custom vim-style keybindings for Zed editor
 
 [
-    // ============================================================================
-    // WORKSPACE & PANES
-    // ============================================================================
-    {
-        "context": "Workspace",
-        "bindings": {
-            // Pane navigation
-            "ctrl-w h": "workspace::ActivatePaneLeft",
-            "ctrl-w l": "workspace::ActivatePaneRight",
-            "ctrl-w j": "workspace::ActivatePaneDown",
-            "ctrl-w k": "workspace::ActivatePaneUp"
-        }
-    },
+    // Context notes:
+    // - VimControl is set exactly when vim_mode is normal, visual or operator,
+    //   so "VimControl && !menu" is the leader-key context (menu = completion or
+    //   code-action popup open, or a list panel such as the git panel).
+    // - vim_mode only exists on editors, so "Editor && vim_mode == x" == "vim_mode == x".
+    // - Pane navigation (ctrl-w h/j/k/l) comes from Zed's vim keymap, in normal
+    //   mode and in every panel except the terminal.
 
     // ============================================================================
     // FILE NAVIGATION & SEARCH
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menu",
+        "context": "VimControl && !menu",
         "bindings": {
             "space s s": ["projects::OpenRecent", { "create_new_window": false }],
 
@@ -89,14 +83,9 @@
     // GIT OPERATIONS
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menu",
-        "bindings": {
-            "space g g": "git_panel::ToggleFocus"       // Git status
-        }
-    },
-    {
         "context": "VimControl && !menu",
         "bindings": {
+            "space g g": "git_panel::ToggleFocus",      // Git status
             "space g s": "git::StageAndNext",           // Stage hunk
             "space g u": "git::UnstageAndNext",         // Unstage hunk
             "space g x": "git::Restore",                // Restore hunk
@@ -147,20 +136,15 @@
     // AI AGENT OPERATIONS
     // ============================================================================
     {
-        // VimControl already covers the prompt box in normal mode.
+        // Agent leader keys: any editor in normal mode (incl. the prompt box)
+        // and the agent panel's non-text parts (thread output, sidebar).
         "context": "(VimControl && !menu) || (AgentPanel && !Editor)",
         "bindings": {
             "space o y": "agent::AllowOnce",
             "space o shift-y": "agent::AllowAlways",
             "space o x": "agent::RejectOnce",
             "space o shift-x": "agent::RejectAll",
-            "space o k": "agent::KeepAll"
-        }
-    },
-    {
-        // Workspace-level agent actions: usable from any editor in normal mode.
-        "context": "VimControl && !menu",
-        "bindings": {
+            "space o k": "agent::KeepAll",
             "space o n": "agent::NewThread",
             "space o c": "agent::ToggleNewThreadMenu",          // pick the agent (Zed Agent, Claude, ...) for a new thread
             "space o d": "agent::OpenAgentDiff",
@@ -174,7 +158,7 @@
     {
         // Prompt box in normal mode drives the conversation output.
         // Zed's vim keymap nulls / n N in auto-height editors, so they are free here.
-        "context": "AcpThread > Editor && VimControl && vim_mode == normal",
+        "context": "AcpThread > Editor && vim_mode == normal",
         "bindings": {
             "ctrl-d": "agent::ScrollOutputPageDown",
             "ctrl-u": "agent::ScrollOutputPageUp",
@@ -245,7 +229,7 @@
     // },
 
     // ============================================================================
-    // EDITOR - NORMAL MODE
+    // EDITOR - NORMAL + VISUAL MODE
     // ============================================================================
     {
         "context": "VimControl && !menu",
@@ -254,18 +238,11 @@
             "space a": "editor::SelectAll",
 
             // Focus mode - hide all panels
-            "space space": "workspace::ToggleAllDocks"
-        }
-    },
+            "space space": "workspace::ToggleAllDocks",
 
-    // ============================================================================
-    // EDITOR - INSERT MODE
-    // ============================================================================
-    {
-        "context": "Editor && vim_mode == insert",
-        "bindings": {
-            // Quick escape from insert mode (optional, commented out)
-            // "j k": "vim::NormalBefore"
+            // System clipboard (vim.use_system_clipboard is "never")
+            "space y": ["workspace::SendKeystrokes", "\" + y"],
+            "space p": ["workspace::SendKeystrokes", "\" + p"]
         }
     },
 
@@ -273,7 +250,7 @@
     // EDITOR - VISUAL MODE
     // ============================================================================
     {
-        "context": "Editor && vim_mode == visual",
+        "context": "vim_mode == visual",
         "bindings": {
             // Move lines
             "shift-j": "editor::MoveLineDown",
@@ -281,30 +258,15 @@
 
             // Indentation
             "<": "editor::Outdent",
-            ">": "editor::Indent",
-
-            // LSP actions
-            "space v a": "editor::ToggleCodeActions",
-            "space f f": "editor::Format"
+            ">": "editor::Indent"
         }
-    },
-
-    // ============================================================================
-    // EDITOR - NORMAL + VISUAL MODE
-    // ============================================================================
-    {
-      "context": "VimControl && !VimWaiting && !menu",
-      "bindings": {
-        "space y": ["workspace::SendKeystrokes", "\" + y"],
-        "space p": ["workspace::SendKeystrokes", "\" + p"]
-      }
     },
 
     // ============================================================================
     // COMPLETION MENU
     // ============================================================================
     {
-        "context": "Editor && showing_completions",
+        "context": "showing_completions",
         "bindings": {
             "ctrl-y": "editor::ConfirmCompletion"
         }
