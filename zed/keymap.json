@@ -162,7 +162,7 @@
         "context": "VimControl && !menu",
         "bindings": {
             "space o n": "agent::NewThread",
-            "space o c": ["agent::NewExternalAgentThread", { "agent": "claude-acp" }],
+            "space o c": "agent::ToggleNewThreadMenu",          // pick the agent (Zed Agent, Claude, ...) for a new thread
             "space o d": "agent::OpenAgentDiff",
             "space o s": "multi_workspace::FocusWorkspaceSidebar",
             "space o ]": "multi_workspace::NextThread",      // needs the threads sidebar (ctrl-alt-j) to exist
