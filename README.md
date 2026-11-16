@@ -65,6 +65,14 @@ keys of their own — `prefix 1`…`prefix 5` go to one, `prefix l` back:
 | `1 yazi` `2 nvim` `3 lazygit` `4 agent` | a shell until the first time you switch to it, which starts the tool (`tmux/scripts/lazy-slot.sh`); quitting the tool leaves the shell, so the numbers never move |
 | `5 shell` | where a session opens |
 
+The nvim window is the session's editor: it listens on a socket of its own,
+and `tmux/scripts/edit.sh FILE[:LINE]` — which lazygit's `e` and yazi's
+Enter run (`lazygit/session.yml`, loaded on Linux through `LG_CONFIG_FILE`;
+`yazi/yazi.toml`'s opener) — sends files there and switches to the window,
+starting the editor first if it is not running yet. Commit messages and an
+agent's prompt files stay plain `nvim`: those have to block until the editor
+exits, which a file handed to another nvim never does.
+
 On psmux (Windows), `prefix g` and `prefix e` still toggle lazygit and yazi
 in a popup that keeps them running (`tmux/scripts/popup.sh`, hidden
 `popup_*` sessions). tmux dropped the popups because a popup is a second

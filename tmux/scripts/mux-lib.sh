@@ -214,32 +214,53 @@ session_for() {
 slot_names=(yazi nvim lazygit agent shell)
 slot_cmds=(yazi nvim lazygit opencode "")
 
+# REPLY: where session $1's nvim listens. One editor per project: the nvim
+# window starts with --listen on this address and edit.sh sends every file
+# opened elsewhere in the session to it. In the runtime folder, so the
+# sockets of a login go when it does.
+session_socket() {
+    local name="${1//[^A-Za-z0-9_.-]/_}"
+    REPLY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/nvim-$name.sock"
+}
+
 # The session $1, with a window per slot, started in folder $2. Windows are
 # addressed by id (@N), which neither renumbering nor a rename can move.
 build_session() {
-    local name="$1" dir="$2" i id last=""
+    local name="$1" dir="$2" i id last="" cmd
+    session_socket "$name"
+    local sock="$REPLY"
     for i in "${!slot_names[@]}"; do
         if ((i == 0)); then
             id="$("$mux" new-session -dP -F '#{window_id}' -s "$name" -c "$dir" -n "${slot_names[i]}")" || return 1
         else
             id="$("$mux" new-window -dP -F '#{window_id}' -t "=$name:" -c "$dir" -n "${slot_names[i]}")" || return 1
         fi
-        [[ -n "${slot_cmds[i]}" ]] && "$mux" set-option -w -t "$id" @lazy "${slot_cmds[i]}"
+        # The editor's address is written into its command rather than taken
+        # from the environment: window 1 is created with the session, before
+        # anything can be put in it.
+        cmd="${slot_cmds[i]}"
+        [[ "${slot_names[i]}" == nvim ]] && cmd="nvim --listen $sock"
+        [[ -n "$cmd" ]] && "$mux" set-option -w -t "$id" @lazy "$cmd"
         last="$id"
     done
     # The shell is the last slot, and where a session opens.
     "$mux" select-window -t "$last"
 }
 
+# REPLY: the session for folder $1, created when it was not running. Held in
+# a local meanwhile: building one goes through session_socket, and REPLY is
+# what every caller reads the name from afterwards.
 ensure_session() {
     session_for "$1" "${2:-}"
+    local name="$REPLY"
     if [[ "$session_kind" == new ]]; then
         if ((win)); then
-            "$mux" new-session -d -s "$REPLY" -c "$1"
+            "$mux" new-session -d -s "$name" -c "$1" || return 1
         else
-            build_session "$REPLY" "$1"
+            build_session "$name" "$1" || return 1
         fi
     fi
+    REPLY="$name"
 }
 
 # "=" makes -t match the name exactly instead of by prefix.

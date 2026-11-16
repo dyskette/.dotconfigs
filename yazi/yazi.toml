@@ -14,6 +14,16 @@ sort_dir_first = true
 ratio = [1, 3, 4]
 scrolloff = 5
 
+# Enter on a text file opens it in the session's nvim
+# (tmux/scripts/edit.sh), and tmux switches to that window; yazi stays as it
+# was in its own. Inside nvim's yazi float the file goes to that nvim
+# instead, as before. Windows has no such session layout: plain nvim there.
+[opener]
+edit = [
+  { run = '~/.dotconfigs/tmux/scripts/edit.sh %s', block = true, desc = "nvim (this session)", for = "unix" },
+  { run = 'nvim %s', block = true, desc = "nvim", for = "windows" },
+]
+
 # git.yazi - per-file VCS status in the file list.
 # Two rules are needed because `*` does not match directories; `group` makes
 # both share a single fetch per directory instead of running git twice.
