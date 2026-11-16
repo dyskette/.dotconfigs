@@ -2,33 +2,16 @@
 <#
 .SYNOPSIS
 For a session started from a plain terminal (numeric default name): pick a
-working directory, move to a session named after it, and drop the original.
+project, move to its session, and drop the original.
 
 .NOTES
 Run once per server from the client-attached hook in psmux.conf, inside a
-display-popup; errors go to the psmux status line.
+display-popup. The work is first-session-directory.sh, shared with tmux; this
+only starts it with Git Bash, because the hook's nested quoting leaves no room
+for the bash command line itself.
 #>
 [CmdletBinding()]
 param()
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-Import-Module (Join-Path $PSScriptRoot 'Psmux.psm1')
-
-try {
-    $current = (Invoke-PsmuxCommand -Arguments @('display-message', '-p', '#S') | Select-Object -First 1)
-    if ("$current" -notmatch '^\d+$') { return }
-
-    $selected = Select-HomeDirectory -Header 'select-working-directory'
-    if (-not $selected) { return }
-
-    $name = Switch-ToDirectorySession -Path $selected
-    if ($name -ne $current) {
-        # '=': exact name, so session 0 never matches 01.
-        Invoke-PsmuxCommand -Arguments @('kill-session', '-t', "=$current") | Out-Null
-    }
-} catch {
-    Show-PsmuxMessage "first session: $($_.Exception.Message)"
-    exit 1
-}
+& (Join-Path $env:ProgramFiles 'Git\usr\bin\bash.exe') (Join-Path $PSScriptRoot 'first-session-directory.sh')
+exit $LASTEXITCODE

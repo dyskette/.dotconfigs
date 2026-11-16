@@ -280,31 +280,16 @@ if ($tools.dotnet) {
 
 <#
 .SYNOPSIS
-    Resolve the project directory for tm: the given path, or an fzf pick
-    from directories under $HOME. Returns nothing when the pick is cancelled.
-#>
-function Select-ProjectDirectory {
-    param(
-        [Parameter(Position = 0)]
-        [string]$Directory
-    )
-
-    if ($Directory) {
-        (Resolve-Path -LiteralPath $Directory -ErrorAction Stop).Path
-    } else {
-        fd --type directory --max-depth 3 --exclude .git --exclude node_modules --exclude .venv --hidden . $HOME |
-            fzf --reverse --height=50% `
-                --header="select project directory" `
-                --border=none `
-                --preview-window=border-left `
-                --preview "eza --tree --git-ignore --level 2 --colour=always --icons=always {}"
-    }
-}
-
-<#
-.SYNOPSIS
-    psmux session manager: switch-client from inside,
-    new-session -A (attach or create) from outside.
+    psmux session for a project: switch-client from inside, attach from
+    outside.
+.DESCRIPTION
+    With no Directory, picks one the way prefix S does: the bash project
+    picker (tmux/scripts/project-picker.sh) lists tmux/projects.conf, its
+    roots and zoxide's folders. The picker only creates the session and prints
+    its name (--print); attaching happens here, so it goes through
+    Invoke-Psmux like any other attach.
+.PARAMETER Directory
+    Open this folder's session instead of picking one.
 #>
 function tm {
     param(
@@ -312,23 +297,23 @@ function tm {
         [string]$Directory
     )
 
-    $dir = Select-ProjectDirectory $Directory
-    if (-not $dir) {
+    $bash = Join-Path $env:ProgramFiles 'Git\usr\bin\bash.exe'
+    $picker = Join-Path $HOME '.dotconfigs\tmux\scripts\project-picker.sh'
+    $pickerArgs = @($picker, '--print')
+    if ($Directory) {
+        $pickerArgs += (Resolve-Path -LiteralPath $Directory -ErrorAction Stop).Path
+    }
+
+    $name = & $bash @pickerArgs | Select-Object -Last 1
+    if (-not $name) {
         return
     }
 
-    # TrimEnd: fd prints directories with a trailing separator.
-    $name = (Split-Path -Leaf $dir.TrimEnd('\', '/')) -replace '\.', '_'
-
     # "=" makes -t match the name exactly
     if ($env:TMUX) {
-        psmux has-session -t "=$name" 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            psmux new-session -d -s $name -c $dir
-        }
         psmux switch-client -t "=$name"
     } else {
-        psmux new-session -A -s $name -c $dir
+        psmux attach-session -t "=$name"
     }
 }
 

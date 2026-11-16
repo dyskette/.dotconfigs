@@ -1,7 +1,7 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-Helpers for the psmux scripts (session pickers and themes).
+Helpers for the psmux theme scripts (set-theme.ps1, toggle-theme.ps1).
 
 .NOTES
 psmux runs run-shell and display-popup commands with pwsh, with the user's
@@ -43,18 +43,6 @@ function Invoke-PsmuxCommand {
 
 <#
 .SYNOPSIS
-True when a session with exactly this name exists ('=' disables prefix matching).
-#>
-function Test-PsmuxSession {
-    [CmdletBinding()]
-    [OutputType([bool])]
-    param([Parameter(Mandatory)][string]$Name)
-
-    $null -ne (Invoke-PsmuxCommand -Arguments @('has-session', '-t', "=$Name") -NoThrow)
-}
-
-<#
-.SYNOPSIS
 Shows a message in the psmux status line. A popup closes as soon as its script
 ends, so errors from popup scripts are reported here instead.
 #>
@@ -64,77 +52,6 @@ function Show-PsmuxMessage {
 
     $target = if ($env:PSMUX_TARGET_SESSION) { @('-t', $env:PSMUX_TARGET_SESSION) } else { @() }
     Invoke-PsmuxCommand -Arguments (@('display-message') + $target + $Message) -NoThrow | Out-Null
-}
-
-<#
-.SYNOPSIS
-Picks a directory under $HOME with fd and fzf.
-
-.PARAMETER Depth
-How many levels under $HOME fd descends; 0 means no limit. The default, 5,
-matches bash's tm and the tmux pickers.
-
-.OUTPUTS
-The selected path, or nothing when the picker is cancelled.
-#>
-function Select-HomeDirectory {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string]$Header,
-        [int]$Depth = 5,
-        [string[]]$Exclude = @('.git', 'node_modules', '.venv')
-    )
-
-    foreach ($tool in 'fd', 'fzf') {
-        if (-not (Get-Command $tool -CommandType Application -ErrorAction SilentlyContinue)) {
-            throw "$tool is not on PATH; the directory picker needs fd and fzf."
-        }
-    }
-
-    $fdArguments = @('--type', 'directory', '--hidden') +
-        @(if ($Depth -gt 0) { '--max-depth', $Depth }) +
-        @($Exclude | ForEach-Object { '--exclude', $_ }) + @('.', $HOME)
-    # fzf exits 130 when cancelled; that is not an error, just no selection.
-    # Not sorted: Sort-Object would hold every line until fd finishes, so fzf
-    # would show nothing until then. Native-to-native, pwsh 7.4+ pipes the
-    # bytes straight through, so the list streams in while fd walks; fzf ranks
-    # it by path once a query is typed.
-    fd @fdArguments |
-        fzf --reverse --scheme=path "--header=$Header" --border=none --preview-window=border-left `
-            '--preview=eza --tree --git-ignore --level 2 --colour=always --icons=always {}'
-}
-
-<#
-.SYNOPSIS
-Session name for a directory: its leaf name. psmux, like tmux, rejects '.' and
-':' in session names; spaces are replaced for easier targeting.
-#>
-function ConvertTo-SessionName {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param([Parameter(Mandatory)][string]$Path)
-
-    (Split-Path -Leaf $Path.TrimEnd('\', '/')) -replace '[.: ]', '_'
-}
-
-<#
-.SYNOPSIS
-Switches to the session for a directory, creating it first if needed.
-
-.OUTPUTS
-The session name.
-#>
-function Switch-ToDirectorySession {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param([Parameter(Mandatory)][string]$Path)
-
-    $name = ConvertTo-SessionName $Path
-    if (-not (Test-PsmuxSession -Name $name)) {
-        Invoke-PsmuxCommand -Arguments @('new-session', '-d', '-s', $name, '-c', $Path) | Out-Null
-    }
-    Invoke-PsmuxCommand -Arguments @('switch-client', '-t', "=$name") | Out-Null
-    return $name
 }
 
 <#
@@ -155,5 +72,4 @@ function ConvertFrom-ThemeLine {
     }
 }
 
-Export-ModuleMember -Function Invoke-PsmuxCommand, Test-PsmuxSession, Show-PsmuxMessage, Select-HomeDirectory,
-    ConvertTo-SessionName, Switch-ToDirectorySession, ConvertFrom-ThemeLine
+Export-ModuleMember -Function Invoke-PsmuxCommand, Show-PsmuxMessage, ConvertFrom-ThemeLine

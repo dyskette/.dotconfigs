@@ -21,16 +21,6 @@ AfterAll {
     Remove-Module Psmux -ErrorAction SilentlyContinue
 }
 
-Describe 'ConvertTo-SessionName' {
-    It 'turns <Path> into <Name>' -TestCases @(
-        @{ Path = 'C:\Users\me\.dotconfigs'; Name = '_dotconfigs' }
-        @{ Path = 'C:\Users\me\my project\'; Name = 'my_project' }
-        @{ Path = 'C:/work/app.v2/'; Name = 'app_v2' }
-    ) {
-        ConvertTo-SessionName $Path | Should -Be $Name
-    }
-}
-
 Describe 'ConvertFrom-ThemeLine' {
     It 'parses <Line>' -TestCases @(
         @{ Line = 'set -g status-style "bg=#2d353b,fg=#d3c6aa"'; Option = 'status-style'; Value = 'bg=#2d353b,fg=#d3c6aa' }
@@ -56,33 +46,6 @@ Describe 'ConvertFrom-ThemeLine' {
                 ConvertFrom-ThemeLine $line | Should -Not -BeNullOrEmpty -Because "$theme.conf: $line"
             }
         }
-    }
-}
-
-Describe 'Switch-ToDirectorySession' {
-    It 'creates a missing session, then switches to it by exact name' {
-        Mock Invoke-PsmuxCommand -ModuleName Psmux { $null } -ParameterFilter { $Arguments[0] -eq 'has-session' }
-        Mock Invoke-PsmuxCommand -ModuleName Psmux { '' }
-
-        Switch-ToDirectorySession -Path 'C:\src\dot' | Should -Be 'dot'
-
-        Should -Invoke Invoke-PsmuxCommand -ModuleName Psmux -ParameterFilter { ($Arguments -join ' ') -eq 'has-session -t =dot' }
-        Should -Invoke Invoke-PsmuxCommand -ModuleName Psmux -ParameterFilter { ($Arguments -join ' ') -eq 'new-session -d -s dot -c C:\src\dot' }
-        Should -Invoke Invoke-PsmuxCommand -ModuleName Psmux -ParameterFilter { ($Arguments -join ' ') -eq 'switch-client -t =dot' }
-    }
-
-    It 'does not create a session that exists' {
-        Mock Invoke-PsmuxCommand -ModuleName Psmux { '' }
-        Switch-ToDirectorySession -Path 'C:\src\dot' | Out-Null
-        Should -Invoke Invoke-PsmuxCommand -ModuleName Psmux -Times 0 -Exactly -ParameterFilter { $Arguments[0] -eq 'new-session' }
-    }
-}
-
-Describe 'Select-HomeDirectory' {
-    It 'explains which tool is missing' {
-        Mock Get-Command -ModuleName Psmux { $null } -ParameterFilter { $Name -eq 'fzf' }
-        Mock Get-Command -ModuleName Psmux { [pscustomobject]@{ Name = 'fd' } } -ParameterFilter { $Name -eq 'fd' }
-        { Select-HomeDirectory -Header 'x' } | Should -Throw '*fzf is not on PATH*'
     }
 }
 

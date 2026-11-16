@@ -1,6 +1,6 @@
 # fzf, fd, ripgrep and bat wired into bash: fzf's own key bindings and **
-# completion, fed by fd and previewed by bat and eza, plus the tm session
-# picker. The pickers with their own names (sf, sg, ...) live in files.sh.
+# completion, fed by fd and previewed by bat and eza. The pickers with their
+# own names (sf, sg, ...) live in files.sh, the tm session picker in tmux.sh.
 # sesh's picker is `s` (sesh.sh).
 #
 #   Ctrl+t   insert files picked with fzf at the cursor
@@ -80,37 +80,3 @@ _fzf_comprun() {
 if [[ $- == *i* ]]; then
   eval "$(fzf --bash)"
 fi
-
-# Resolve the project directory for tm: the argument if given, otherwise an
-# fzf pick from directories under ~, searched $2 levels deep (default 3).
-# Fails when cancelled.
-__pick_project_dir() {
-  if [[ -n "$1" ]]; then
-    # -e: fail on a missing directory instead of resolving it anyway
-    realpath -e "$1"
-  else
-    local dir
-    dir=$(fd --type directory --max-depth "${2:-3}" --hidden . ~ |
-      fzf --scheme=path --border-label=' project ' --preview "$FZF_PREVIEW_DIR")
-    [[ -n "$dir" ]] && echo "$dir"
-  fi
-}
-
-# Tmux session manager: switch-client from inside, new-session -A (attach or
-# create) from outside. With no args: fzf pick from project directories.
-tm() {
-  local dir name
-
-  # Five levels, like the tmux popups (tmux/scripts)
-  dir="$(__pick_project_dir "$1" 5)" || return
-
-  name="$(basename "$dir" | tr '.' '_')"
-
-  # "=" makes -t match the name exactly instead of by prefix
-  if [[ -n "$TMUX" ]]; then
-    tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$dir"
-    tmux switch-client -t "=$name"
-  else
-    tmux new-session -A -s "$name" -c "$dir"
-  fi
-}

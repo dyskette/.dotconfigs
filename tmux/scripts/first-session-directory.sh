@@ -1,27 +1,23 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# For a session started from a plain terminal (a numeric default name): pick a
+# project the way prefix S does (project-picker.sh), move to its session, and
+# drop the numbered one. tmux runs this from the after-new-session hook
+# (tmux.conf); psmux from its client-attached hook, through
+# first-session-directory.ps1 (psmux.conf).
+set -u
+here="${BASH_SOURCE[0]%[\\/]*}"
+# shellcheck source=mux-lib.sh
+source "$here/mux-lib.sh"
 
-# Check if this session was created from a regular terminal (not attached to existing tmux)
-# This happens when the session name starts with a number (default tmux naming)
-current_session=$(tmux display-message -p '#S')
+current_session
+cur="$REPLY"
+[[ "$cur" =~ ^[0-9]+$ ]] || exit 0
 
-# Show directory selection if this looks like a new session from terminal
-if [[ "$current_session" =~ ^[0-9]+$ ]]; then
-    # Show directory selection popup, unsorted so the list streams in while
-    # fd walks (as in new-session-from-directory.sh)
-    selected=$(fd --type directory --max-depth 5 --exclude .git --exclude node_modules --exclude .venv --hidden . ~ | \
-        fzf --reverse --scheme=path \
-            --header="select-working-directory" \
-            --border=none \
-            --preview-window=border-left \
-            --preview="eza --tree --git-ignore --level 2 --colour=always --icons=always {}")
+name="$("$BASH" "$here/project-picker.sh" --print)"
+[[ -n "$name" ]] || exit 0
 
-    if [ -n "$selected" ]; then
-        # Create new session with selected directory and switch to it
-        session_name=$(basename "$selected" | tr "." "_")
-        tmux new-session -d -s "$session_name" -c "$selected"
-        tmux switch-client -t "$session_name"
-
-        # Kill the original numbered session
-        tmux kill-session -t "$current_session"
-    fi
+# "=": exact names, so session 0 never matches 01.
+"$mux" switch-client -t "=$name"
+if [[ "$name" != "$cur" ]]; then
+    "$mux" kill-session -t "=$cur"
 fi
