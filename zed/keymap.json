@@ -29,7 +29,7 @@
     // FILE NAVIGATION & SEARCH
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menu",
         "bindings": {
             "space s s": ["projects::OpenRecent", { "create_new_window": false }],
 
@@ -89,7 +89,7 @@
     // GIT OPERATIONS
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menu",
         "bindings": {
             "space g g": "git_panel::ToggleFocus"       // Git status
         }
@@ -106,17 +106,40 @@
         }
     },
 
-    // Git panel bindings
+    // Git panel lists (Changes + History tabs).
+    // The branch/repo popovers render *inside* the panel, so focus in their
+    // search box still carries the GitPanel/ChangesList context.
+    // `!Editor && !Picker` keeps these keys from firing while typing there.
+    // Zed's vim defaults still apply: x toggle stage, X stage all, U unstage all,
+    // h/l collapse/expand, gg/G, i/tab commit editor, enter/gf open diff.
     {
-        "context": "GitPanel && ChangesList",
-        "use_key_equivalents": true,
+        "context": "GitPanel && (ChangesList || HistoryList) && !Editor && !Picker",
         "bindings": {
+            "g t": "git_panel::ActivateHistoryTab",
+            "g shift-t": "git_panel::ActivateChangesTab",
+            "q": "git_panel::Close",
+            "b": "git::Branch",                 // centred modal, not the in-panel popover
+            "p": "git::Pull",
+            "shift-p": "git::Push",
+            "f": "git::Fetch"
+        }
+    },
+    {
+        "context": "GitPanel && ChangesList && !Editor && !Picker",
+        "bindings": {
+            "j": "git_panel::NextEntry",        // also scrolls an already-open diff
+            "k": "git_panel::PreviousEntry",
+            "shift-j": "menu::SelectNext",      // shift held => extends the mark range
+            "shift-k": "menu::SelectPrevious",
             "s": "git::StageFile",
             "u": "git::UnstageFile",
-            "x": ["git::RestoreFile", { "skip_prompt": false }],
-            "p p": "git::Pull",
-            "shift-p p": "git::Push",
-            "b b": "git::Branch"
+            "-": "git::ToggleStaged",
+            "d": ["git::RestoreFile", { "skip_prompt": false }],
+            "o": "menu::SecondaryConfirm",      // single-file diff
+            "e": "git::ViewFile",
+            "c c": "git_panel::FocusEditor",    // then ctrl-enter / ctrl-shift-enter
+            "z z": "git::StashAll",
+            "z p": "git::StashPop"
         }
     },
 
@@ -215,7 +238,7 @@
     // TERMINAL
     // ============================================================================
     {
-        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menuVimControl && !menu",
+        "context": "vim_mode == normal || vim_mode == visual || vim_mode == operator || VimControl && !menu",
         "bindings": {
             "ctrl-z": "terminal_panel::ToggleFocus"
         }

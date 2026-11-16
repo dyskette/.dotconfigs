@@ -7,9 +7,6 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
-    "git_panel": {
-        "sort_by_path": true
-    },
     "telemetry": {
         "diagnostics": true,
         "metrics": true
