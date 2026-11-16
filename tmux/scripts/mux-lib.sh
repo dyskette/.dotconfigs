@@ -330,26 +330,55 @@ slot_window() {
 
 # Start window $2 of session $1: type its slot's command -- or $3 -- into the
 # shell there. Without $3 only a window still pending its first start (see
-# above), with $3 any window; either way it leaves the pending list, and keys
-# are only sent to a pane at a shell prompt, never into a running program.
-# Typed rather than run in place of the shell, so quitting the tool leaves
-# the shell, the window and its number. Fails when nothing was started.
+# above), with $3 any window. Typed rather than run in place of the shell, so
+# quitting the tool leaves the shell, the window and its number. Fails when
+# nothing was started.
+#
+# Several of these run at once when windows are switched quickly (each hook
+# starts a background job), so the pending list is only read and written
+# under a lock of the session's, and a window leaves it only once its
+# command has been typed. Keys go only to a pane at a shell prompt: a shell
+# that is still loading its profile shows its helpers there (zoxide, fnm,
+# cygpath under pwsh), so the pane is waited for, for up to 15 s, rather
+# than given up on.
 slot_start() {
-    local s="$1" w="$2" cmd="${3:-}" pending
+    local s="$1" w="$2" cmd="${3:-}" pending i rc=1 lock
+    lock="${TMPDIR:-/tmp}/slots-${s//[^A-Za-z0-9_.-]/_}.lock"
+    slot_lock "$lock" || return 1
+
     pending="$("$mux" show-options -t "=$s" -qv @slots_pending 2>/dev/null)"
-    if [[ "$pending" == *":$w:"* ]]; then
-        "$mux" set-option -t "=$s" @slots_pending "${pending/":$w:"/:}"
-    elif [[ -z "$cmd" ]]; then
-        return 1
+    if [[ "$pending" == *":$w:"* || -n "$cmd" ]]; then
+        if [[ -z "$cmd" ]]; then
+            slot_command "$s" "$("$mux" display-message -t "=$s:$w" -p '#{window_name}' 2>/dev/null)"
+            cmd="$REPLY"
+        fi
+        for ((i = 0; i < 75; i++)); do
+            case "$("$mux" display-message -t "=$s:$w" -p '#{pane_current_command}' 2>/dev/null)" in
+                bash | sh | zsh | fish | pwsh | powershell | cmd) break ;;
+                "") i=75 ;; # the window is gone
+            esac
+            sleep 0.2
+        done
+        if ((i < 75)) && [[ -n "$cmd" ]] && "$mux" send-keys -t "=$s:$w" "$cmd" Enter; then
+            rc=0
+        fi
+        # Started, or not to be started (the shell slot, a window that went
+        # away or never reached a prompt): either way no longer pending.
+        pending="$("$mux" show-options -t "=$s" -qv @slots_pending 2>/dev/null)"
+        [[ "$pending" == *":$w:"* ]] && "$mux" set-option -t "=$s" @slots_pending "${pending/":$w:"/:}"
     fi
-    case "$("$mux" display-message -t "=$s:$w" -p '#{pane_current_command}' 2>/dev/null)" in
-        bash | sh | zsh | fish | pwsh | powershell | cmd) ;;
-        *) return 1 ;;
-    esac
-    if [[ -z "$cmd" ]]; then
-        slot_command "$s" "$("$mux" display-message -t "=$s:$w" -p '#{window_name}' 2>/dev/null)"
-        cmd="$REPLY"
-    fi
-    [[ -n "$cmd" ]] || return 1
-    "$mux" send-keys -t "=$s:$w" "$cmd" Enter
+    rmdir "$lock" 2>/dev/null
+    return "$rc"
+}
+
+# Take lock $1, a folder: mkdir is atomic. One left behind by a job that was
+# killed is taken over after 10 s.
+slot_lock() {
+    local i
+    for ((i = 0; i < 50; i++)); do
+        mkdir "$1" 2>/dev/null && return 0
+        sleep 0.2
+    done
+    rmdir "$1" 2>/dev/null
+    mkdir "$1" 2>/dev/null
 }
