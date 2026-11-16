@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # For a session started from a plain terminal (a numeric default name): pick a
-# project the way prefix S does (project-picker.sh), move to its session, and
+# project the way prefix s does (project-picker.sh), move to its session, and
 # drop the numbered one. tmux runs this from the after-new-session hook
 # (tmux.conf); psmux from its client-attached hook, through
 # first-session-directory.ps1 (psmux.conf).

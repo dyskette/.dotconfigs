@@ -19,7 +19,7 @@
 #   project-picker.sh preview N        called back by fzf for item N
 #
 # fzf opens empty and loads the list itself (start:reload), which streams in
-# as each source answers; see the switchers.
+# as each source answers, as in window-switcher.sh.
 set -u
 export LC_ALL=C.UTF-8
 # Trimmed without dirname, which would fork (see mux-lib.sh); fzf calls back

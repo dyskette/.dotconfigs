@@ -40,7 +40,7 @@ if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
     export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
     # psmux runs a server per session, and a session's server keeps the
     # environment of whoever started it: one created from inside another
-    # session (tm, prefix a, prefix S) carries that session's TMUX, which the
+    # session (tm, prefix a, prefix s) carries that session's TMUX, which the
     # CLI follows ahead of the PSMUX_TARGET_SESSION psmux sets for each popup.
     # "switch-client" would then move the other session's client instead, so
     # in a popup only PSMUX_TARGET_SESSION is left to route the CLI.

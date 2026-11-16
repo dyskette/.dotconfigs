@@ -5,7 +5,7 @@ function tmux-pwsh {
 }
 
 # The session for a project, on tmux or psmux (Git Bash): `tm DIR` opens DIR's,
-# `tm` alone picks one the way prefix S does (tmux/projects.conf, its roots,
+# `tm` alone picks one the way prefix s does (tmux/projects.conf, its roots,
 # zoxide). Switches from inside a client, attaches from outside.
 tm() {
 	bash "$HOME/.dotconfigs/tmux/scripts/project-picker.sh" "$@"

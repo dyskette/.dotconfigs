@@ -283,7 +283,7 @@ if ($tools.dotnet) {
     psmux session for a project: switch-client from inside, attach from
     outside.
 .DESCRIPTION
-    With no Directory, picks one the way prefix S does: the bash project
+    With no Directory, picks one the way prefix s does: the bash project
     picker (tmux/scripts/project-picker.sh) lists tmux/projects.conf, its
     roots and zoxide's folders. The picker only creates the session and prints
     its name (--print); attaching happens here, so it goes through

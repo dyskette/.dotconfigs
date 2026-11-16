@@ -125,8 +125,12 @@ cmd_preview() {
     "$mux" capture-pane -p -e -t "$target" 2>/dev/null
 }
 
-# Pressed twice, as in session-switcher.sh: the first ctrl-x asks in the
-# prompt, the second closes the window; moving the cursor cancels.
+# Bound with transform, and pressed twice, since a window can hold hours of
+# work: the first ctrl-x only turns the prompt into the question, the second,
+# with the prompt still asking, closes the window. The focus binding restores
+# the prompt when the cursor moves, so both presses are always on the same
+# window. (A y/N read would need a console, which fzf.exe does not give
+# execute.)
 cmd_kill() {
     item "${1:-}" || return 0
     local target="$REPLY"
@@ -154,8 +158,9 @@ run() {
     fzf_callbacks "$0"
     export SWITCH_SELF="$SELF"
 
-    # fzf opens empty and loads the list itself (start:reload), as in
-    # session-switcher.sh: the popup draws at once, the Alt-Tab order stays.
+    # fzf opens empty and loads the list itself (start:reload), so the popup
+    # draws at once instead of after list-windows and sort; under Git Bash
+    # each of those forks is slow. The Alt-Tab order stays.
     out="$(fzf </dev/null \
         --with-shell "$FZF_SHELL" \
         --bind "start:reload($SELF list)" \

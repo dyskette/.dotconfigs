@@ -1,5 +1,5 @@
 # Default options for every fzf, wherever it runs: the shells' key bindings and
-# functions, yazi's `Z`, the tmux/psmux switchers. Loaded through
+# functions, yazi's `Z`, the tmux/psmux pickers. Loaded through
 # FZF_DEFAULT_OPTS_FILE (set by bash/bashrc.d/fzf.sh and the PowerShell
 # profile); FZF_DEFAULT_OPTS and command-line flags are applied on top.
 #
