@@ -58,6 +58,25 @@ In nvim, `<leader>gg` toggles lazygit and `<C-\>` a shell, both in floats
 message, `sf`, `sg`) lands in that nvim (flatten.nvim), not a nested one. In
 tmux/psmux, `prefix g` and `prefix e` open lazygit and yazi over the pane.
 
+## Sessions (tmux and psmux)
+
+A session per project. The pickers are the same bash scripts on both
+(`tmux/scripts`, run by Git Bash on Windows):
+
+| | |
+| --- | --- |
+| `prefix S` / `tm` | pick a project: the ones declared in `tmux/projects.conf`, the folders inside its roots, then zoxide's 30 most used; ● marks those with a session already |
+| `tm DIR` | open DIR's session |
+| `prefix a` | walk to any folder, one level at a time, and open a session there |
+| `prefix s` / `prefix w` | switch session / window, most recent first |
+
+`tmux/projects.conf` serves both machines: paths that do not exist are
+skipped, so it lists the Windows roots (`~/Projects`, `~/source/repos`) and the
+Linux one (`~/Proyectos`) side by side. A session opened on a folder is the one
+already running there, or a new one named after the folder (or the name
+declared for it). A session started from a plain terminal asks for a project
+first and replaces itself with that project's session.
+
 Zellij is back to a bare config (`zellij/config.kdl`, one file for both
 machines): the stock modes, reached with `Alt a` instead of `Ctrl g`, and the
 Everforest theme. The workspace that used to be built on top of it — a session
