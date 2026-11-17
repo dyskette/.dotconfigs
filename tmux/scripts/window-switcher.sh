@@ -4,7 +4,11 @@
 #   window-switcher.sh               run the switcher (from a popup)
 #   window-switcher.sh list          called back by fzf to load the list
 #   window-switcher.sh preview N     called back by fzf for item N
-#   window-switcher.sh kill N
+#   window-switcher.sh kill N        ctrl-x: close item N (asks first)
+#   window-switcher.sh open N        Enter: go to item N
+#
+# On psmux the popup starts fzf itself (psmux.conf) and everything here is a
+# callback.
 #
 # Rows show what the status bar shows: each window's title (or its name when
 # renamed by hand under tmux), its folder, and markers only when they say
@@ -20,6 +24,10 @@ export LC_ALL=C.UTF-8
 source "${BASH_SOURCE[0]%[\\/]*}/mux-lib.sh"
 
 prompt='window ❯ '
+
+# items: the list as fzf shows it, in this session's state folder.
+picker_state window-switcher
+items="$REPLY/items"
 
 # Longest label shown in full; longer ones are cut with an ellipsis.
 label_width=40
@@ -95,8 +103,8 @@ cmd_list() {
     for i in "${!targets[@]}"; do
         fit "${heads[i]}" "$width"
         printf '%s\x1f%s\t%s  %s\n' "${keys[i]}" "${targets[i]}" "$REPLY" "${tails[i]}"
-    done | sort -t$'\x1f' -k1,1n -s | cut -d$'\x1f' -f2- >"$SWITCH_ITEMS"
-    cat "$SWITCH_ITEMS"
+    done | sort -t$'\x1f' -k1,1n -s | cut -d$'\x1f' -f2- >"$items"
+    cat "$items"
 }
 
 # REPLY: the target of item $1.
@@ -110,7 +118,7 @@ item() {
             return 0
         fi
         i=$((i + 1))
-    done <"$SWITCH_ITEMS"
+    done <"$items"
     return 1
 }
 
@@ -139,7 +147,8 @@ cmd_kill() {
         return 0
     fi
     "$mux" kill-window -t "$target" 2>/dev/null
-    printf 'reload-sync(%s list)+change-prompt:%s' "$SWITCH_SELF" "$prompt"
+    callback window-switcher
+    printf 'reload-sync(%s list)+change-prompt:%s' "$REPLY" "$prompt"
 }
 
 # Report a refused switch instead of closing as if nothing happened.
@@ -148,50 +157,53 @@ fail() {
     read -r -p 'Press Enter to close' _
 }
 
-run() {
-    local out target sess idx cur err
-    # Created empty before the list is written, so a preview that runs first
-    # finds no item instead of failing to open the file.
-    new_state_file window-switcher || return 1
-    export SWITCH_ITEMS="$REPLY"
-    trap 'rm -f "$SWITCH_ITEMS"' EXIT
-    fzf_callbacks "$0"
-    export SWITCH_SELF="$SELF"
-
-    # fzf opens empty and loads the list itself (start:reload), so the popup
-    # draws at once instead of after list-windows and sort; under Git Bash
-    # each of those forks is slow. The Alt-Tab order stays.
-    out="$(fzf </dev/null \
-        --with-shell "$FZF_SHELL" \
-        --bind "start:reload($SELF list)" \
-        --ansi --reverse --border none --info inline-right \
-        --delimiter $'\t' --with-nth 2 \
-        --header 'enter switch · ctrl-x twice: close' \
-        --prompt "$prompt" \
-        --bind "ctrl-x:transform($SELF kill {n})" \
-        --bind "focus:change-prompt($prompt)" \
-        --preview "$SELF preview {n}" \
-        --preview-window 'right:60%:border-left')"
-    [[ -n "$out" ]] || return 0
-
-    target="${out%%$'\t'*}"
+# Go to window $1 (session:index), switching session when it is another's.
+go_to() {
+    local target="$1" sess idx err
     sess="${target%:*}"
     idx="${target##*:}"
     current_session
-    cur="$REPLY"
-
     if ! err="$("$mux" select-window -t "$sess:$idx" 2>&1)"; then
         fail "Could not select window $target: $err"
         return 0
     fi
-    if [[ "$sess" != "$cur" ]] && ! err="$("$mux" switch-client -t "=$sess" 2>&1)"; then
+    if [[ "$sess" != "$REPLY" ]] && ! err="$("$mux" switch-client -t "=$sess" 2>&1)"; then
         fail "Could not switch to session $sess: $err"
     fi
+}
+
+# Enter: go to item $1 (fzf's become, which psmux's popup uses).
+cmd_open() {
+    item "${1:-}" || return 0
+    go_to "$REPLY"
+}
+
+run() {
+    local out self
+    callback window-switcher
+    self="$REPLY"
+    # fzf opens empty and loads the list itself (start:reload), so the popup
+    # draws at once instead of after list-windows and sort. The Alt-Tab order
+    # stays.
+    out="$(fzf </dev/null \
+        --with-shell "$FZF_SHELL" \
+        --bind "start:reload($self list)" \
+        --ansi --reverse --border none --info inline-right \
+        --delimiter $'\t' --with-nth 2 \
+        --header 'enter switch · ctrl-x twice: close' \
+        --prompt "$prompt" \
+        --bind "ctrl-x:transform($self kill {n})" \
+        --bind "focus:change-prompt($prompt)" \
+        --preview "$self preview {n}" \
+        --preview-window 'right:60%:border-left')"
+    [[ -n "$out" ]] || return 0
+    go_to "${out%%$'\t'*}"
 }
 
 case "${1:-}" in
     list) cmd_list ;;
     preview) cmd_preview "${2:-}" ;;
     kill) cmd_kill "${2:-}" ;;
+    open) cmd_open "${2:-}" ;;
     *) run ;;
 esac

@@ -93,6 +93,12 @@ A session per project. The pickers are the same bash scripts on both
 | `prefix w` | switch window, most recent first; `ctrl-x` twice closes one |
 | `prefix Space` | which-key: the keys in `tmux/which-key.conf`, a level at a time, as in nvim |
 
+On Windows, psmux 3.4.0 starts every popup through `pwsh`, about 400 ms
+before anything shows. `windows/pwsh-shim` (built by the `PwshShim` setup
+step, put first on PATH by the PowerShell profile) starts a popup that is a
+plain program call directly instead, so the pickers open fzf in about 100 ms
+and fill it in the background.
+
 `tmux/projects.conf` serves both machines: paths that do not exist are
 skipped, so it lists the Windows roots (`~/Projects`, `~/source/repos`) and the
 Linux one (`~/Proyectos`) side by side. A session opened on a folder is the one

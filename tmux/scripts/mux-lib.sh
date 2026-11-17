@@ -10,9 +10,9 @@
 #                tab is IFS whitespace, so read would merge empty fields
 #
 # Helpers
-#   fzf_callbacks SCRIPT     FZF_SHELL (for --with-shell) and SELF (the
-#                            command that runs SCRIPT from an fzf binding)
-#   new_state_file NAME      REPLY: a new empty file for a popup's state
+#   callback NAME            FZF_SHELL and REPLY: how fzf calls script NAME
+#                            (no .sh) back
+#   picker_state NAME        REPLY: picker NAME's state folder, this session
 #   ago SECONDS_SINCE_EPOCH  print "now", "5m", "3h" or "2d" ("new" when
 #                            empty: a session never attached)
 #   normdir DIR              REPLY: DIR with one trailing separator
@@ -67,39 +67,40 @@ fi
 
 # --- Helpers -----------------------------------------------------------------
 
-# fzf.exe on Windows would try $SHELL (/usr/bin/bash, an MSYS path it cannot
-# start), so its child commands go through cmd, which starts Git Bash by its
-# 8.3 path: quotes do not survive fzf handing the line to cmd, and 8.3 paths
-# have no spaces to quote. One cygpath converts both paths.
-fzf_callbacks() {
+# The folder of these scripts, which fzf calls back.
+mux_scripts="${BASH_SOURCE[0]%[\\/]*}"
+
+# FZF_SHELL (for fzf's --with-shell) and REPLY: the command fzf runs to call
+# script $1 (by name, without .sh) back. On Windows fzf.exe cannot start
+# $SHELL (/usr/bin/bash, an MSYS path), so its callbacks go through cmd,
+# which reaches the script through pick.cmd: quotes do not survive fzf
+# handing the line to cmd, and %USERPROFILE% (no spaces) is expanded by cmd.
+callback() {
     if ((win)); then
-        local short=()
         FZF_SHELL='cmd.exe /d /c'
-        mapfile -t short < <(cygpath -d "$BASH" "$1")
-        SELF="${short[0]} ${short[1]}"
+        REPLY="%USERPROFILE%\\.dotconfigs\\tmux\\scripts\\pick.cmd $1"
     else
         FZF_SHELL='bash -c'
-        printf -v SELF 'bash %q' "$1"
+        printf -v REPLY 'bash %q' "$mux_scripts/$1.sh"
     fi
 }
 
-# Without mktemp, which would fork: noclobber makes bash create the file with
-# O_EXCL, so an existing file, or a symlink planted under a guessed name, is
-# never written through; a taken name just draws another.
-new_state_file() {
-    local i noclobber=0
-    [[ $- == *C* ]] && noclobber=1
-    set -C
-    for ((i = 0; i < 16; i++)); do
-        REPLY="${TMPDIR:-/tmp}/$1.$$.$RANDOM"
-        if { : >"$REPLY"; } 2>/dev/null; then
-            ((noclobber)) || set +C
-            return 0
-        fi
-    done
-    ((noclobber)) || set +C
-    REPLY=""
-    return 1
+# REPLY: picker $1's state folder for the session this runs in, created.
+# Fixed rather than made for each run: on psmux the popup starts fzf first
+# and everything else is a callback, so nothing runs before fzf to make one
+# and pass it on. One picker per session at a time, as there is one popup.
+# On Windows under %LOCALAPPDATA%\Temp, written with forward slashes, which
+# both bash and Windows programs take.
+picker_state() {
+    local base
+    current_session
+    if ((win)); then
+        base="${LOCALAPPDATA//\\//}/Temp"
+    else
+        base="${TMPDIR:-/tmp}"
+    fi
+    REPLY="$base/$1-${REPLY//[^A-Za-z0-9_.-]/_}"
+    [[ -d "$REPLY" ]] || mkdir -p "$REPLY"
 }
 
 ago() {

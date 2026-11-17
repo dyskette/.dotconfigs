@@ -19,9 +19,11 @@
 #   project-picker.sh preview N        called back by fzf for item N
 #   project-picker.sh kill N           ctrl-x: kill item N's session (asks
 #                                      first)
+#   project-picker.sh open N           Enter: open item N's session
 #
 # fzf opens empty and loads the list itself (start:reload), which streams in
-# as each source answers, as in window-switcher.sh.
+# as each source answers, as in window-switcher.sh. On psmux the popup starts
+# fzf itself (psmux.conf) and everything here is a callback.
 set -u
 export LC_ALL=C.UTF-8
 # Trimmed without dirname, which would fork (see mux-lib.sh); fzf calls back
@@ -34,6 +36,10 @@ source "$here/mux-lib.sh"
 conf="${PROJECTS_CONF:-$here/../projects.conf}"
 zoxide_max=30
 prompt='project ❯ '
+
+# items: the list as fzf shows it, in this session's state folder.
+picker_state project-picker
+items="$REPLY/items"
 
 # REPLY: a projects.conf path (~ expanded, / or \) as normdir gives it.
 expand_path() {
@@ -113,7 +119,7 @@ cmd_list() {
     local -A seen=() skip=() open=() declared=()
     local -a roots=() depths=() pdirs=() pnames=() okeys=() odirs=()
     local line kind path arg _ key depth i n=0 last name cur cur_key="" cur_dir=""
-    exec 3>"$PICK_ITEMS"
+    exec 3>"$items"
 
     # projects.conf first: reading it starts no process, and the open
     # sessions need it to know their marker.
@@ -210,21 +216,24 @@ cmd_list() {
     exec 3>&-
 }
 
-# REPLY: the folder of item $1; item_session: the session open there, or
-# empty.
+# REPLY: the folder of item $1; item_name: its declared name;
+# item_session: the session open there, or empty.
 item() {
-    local i=0 line
+    local i=0 line rest
     REPLY=""
+    item_name=""
     item_session=""
     [[ "${1:-}" =~ ^[0-9]+$ ]] || return 1
     while IFS= read -r line; do
         if ((i == $1)); then
             REPLY="${line%%$'\t'*}"
+            rest="${line#*$'\t'}"
+            item_name="${rest%%$'\t'*}"
             item_session="${line##*$'\t'}"
             return 0
         fi
         i=$((i + 1))
-    done <"$PICK_ITEMS"
+    done <"$items"
     return 1
 }
 
@@ -258,7 +267,14 @@ cmd_kill() {
         return 0
     fi
     "$mux" kill-session -t "=$name" 2>/dev/null
-    printf 'reload-sync(%s list)+change-prompt:%s' "$PICK_SELF" "$prompt"
+    callback project-picker
+    printf 'reload-sync(%s list)+change-prompt:%s' "$REPLY" "$prompt"
+}
+
+# Enter: open item $1's session (fzf's become, which psmux's popup uses).
+cmd_open() {
+    item "${1:-}" || return 0
+    open_session "$REPLY" "$item_name"
 }
 
 run() {
@@ -281,22 +297,19 @@ run() {
         normdir "$path"
         path="$REPLY"
     else
-        new_state_file project-picker || return 1
-        export PICK_ITEMS="$REPLY"
-        trap 'rm -f "$PICK_ITEMS"' EXIT
-        fzf_callbacks "$0"
-        export PICK_SELF="$SELF"
-
+        local self
+        callback project-picker
+        self="$REPLY"
         out="$(fzf </dev/null \
             --with-shell "$FZF_SHELL" \
-            --bind "start:reload($SELF list)" \
-            --bind "ctrl-x:transform($SELF kill {n})" \
+            --bind "start:reload($self list)" \
+            --bind "ctrl-x:transform($self kill {n})" \
             --bind "focus:change-prompt($prompt)" \
             --ansi --reverse --border none --info inline-right \
             --delimiter $'\t' --with-nth 3 --tiebreak index \
             --header $'● open, recent first · ★ project · ▸ root · z zoxide\nenter open · ctrl-x twice: kill session' \
             --prompt "$prompt" \
-            --preview "$SELF preview {n}" \
+            --preview "$self preview {n}" \
             --preview-window 'right:50%:border-left')"
         [[ -n "$out" ]] || return 0
         path="${out%%$'\t'*}"
@@ -315,5 +328,6 @@ case "${1:-}" in
     list) cmd_list ;;
     preview) cmd_preview "${2:-}" ;;
     kill) cmd_kill "${2:-}" ;;
+    open) cmd_open "${2:-}" ;;
     *) run "$@" ;;
 esac

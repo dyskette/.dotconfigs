@@ -5,6 +5,11 @@
 #   dir-picker.sh                     run the picker (from a tmux/psmux popup)
 #   dir-picker.sh descend tab|sep N   called back by fzf's key bindings
 #   dir-picker.sh up | preview N
+#   dir-picker.sh start               fzf's start: the first folder, listed
+#   dir-picker.sh open N              Enter: open item N, or the typed path
+#
+# On psmux the popup starts fzf itself (psmux.conf) and everything here is a
+# callback.
 #
 # The prompt shows the folder you are in; the query only filters its
 # children, so typing is filtered by fzf itself and only moving between
@@ -25,6 +30,17 @@ export LC_COLLATE=en_US.UTF-8
 source "${BASH_SOURCE[0]%[\\/]*}/mux-lib.sh"
 
 hints='tab enter folder · ⌫ up · ↵ new session · type c/ ~/ ../ to jump'
+
+# The walk's state, in this session's state folder: cwd (the folder shown)
+# and items (its listing, as fzf shows it). fzf reloads the listing with a
+# plain cat, or under cmd a type, which needs backslashes.
+picker_state dir-picker
+state="$REPLY"
+if ((win)); then
+    reload="type ${state//\//\\}\\items"
+else
+    printf -v reload 'cat %q' "$state/items"
+fi
 
 # normdir, parent and open_session come from mux-lib.sh.
 
@@ -96,7 +112,7 @@ write_items() {
     for name in "${dots[@]}"; do
         out+="$dir$name$sep"$'\t'"$name$sep"$'\t\n'
     done
-    printf '%s' "$out" >"$DIRPICK_STATE/items"
+    printf '%s' "$out" >"$state/items"
 }
 
 # REPLY: the full path of item $1 in the current listing.
@@ -110,7 +126,7 @@ item() {
             return 0
         fi
         i=$((i + 1))
-    done <"$DIRPICK_STATE/items"
+    done <"$state/items"
     return 1
 }
 
@@ -133,11 +149,11 @@ go() {
         printf 'change-header|Cannot open %s  ·  %s|' "$target" "$hints"
         return
     fi
-    printf '%s' "$target" >"$DIRPICK_STATE/cwd"
+    printf '%s' "$target" >"$state/cwd"
     write_items "$target"
     shorten "$target"
     printf 'change-prompt|%s ❯ |+change-header|%s|+clear-query+reload-sync|%s|+first' \
-        "$REPLY" "$hints" "$DIRPICK_RELOAD"
+        "$REPLY" "$hints" "$reload"
 }
 
 # Tab: enter the highlighted folder.
@@ -149,7 +165,7 @@ go() {
 # jumps to drive S: when nothing here is called "s".
 cmd_descend() {
     local mode="$1" n="${2:-}" cwd target="" query="${FZF_QUERY:-}" path name _
-    read -r cwd <"$DIRPICK_STATE/cwd"
+    read -r cwd <"$state/cwd"
     if [[ "$mode" == sep && -n "$query" ]]; then
         while IFS=$'\t' read -r path name _; do
             name="${name%"$sep"}"
@@ -157,7 +173,7 @@ cmd_descend() {
                 target="$path"
                 break
             fi
-        done <"$DIRPICK_STATE/items"
+        done <"$state/items"
         if [[ -z "$target" ]]; then
             if [[ "$query" == ".." ]]; then
                 parent "$cwd"
@@ -179,7 +195,7 @@ cmd_descend() {
 # Backspace on an empty query: go to the parent folder.
 cmd_up() {
     local cwd
-    read -r cwd <"$DIRPICK_STATE/cwd"
+    read -r cwd <"$state/cwd"
     parent "$cwd"
     [[ "$REPLY" != "$cwd" ]] && go "$REPLY"
 }
@@ -190,42 +206,34 @@ cmd_preview() {
         ls -la "$REPLY" 2>/dev/null
 }
 
-run() {
-    local start self shell out query selection
+# fzf's start: show the folder of the pane the picker was opened over.
+cmd_start() {
+    local start
     start="$("$mux" display-message -p '#{pane_current_path}' 2>/dev/null)"
     [[ -d "$start" ]] || start="$home"
     normdir "$start"
-    start="$REPLY"
+    go "$REPLY"
+}
 
-    DIRPICK_STATE="$(mktemp -d)"
-    export DIRPICK_STATE
-    trap 'rm -rf "$DIRPICK_STATE"' EXIT
-    printf '%s' "$start" >"$DIRPICK_STATE/cwd"
-    write_items "$start"
-
-    if ((win)); then
-        # fzf.exe would try $SHELL (/usr/bin/bash, an MSYS path it cannot
-        # start), so its child commands go through cmd: the reload is a plain
-        # `type`, and the callbacks start Git Bash. Every path is in 8.3 form,
-        # which has no spaces, because quotes do not survive fzf handing the
-        # command line to cmd. One cygpath converts all three, since every
-        # fork here delays the popup (mux-lib.sh).
-        local short=()
-        shell='cmd.exe /d /c'
-        mapfile -t short < <(cygpath -d "$BASH" "$0" "$DIRPICK_STATE/items")
-        self="${short[0]} ${short[1]}"
-        export DIRPICK_RELOAD="type ${short[2]}"
-    else
-        shell='bash -c'
-        printf -v self 'bash %q' "$0"
-        printf -v DIRPICK_RELOAD 'cat %q' "$DIRPICK_STATE/items"
-        export DIRPICK_RELOAD
+# Enter: open item $1's folder, or with nothing matching (no item), the path
+# typed in the query (fzf's become, which psmux's popup uses).
+cmd_open() {
+    if item "${1:-}" && [[ -n "$REPLY" ]]; then
+        open_session "$REPLY"
+    elif [[ -n "${FZF_QUERY:-}" ]]; then
+        resolve "$FZF_QUERY"
+        [[ -n "$REPLY" && -d "$REPLY" ]] && open_session "$REPLY"
     fi
+    return 0
+}
 
-    shorten "$start"
-    out="$(fzf <"$DIRPICK_STATE/items" \
-        --with-shell "$shell" \
-        --prompt "$REPLY ❯ " \
+run() {
+    local self out
+    callback dir-picker
+    self="$REPLY"
+    out="$(fzf </dev/null \
+        --with-shell "$FZF_SHELL" \
+        --bind "start:transform:$self start" \
         --header "$hints" \
         --delimiter $'\t' --with-nth 2,3 --nth 1 \
         --tiebreak begin,length,index \
@@ -237,10 +245,8 @@ run() {
         --bind "backward-eof:transform:$self up" \
         --preview "$self preview {n}" \
         --preview-window right:50%:border-left)"
-    query="${out%%$'\n'*}"
-    selection=""
+    local query="${out%%$'\n'*}" selection=""
     [[ "$out" == *$'\n'* ]] && selection="${out#*$'\n'}"
-
     if [[ -n "$selection" ]]; then
         open_session "${selection%%$'\t'*}"
     elif [[ -n "$query" ]]; then
@@ -255,5 +261,7 @@ case "${1:-}" in
     descend) cmd_descend "${2:-}" "${3:-}" ;;
     up) cmd_up ;;
     preview) cmd_preview "${2:-}" ;;
+    start) cmd_start ;;
+    open) cmd_open "${2:-}" ;;
     *) run ;;
 esac
