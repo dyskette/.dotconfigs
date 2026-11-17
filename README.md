@@ -98,10 +98,3 @@ Linux one (`~/Proyectos`) side by side. A session opened on a folder is the one
 already running there, or a new one named after the folder (or the name
 declared for it). A session started from a plain terminal asks for a project
 first and replaces itself with that project's session.
-
-Zellij is back to a bare config (`zellij/config.kdl`, one file for both
-machines): the stock modes, reached with `Alt a` instead of `Ctrl g`, and the
-Everforest theme. The workspace that used to be built on top of it — a session
-per repo, a tab per activity, a session hub — is gone; its Zellij plugin is
-parked in [pilot/](pilot/README.md), and session switching is tmux's job for
-now (`prefix s`, `tm`).

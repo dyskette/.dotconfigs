@@ -17,11 +17,3 @@ opencode/service.json
 # (rather than a bare directory) is what lets the negation below apply.
 yazi/plugins/*
 !yazi/plugins/nvim-diag.yazi/
-
-# Zellij plugin build output; built by pilot/build-pilot.sh (Build-Pilot.ps1).
-pilot/target/
-pilot/pilot.wasm
-
-# Upstream session managers read while deciding what replaces pilot; clones,
-# not submodules.
-pilot/research/
