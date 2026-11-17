@@ -110,7 +110,7 @@ theme() {
 
 # A nested shell (nvim's terminal, a subshell) inherits the answer instead of
 # asking again; a new terminal window starts without it and asks for itself.
-# A tmux or zellij pane inherits what the server was started with, which is the
+# A tmux pane inherits what the server was started with, which is the
 # one case that can go stale -- `theme` fixes it.
 if [[ $- == *i* && -z "$SYSTEM_COLOR_THEME" ]]; then
   theme

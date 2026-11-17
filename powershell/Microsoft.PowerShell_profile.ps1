@@ -92,10 +92,8 @@ function prompt {
 
     # Shell integration (OSC 133): the end of the last command with its exit
     # code (D), then where the prompt starts (A) and where it ends (B); the
-    # command start (C) is sent from the history handler below. Zellij uses
-    # them for the inbox (a long command finished or failed), for jumping
-    # between prompts (Alt g s, then [ and ]) and for copying the last
-    # command's output (Alt g s c); Windows Terminal draws scrollbar marks.
+    # command start (C) is sent from the history handler below. Windows
+    # Terminal draws scrollbar marks from them and jumps between prompts.
     # D only after a C, so the first prompt reports no phantom command.
     $osc = ""
     if ($global:CommandRunning) {
@@ -107,18 +105,10 @@ function prompt {
 
     # Report the working directory so a new pane, split or tab opens where
     # this one is. PowerShell's cd does not change the process's directory,
-    # so the terminal cannot find it on its own.
-    #
-    # Inside Zellij: OSC 7, which it reads (and forwards to the terminal
-    # outside). Not OSC 9;9, ConEmu's, which Windows Terminal honours:
-    # Zellij reads OSC 9 as a desktop notification.
+    # so the terminal cannot find it on its own. OSC 9;9 is ConEmu's, which
+    # Windows Terminal honours.
     if ($loc.Provider.Name -eq "FileSystem") {
-        if ($env:ZELLIJ) {
-            $uri = [Uri]::new($loc.ProviderPath).AbsoluteUri -replace '^file:///', "file://$([Environment]::MachineName)/"
-            $osc += "`e]7;$uri`e\"
-        } else {
-            $osc += "`e]9;9;`"$($loc.ProviderPath)`"`e\"
-        }
+        $osc += "`e]9;9;`"$($loc.ProviderPath)`"`e\"
     }
 
     # Title at the prompt: the current folder (~ for home), as bash does,

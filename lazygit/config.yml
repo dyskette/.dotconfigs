@@ -43,7 +43,7 @@ gui:
   scrollHeight: 15
   # The default selection background is ANSI blue, which is a light pastel in
   # Everforest; the line keeps its own aqua/yellow/green text and becomes
-  # unreadable. Use bg3, as zellij does for selected rows.
+  # unreadable. Use bg3 instead.
   # Copied (cherry-picked) commits default to blue on cyan, two pastels that
   # are ~1:1 in Everforest; use fg on bg_blue instead. The rebase base commit
   # defaults to blue on yellow, same problem; use fg on bg_yellow.

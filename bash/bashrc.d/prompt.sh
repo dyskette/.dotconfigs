@@ -104,11 +104,9 @@ function __prompt_command() {
 
 	# Shell integration (OSC 133): the end of the last command with its exit
 	# code (D), then where the prompt starts (A); the prompt's end (B) is in
-	# PS1 and the command start (C) in the DEBUG trap above. Zellij uses them
-	# for the inbox (a long command finished or failed), for jumping between
-	# prompts (Alt g s, then [ and ]) and for copying the last command's
-	# output (Alt g s c). D only after a C, so the first prompt reports no
-	# phantom command.
+	# PS1 and the command start (C) in the DEBUG trap above; terminals use them
+	# to mark and jump between prompts. D only after a C, so the first prompt
+	# reports no phantom command.
 	local osc=''
 	if (( __command_running )); then
 		osc="\e]133;D;${status}\a"
@@ -116,8 +114,8 @@ function __prompt_command() {
 	fi
 	osc+='\e]133;A\a'
 
-	# Report the working directory (OSC 7) so a new Zellij pane, split or tab
-	# opens where this one is; Zellij forwards it to the terminal outside.
+	# Report the working directory (OSC 7) so a new tab or split of the
+	# terminal opens where this one is.
 	__osc7_encode "$PWD"
 	osc+="\e]7;file://${HOSTNAME}${__osc7_path}\e\\"
 	# %b, never the format string itself: the encoded path carries % escapes.
