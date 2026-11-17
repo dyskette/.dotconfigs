@@ -94,6 +94,13 @@
             Tags        = @('packages')
         }
         @{
+            # After LanguageTools: it builds with cargo.
+            Name        = 'PwshShim'
+            Script      = 'Install-PwshShim.ps1'
+            Description = 'Building the pwsh shim that starts psmux popups directly'
+            Tags        = @('packages')
+        }
+        @{
             Name        = 'GitHubReleases'
             Script      = 'Install-GitHubReleases.ps1'
             Description = 'Installing GitHub release packages'

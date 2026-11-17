@@ -17,3 +17,6 @@ opencode/service.json
 # (rather than a bare directory) is what lets the negation below apply.
 yazi/plugins/*
 !yazi/plugins/nvim-diag.yazi/
+
+# Build output of windows/pwsh-shim; Install-PwshShim.ps1 builds it elsewhere.
+windows/pwsh-shim/target/

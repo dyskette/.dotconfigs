@@ -14,6 +14,18 @@ param()
 # garbled when captured into a variable.
 [Console]::InputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 
+# The pwsh shim (windows/pwsh-shim, built by windows/Install-PwshShim.ps1)
+# first on PATH, for this shell and everything started from it, psmux
+# servers included: psmux 3.4.0 runs every popup command through `pwsh`, and
+# the shim starts a plain program call (& 'fzf' ...) directly instead of
+# after ~400 ms of PowerShell startup. Anything else it hands to the real
+# pwsh, so a `pwsh` typed here still is one.
+$pwshShim = Join-Path $HOME '.local\opt\pwsh-shim'
+if ((Test-Path -LiteralPath (Join-Path $pwshShim 'pwsh.exe')) -and ($env:PATH -split ';') -notcontains $pwshShim) {
+    $env:PATH = "$pwshShim;$env:PATH"
+}
+Remove-Variable pwshShim
+
 Set-PSReadLineKeyHandler -Key 'Ctrl+p' -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key 'Ctrl+n' -Function HistorySearchForward
 Set-PSReadLineKeyHandler -Key "Ctrl+y" -Function AcceptSuggestion

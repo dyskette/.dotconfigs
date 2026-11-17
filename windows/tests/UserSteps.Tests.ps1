@@ -2,8 +2,8 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.6' }
 <#
 .SYNOPSIS
-Tests for the user-level step scripts: Node LTS, Windows settings, font and
-OpenCode.
+Tests for the user-level step scripts: Node LTS, Windows settings, font,
+OpenCode and the pwsh shim.
 
 .NOTES
 No real installer runs and no real setting changes: fnm, GitHub, downloads,
@@ -305,5 +305,47 @@ Describe 'Install-OpenCode.ps1' {
         $result.Status | Should -Be 'Failed'
         $result.Message | Should -BeLike '*still running*'
         Get-Content $exe | Should -Be '2.0.0'
+    }
+}
+
+Describe 'Install-PwshShim.ps1' {
+    BeforeEach {
+        $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $parameters = @{ InstallDirectory = (Join-Path $root 'opt\pwsh-shim'); TargetDirectory = (Join-Path $root 'target') }
+        Mock Get-Command { [pscustomobject]@{ Name = 'cargo' } } -ParameterFilter { $Name -eq 'cargo' }
+        # A "build": writes a fake pwsh.exe whose content is DOTCONFIGS_TEST_SHIM.
+        $env:DOTCONFIGS_TEST_SHIM = 'build 1'
+        Mock Invoke-Native {
+            $dir = Join-Path $Arguments[$Arguments.IndexOf('--target-dir') + 1] 'release'
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            Set-Content (Join-Path $dir 'pwsh.exe') $env:DOTCONFIGS_TEST_SHIM
+            Get-NativeResult
+        } -ParameterFilter { $FilePath -eq 'cargo' }
+    }
+
+    AfterEach {
+        Remove-Item Env:DOTCONFIGS_TEST_SHIM -ErrorAction SilentlyContinue
+    }
+
+    It 'fails clearly when cargo is missing' {
+        Mock Get-Command { $null } -ParameterFilter { $Name -eq 'cargo' }
+        $result = Invoke-StepScript 'Install-PwshShim.ps1' $parameters
+        $result.Status | Should -Be 'Failed'
+        $result.Message | Should -BeLike '*cargo is not on PATH*'
+    }
+
+    It 'installs the build, then skips while it is unchanged' {
+        (Invoke-StepScript 'Install-PwshShim.ps1' $parameters).Status | Should -Be 'Success'
+        Get-Content (Join-Path $parameters.InstallDirectory 'pwsh.exe') | Should -Be 'build 1'
+
+        (Invoke-StepScript 'Install-PwshShim.ps1' $parameters).Status | Should -Be 'Skipped'
+    }
+
+    It 'moves the old shim aside rather than overwriting it' {
+        Invoke-StepScript 'Install-PwshShim.ps1' $parameters | Out-Null
+        $env:DOTCONFIGS_TEST_SHIM = 'build 2'
+        (Invoke-StepScript 'Install-PwshShim.ps1' $parameters).Status | Should -Be 'Success'
+        Get-Content (Join-Path $parameters.InstallDirectory 'pwsh.exe') | Should -Be 'build 2'
+        @(Get-ChildItem $parameters.InstallDirectory -Filter 'pwsh.exe.old-*') | Should -HaveCount 1
     }
 }
