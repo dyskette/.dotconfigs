@@ -6,17 +6,20 @@
 // To see all of Zed's default settings without changing your
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
+//
+// Only non-default values live here, except where an explicit choice is
+// worth pinning (telemetry, format_on_save).
 {
     "agent_servers": {
         "claude-acp": {
             "type": "registry"
         }
     },
+    // Explicit choice (matches current defaults).
     "telemetry": {
         "diagnostics": true,
         "metrics": true
     },
-    "ui_font_size": 16,
     "buffer_font_size": 14,
     "theme": {
         "mode": "system",
@@ -36,59 +39,38 @@
     // Vim mode configuration
     "vim_mode": true,
     "vim": {
+        // keymap.json maps space y / space p to the "+ register.
         "use_system_clipboard": "never",
         "use_smartcase_find": true,
+        // Focused editor: relative in normal mode, absolute in insert mode.
+        // Unfocused editors follow relative_line_numbers below.
         "toggle_relative_line_numbers": true
-    },
-    "gutter": {
-        "line_numbers": true
     },
 
     // Editor appearance
     "buffer_font_family": "JetBrainsMonoNL Nerd Font",
     "relative_line_numbers": "enabled",
     "scroll_beyond_last_line": "off",
-    "vertical_scroll_margin": 999,
+    "vertical_scroll_margin": 999,          // keep the cursor centred (scrolloff=999)
     "wrap_guides": [120],
-    "preferred_line_length": 120,
-    "soft_wrap": "none",
+    "preferred_line_length": 120,           // also the width vim `gq` rewraps to
     "show_whitespaces": "all",
-
-    // Indentation (matching nvim defaults)
-    "tab_size": 4,
-    "hard_tabs": false,
-    "indent_guides": {
-        "enabled": true
-    },
-
-    // LSP and diagnostics
-    "diagnostics": {
-        "include_warnings": true
-    },
 
     // File tree and project
     "project_panel": {
-        "dock": "left",
-        "git_status": true
+        "dock": "left"
     },
 
     // Git
     "git": {
-        "git_gutter": "tracked_files",
         "inline_blame": {
             "enabled": false
         }
     },
 
-    // Format on save
+    // Explicit choice (matches current default).
     "format_on_save": "off",
 
-    // Cursor and selection
-    "cursor_blink": false,
-    "show_completion_documentation": true,
-
-    // Collaboration
-    "collaboration_panel": {
-        "dock": "right"
-    }
+    // Cursor
+    "cursor_blink": false
 }
