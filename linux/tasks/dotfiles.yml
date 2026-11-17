@@ -38,27 +38,6 @@
     path: "{{ config_dir }}/lazygit"
     state: directory
 
-# Zellij is a single folder now — config.kdl and themes/, the same file on
-# both machines — so it is linked whole, the way Windows junctions it
-# (windows/links.jsonc). The earlier setup assembled the folder from one link
-# per file; a real directory left over from it has to go before the link can
-# take its place.
-- name: Dotfiles | Look at the Zellij config folder
-  ansible.builtin.stat:
-    path: "{{ config_dir }}/zellij"
-    follow: false
-  register: zellij_config
-  tags: dotfiles
-
-- name: Dotfiles | Drop the old per-file Zellij config folder
-  when:
-    - zellij_config.stat.isdir | default(false)
-    - not (zellij_config.stat.islnk | default(false))
-  ansible.builtin.file:
-    path: "{{ config_dir }}/zellij"
-    state: absent
-  tags: dotfiles
-
 - name: Dotfiles | Create symbolic links
   ansible.builtin.file:
     src: "{{ repository_dir }}/{{ item.src }}"
@@ -83,24 +62,25 @@
     - { src: "vscode/keybindings.json", dest: "{{ ansible_facts['env']['HOME'] }}/.var/app/com.visualstudio.code/config/Code/User/keybindings.json" }
     - { src: "zed/keymap.json", dest: "{{ config_dir }}/zed/keymap.json" }
     - { src: "zed/settings.json", dest: "{{ config_dir }}/zed/settings.json" }
-    - { src: "zellij", dest: "{{ config_dir }}/zellij" }
     - { src: "yazi", dest: "{{ config_dir }}/yazi" }
     - { src: "opencode", dest: "{{ config_dir }}/opencode" }
   tags: dotfiles
 
-# zj, zja, zjr and zj-hub-projects were the old Zellij workspace commands,
-# and the pilot plugin was built here on every run. Both are gone with the
-# workspace they drove: the plugin is parked in pilot/ (pilot/README.md) and
-# built by hand when it is wanted, so nothing needs cargo at setup time.
-- name: Dotfiles | Remove the old Zellij workspace commands
+# Zellij is no longer used: remove what earlier runs installed for it, the
+# binary, its folder in ~/.local/opt, the config link and the old workspace
+# commands.
+- name: Dotfiles | Remove Zellij
   ansible.builtin.file:
-    path: "{{ ansible_facts['env']['HOME'] }}/.local/bin/{{ item }}"
+    path: "{{ item }}"
     state: absent
   loop:
-    - zj
-    - zja
-    - zjr
-    - zj-hub-projects
+    - "{{ ansible_facts['env']['HOME'] }}/.local/bin/zellij"
+    - "{{ ansible_facts['env']['HOME'] }}/.local/opt/zellij"
+    - "{{ config_dir }}/zellij"
+    - "{{ ansible_facts['env']['HOME'] }}/.local/bin/zj"
+    - "{{ ansible_facts['env']['HOME'] }}/.local/bin/zja"
+    - "{{ ansible_facts['env']['HOME'] }}/.local/bin/zjr"
+    - "{{ ansible_facts['env']['HOME'] }}/.local/bin/zj-hub-projects"
   tags: dotfiles
 
 # delta reads its settings from git config. --replace-all with a value pattern

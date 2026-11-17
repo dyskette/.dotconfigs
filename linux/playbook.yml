@@ -30,7 +30,6 @@
         - bat
         - eza
         - zoxide
-        - zellij
         - nvim
         - yazi
         - jq
@@ -87,8 +86,6 @@
       tags: [bin, eza]
     - import_tasks: tasks/bin/zoxide.yml
       tags: [bin, zoxide]
-    - import_tasks: tasks/bin/zellij.yml
-      tags: [bin, zellij]
     - import_tasks: tasks/bin/nvim.yml
       tags: [bin, nvim]
     - import_tasks: tasks/bin/yazi.yml

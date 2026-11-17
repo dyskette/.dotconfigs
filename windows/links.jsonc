@@ -30,7 +30,6 @@
     { "app": "vscode", "source": "vscode\\keybindings.json", "target": "%APPDATA%\\Code\\User\\keybindings.json", "type": "SymbolicLink" },
     { "app": "windows-terminal", "source": "windows_terminal\\settings.json", "target": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json", "type": "SymbolicLink" },
     { "app": "yazi", "source": "yazi", "target": "%APPDATA%\\yazi\\config", "type": "Junction", "post": ["ya", "pkg", "install"] },
-    { "app": "zellij", "source": "zellij", "target": "%APPDATA%\\zellij\\config", "type": "Junction" },
     // Symbolic links, not hard links: editors and git replace files on save,
     // which silently cuts a hard link.
     { "app": "zed", "source": "zed\\settings.json", "target": "%APPDATA%\\Zed\\settings.json", "type": "SymbolicLink" },
