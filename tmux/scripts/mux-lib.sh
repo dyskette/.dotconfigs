@@ -252,20 +252,16 @@ open_session() {
 #
 #   1 yazi   2 nvim   3 lazygit   4 agent   5 shell
 #
-# A tool window is a shell until it is first shown, when the tool's command is
-# typed into it, so quitting the tool leaves the shell, the window and its
-# number. Each window still to start has the session option @slot_N (N its
-# index) set, and @slots is set while any is; whoever starts window N clears
-# @slot_N:
+# Each tool is typed into a shell rather than run in its place, so quitting
+# the tool leaves the shell, the window and its number. When it is typed:
 #
-#   psmux  the key, prefix N (psmux.conf): it types the command itself with
-#          send-keys, so nothing is spawned. psmux 3.4.0 cannot spawn from a
-#          key or hook once programs run in the session ("The handle is
-#          invalid"), and expands no formats in send-keys, so the command
-#          typed is a constant that gets the session from the pane's own
-#          PSMUX_TARGET_SESSION.
-#   tmux   the session-window-changed hook (tmux.conf), through lazy-slot.sh
-#          and slot_start; it only forks while @slots is set.
+#   psmux  as the session is built (build_session): every tool starts
+#          right away.
+#   tmux   on the window's first visit: build_session sets the session
+#          option @slot_N (N the window's index) for each tool window, and
+#          @slots while any is set; the session-window-changed hook
+#          (tmux.conf) runs lazy-slot.sh, whose slot_start types the command
+#          and clears @slot_N. The hook only forks while @slots is set.
 #
 # User options are per session, not per window, because psmux 3.4.0 keeps
 # them so; and the numbers hold because common.conf turns renumbering off.
@@ -308,7 +304,9 @@ slot_command() {
 }
 
 # Session $1, with a window per slot, started in folder $2; it opens on the
-# shell.
+# shell. On psmux every tool starts right away: its command is typed as the
+# window is created (pwsh takes keys typed while it is still loading its
+# profile). On tmux the windows wait for their first visit (@slot_N).
 build_session() {
     local name="$1" dir="$2" i idx
     for i in "${!slots[@]}"; do
@@ -317,9 +315,15 @@ build_session() {
         else
             idx="$("$mux" new-window -dP -F '#{window_index}' -t "=$name:" -c "$dir" -n "${slots[i]}")" || return 1
         fi
-        [[ "${slots[i]}" != shell ]] && "$mux" set-option -t "=$name" "@slot_$idx" 1
+        [[ "${slots[i]}" == shell ]] && continue
+        if ((win)); then
+            slot_command "$name" "${slots[i]}"
+            "$mux" send-keys -t "=$name:$idx" "$REPLY" Enter
+        else
+            "$mux" set-option -t "=$name" "@slot_$idx" 1
+        fi
     done
-    "$mux" set-option -t "=$name" @slots 1
+    ((win)) || "$mux" set-option -t "=$name" @slots 1
     "$mux" select-window -t "=$name:$idx"
 }
 
