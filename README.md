@@ -91,6 +91,7 @@ A session per project. The pickers are the same bash scripts on both
 | `tm DIR` | open DIR's session |
 | `prefix a` | walk to any folder, one level at a time, and open a session there |
 | `prefix w` | switch window, most recent first; `ctrl-x` twice closes one |
+| `prefix Space` | which-key: the keys in `tmux/which-key.conf`, a level at a time, as in nvim |
 
 `tmux/projects.conf` serves both machines: paths that do not exist are
 skipped, so it lists the Windows roots (`~/Projects`, `~/source/repos`) and the
