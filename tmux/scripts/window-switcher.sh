@@ -167,7 +167,7 @@ go_to() {
         fail "Could not select window $target: $err"
         return 0
     fi
-    if [[ "$sess" != "$REPLY" ]] && ! err="$("$mux" switch-client -t "=$sess" 2>&1)"; then
+    if [[ "$sess" != "$REPLY" ]] && ! err="$(switch_to "$sess" 2>&1)"; then
         fail "Could not switch to session $sess: $err"
     fi
 }

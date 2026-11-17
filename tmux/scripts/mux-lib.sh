@@ -240,9 +240,31 @@ ensure_session() {
 open_session() {
     ensure_session "$1" "${2:-}" || return
     if in_client; then
-        "$mux" switch-client -t "=$REPLY"
+        switch_to "$REPLY"
     else
         "$mux" attach -t "=$REPLY"
+    fi
+}
+
+# Move this session's client to session $1.
+#
+# psmux sends switch-client to the server of the session it names unless
+# TMUX says which server the client is on, and a server that has no client
+# does nothing with it, exiting 0: the switch to a session created a moment
+# before went nowhere. TMUX itself cannot be trusted here (a server keeps the
+# one it was started with; see the top of this file), so it is built for
+# this call from the port this session's server listens on, which psmux
+# keeps in ~/.psmux/<session>.port. Without that file, the plain call.
+switch_to() {
+    local port=""
+    if ((win)); then
+        current_session
+        [[ -r "$home/.psmux/$REPLY.port" ]] && read -r port <"$home/.psmux/$REPLY.port"
+    fi
+    if [[ "$port" =~ ^[0-9]+$ ]]; then
+        TMUX="/tmp/psmux-0/default,$port,0" "$mux" switch-client -t "=$1"
+    else
+        "$mux" switch-client -t "=$1"
     fi
 }
 

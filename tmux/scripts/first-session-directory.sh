@@ -17,7 +17,7 @@ name="$("$BASH" "$here/project-picker.sh" --print)"
 [[ -n "$name" ]] || exit 0
 
 # "=": exact names, so session 0 never matches 01.
-"$mux" switch-client -t "=$name"
+switch_to "$name"
 if [[ "$name" != "$cur" ]]; then
     "$mux" kill-session -t "=$cur"
 fi
