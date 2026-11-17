@@ -62,7 +62,7 @@ the tools need no keys of their own — `prefix 1`…`prefix 5` go to one:
 
 | | |
 | --- | --- |
-| `1 yazi` `2 nvim` `3 lazygit` `4 agent` | a shell until the first time you switch to it, which starts the tool (`tmux/scripts/lazy-slot.sh`); quitting the tool leaves the shell, so the numbers never move |
+| `1 yazi` `2 nvim` `3 lazygit` `4 agent` | the tool, started with the session; quitting it leaves a shell, so the numbers never move |
 | `5 shell` | where a session opens |
 
 The nvim window is the session's editor: it listens on an address of its

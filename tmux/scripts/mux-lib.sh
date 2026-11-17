@@ -29,7 +29,7 @@
 #
 # Slots: the windows every session is built with (see build_session)
 #   slot_window SESSION NAME   REPLY: the index of SESSION's window NAME
-#   slot_start SESSION INDEX [COMMAND]  start a slot's tool, or COMMAND
+#   run_in_slot SESSION INDEX COMMAND  type COMMAND at the window's prompt
 #   editor_address SESSION     REPLY: where SESSION's nvim listens
 #
 # Everything a popup runs before fzf draws delays the popup, and under Git Bash
@@ -252,19 +252,11 @@ open_session() {
 #
 #   1 yazi   2 nvim   3 lazygit   4 agent   5 shell
 #
-# Each tool is typed into a shell rather than run in its place, so quitting
-# the tool leaves the shell, the window and its number. When it is typed:
-#
-#   psmux  as the session is built (build_session): every tool starts
-#          right away.
-#   tmux   on the window's first visit: build_session sets the session
-#          option @slot_N (N the window's index) for each tool window, and
-#          @slots while any is set; the session-window-changed hook
-#          (tmux.conf) runs lazy-slot.sh, whose slot_start types the command
-#          and clears @slot_N. The hook only forks while @slots is set.
-#
-# User options are per session, not per window, because psmux 3.4.0 keeps
-# them so; and the numbers hold because common.conf turns renumbering off.
+# Every tool starts with its session: build_session types its command into
+# the window as the window is created (a shell takes keys typed while it is
+# still loading its profile). Typed into a shell rather than run in its
+# place, so quitting the tool leaves the shell, the window and its number.
+# The numbers hold because common.conf turns renumbering off.
 #
 # yazi is a window rather than a popup because a popup attaches a second
 # client, and yazi wraps its terminal probe in one layer of tmux passthrough:
@@ -303,10 +295,8 @@ slot_command() {
     esac
 }
 
-# Session $1, with a window per slot, started in folder $2; it opens on the
-# shell. On psmux every tool starts right away: its command is typed as the
-# window is created (pwsh takes keys typed while it is still loading its
-# profile). On tmux the windows wait for their first visit (@slot_N).
+# Session $1, with a window per slot, started in folder $2, each tool already
+# typed into its window; it opens on the shell.
 build_session() {
     local name="$1" dir="$2" i idx
     for i in "${!slots[@]}"; do
@@ -315,18 +305,11 @@ build_session() {
         else
             idx="$("$mux" new-window -dP -F '#{window_index}' -t "=$name:" -c "$dir" -n "${slots[i]}")" || return 1
         fi
-        [[ "${slots[i]}" == shell ]] && continue
-        if ((win)); then
-            slot_command "$name" "${slots[i]}"
-            "$mux" send-keys -t "=$name:$idx" "$REPLY" Enter
-        else
-            "$mux" set-option -t "=$name" "@slot_$idx" 1
-        fi
+        slot_command "$name" "${slots[i]}"
+        [[ -n "$REPLY" ]] && "$mux" send-keys -t "=$name:$idx" "$REPLY" Enter
     done
-    ((win)) || "$mux" set-option -t "=$name" @slots 1
     "$mux" select-window -t "=$name:$idx"
 }
-
 # REPLY: the index of session $1's window named $2. Matched here rather than
 # with list-windows -f, which psmux 3.4.0 ignores.
 slot_window() {
@@ -341,48 +324,19 @@ slot_window() {
     return 1
 }
 
-# Start window $2 (an index) of session $1: type its slot's command -- or $3
-# -- into the shell there. Without $3 only a window still waiting for its
-# first start, with $3 any window; either way it is not waiting any more.
-# Fails when nothing was started.
-#
-# tmux's hook can run several of these at once, so the check and the start
-# happen under a lock of the session's. Keys go only to a pane at a shell
-# prompt: one still loading its profile shows its helpers (zoxide, fnm,
-# cygpath under pwsh), so it is waited for, up to 15 s.
-slot_start() {
-    local s="$1" w="$2" cmd="${3:-}" i rc=1 lock
-    lock="${TMPDIR:-/tmp}/slots-${s//[^A-Za-z0-9_.-]/_}.lock"
-    slot_lock "$lock" || return 1
-    if [[ -n "$cmd" || -n "$("$mux" show-options -t "=$s" -qv "@slot_$w" 2>/dev/null)" ]]; then
-        "$mux" set-option -t "=$s" -u "@slot_$w"
-        if [[ -z "$cmd" ]]; then
-            slot_command "$s" "$("$mux" display-message -t "=$s:$w" -p '#{window_name}' 2>/dev/null)"
-            cmd="$REPLY"
-        fi
-        for ((i = 0; i < 75; i++)); do
-            case "$("$mux" display-message -t "=$s:$w" -p '#{pane_current_command}' 2>/dev/null)" in
-                bash | sh | zsh | fish | pwsh | powershell | cmd) break ;;
-                "") i=75 ;; # the window is gone
-            esac
-            sleep 0.2
-        done
-        ((i < 75)) && [[ -n "$cmd" ]] && "$mux" send-keys -t "=$s:$w" "$cmd" Enter && rc=0
-        # The hook's filter: off once no window waits.
-        "$mux" show-options -t "=$s" 2>/dev/null | grep -q '^@slot_' || "$mux" set-option -t "=$s" -u @slots
-    fi
-    rmdir "$lock" 2>/dev/null
-    return "$rc"
-}
-
-# Take lock $1, a folder: mkdir is atomic. One left behind by a job that was
-# killed is taken over after 10 s.
-slot_lock() {
-    local i
-    for ((i = 0; i < 50; i++)); do
-        mkdir "$1" 2>/dev/null && return 0
+# Type command $3 into window $2 (an index) of session $1, once the pane is
+# at a shell prompt: never into a running program. A shell still loading its
+# profile shows its helpers there (zoxide, fnm, cygpath under pwsh), so the
+# pane is waited for, up to 15 s. edit.sh starts the session's editor with
+# this when nvim is not running in its window. Fails when nothing was typed.
+run_in_slot() {
+    local s="$1" w="$2" i
+    for ((i = 0; i < 75; i++)); do
+        case "$("$mux" display-message -t "=$s:$w" -p '#{pane_current_command}' 2>/dev/null)" in
+            bash | sh | zsh | fish | pwsh | powershell | cmd) break ;;
+            "") return 1 ;; # the window is gone
+        esac
         sleep 0.2
     done
-    rmdir "$1" 2>/dev/null
-    mkdir "$1" 2>/dev/null
+    ((i < 75)) && "$mux" send-keys -t "=$s:$w" "$3" Enter
 }

@@ -107,7 +107,7 @@ if slot_window "$s" nvim; then
     # the editor is started there on them: sent with it rather than after,
     # because an editor still working through its plugins takes the request
     # and then moves the cursor itself, leaving the file open at line 1.
-    remote_open "$addr" || slot_start "$s" "$w" "$start" || give_up
+    remote_open "$addr" || run_in_slot "$s" "$w" "$start" || give_up
 else
     w="$("$mux" new-window -dP -F '#{window_index}' -t "=$s:" -n nvim -c "$PWD" "$start")" || run_here
 fi
