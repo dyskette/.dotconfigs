@@ -5,3 +5,5 @@ yazi/package.toml text eol=lf
 tmux/projects.conf text eol=lf
 # cmd.exe scripts (tmux/scripts/edit.cmd) keep cmd's own line endings.
 *.cmd text eol=crlf
+# Shell scripts are run by bash, Git Bash included, which cannot parse CRLF.
+*.sh text eol=lf
